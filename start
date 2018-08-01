@@ -211,7 +211,7 @@ class Start
 
             if ($isDll32 || $isDll64) {
                 if (array_filter($dlls)) {
-                    file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", $dlls));
+                    file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", array_unique(array_filter($dlls))));
                     $this->runExternal("{$this->wineConfig['REGEDIT']} \"{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg\"");
                     unlink("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg");
                 }
