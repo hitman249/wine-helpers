@@ -1,0 +1,869 @@
+#!/usr/bin/php
+<?php
+
+/**
+ * Requires php 5.4 or up
+ */
+class Start
+{
+    private $currentDir;
+    private $gameInfo;
+    private $wineConfig;
+    private $userName;
+    private $args;
+    private $monitors;
+    private $xrandr;
+    private $vulkan;
+    private $useXrandr = true;
+
+
+    /**
+     * Start constructor.
+     * @param string[] $arguments
+     */
+    public function __construct($arguments)
+    {
+        $this->args = array_splice($arguments, 1);
+
+        $this->currentDir = __DIR__;
+        $gameInfo         = "{$this->currentDir}/game_info";
+        $winePrefix       = "{$this->currentDir}/prefix";
+
+        $this->gameInfo = [
+
+            'DIR'        => $gameInfo,
+            'DLL32'      => "{$gameInfo}/dlls",
+            'DLL64'      => "{$gameInfo}/dlls64",
+            'ADDITIONAL' => "{$gameInfo}/additional",
+            'DATA'       => "{$gameInfo}/data",
+            'REGS'       => "{$gameInfo}/regs",
+            'INFOFILE'   => "{$gameInfo}/game_info.txt",
+
+        ];
+
+        $this->wineConfig = [
+
+            'WINE'       => "{$this->currentDir}/wine/bin/wine",
+            'REGEDIT'    => "{$this->currentDir}/wine/bin/regedit",
+            'WINEBOOT'   => "{$this->currentDir}/wine/bin/wineboot",
+            'WINEFILE'   => "{$this->currentDir}/wine/bin/winefile",
+            'WINECFG'    => "{$this->currentDir}/wine/bin/winecfg",
+            'WINESERVER' => "{$this->currentDir}/wine/bin/wineserver",
+
+            'WINEPREFIX'             => $winePrefix,
+            'DRIVE_C'                => "{$winePrefix}/drive_c",
+            'WINEDEBUG'              => '-all',
+            'WINEARCH'               => 'win32',
+            'WINEDLLOVERRIDES'       => 'winemenubuilder.exe=d;mscoree,mshtml=',
+            'CSMT'                   => true,
+            'SANDBOX'                => true,
+            'WINETRICKS_UPDATE'      => false,
+            'VIRTUAL_DESKTOP_ENABLE' => false,
+            'VIRTUAL_DESKTOP'        => 'explorer /desktop=Wine,800x600',
+
+        ];
+
+        $this->init();
+    }
+
+    public function start()
+    {
+        $this->wineVersion();
+
+        if ($this->wineConfig['WINETRICKS_UPDATE']) {
+            $this->downloadWinetricks();
+        }
+
+        $this->xrandrVersion();
+        $this->vulkanVersion();
+        $this->checkLibs();
+        $this->createPrefix();
+
+        $method = 'game';
+        $args = [];
+
+        if (!$this->args) {
+            $method = 'game';
+        } else {
+            $method = $this->args[0];
+            $args   = array_splice($this->args, 1);
+        }
+
+        if (method_exists($this, $method)) {
+            $this->monitors = $this->resolutions();
+            $this->{$method}($args);
+            $this->restoreResolutions();
+        }
+    }
+
+    private function game($args)
+    {
+        $this->gameVersion();
+
+        $cmd = implode(' ', $args);
+        $desktop = $this->wineConfig['VIRTUAL_DESKTOP_ENABLE'] ? $this->wineConfig['VIRTUAL_DESKTOP'] : '';
+        $this->runExternal("cd \"{$this->gameInfo['GAME_PATH']}/{$this->gameInfo['PATH']}/\" && {$this->wineConfig['WINE']} {$desktop} {$this->gameInfo['EXE']} {$cmd}", true);
+    }
+
+    private function winetricks($args)
+    {
+        $this->downloadWinetricks();
+
+        if (file_exists("{$this->currentDir}/winetricks")) {
+            $cmd = implode(' ', $args);
+            $this->runExternal("{$this->currentDir}/winetricks {$cmd}", true);
+        } else {
+            $this->log('Not found winetricks.');
+        }
+    }
+
+    private function fm($args)
+    {
+        $cmd = implode(' ', $args);
+        $this->runExternal("{$this->wineConfig['WINEFILE']} {$cmd}", true);
+    }
+
+    private function cfg($args)
+    {
+        $cmd = implode(' ', $args);
+        $this->runExternal("{$this->wineConfig['WINECFG']} {$cmd}", true);
+    }
+
+    private function kill($args)
+    {
+        $cmd = implode(' ', $args);
+
+        if ($cmd) {
+            $this->runExternal("{$this->wineConfig['WINESERVER']} {$cmd}", true);
+        } else {
+            $this->runExternal("{$this->wineConfig['WINESERVER']} -k", true);
+        }
+    }
+
+    private function reg($args)
+    {
+        $this->regedit($args);
+    }
+
+    private function regedit($args)
+    {
+        $cmd = implode(' ', $args);
+        $this->runExternal("{$this->wineConfig['REGEDIT']} {$cmd}", true);
+    }
+
+    private function help($args)
+    {
+        $help = [
+            'Help:',
+            './start                     - Run game',
+            './start winetricks d3dx9    - Winetricks install d3dx9',
+            './start cfg                 - Configure',
+            './start fm                  - File Manager',
+            './start regedit (reg)       - Windows Registry Editor',
+            './start kill                - Kill this instance Wine',
+            './start help',
+        ];
+
+        $this->log(implode("\n", $help));
+    }
+
+    private function createPrefix()
+    {
+        if (!file_exists($this->wineConfig['WINEPREFIX'])) {
+            $this->runExternal("{$this->wineConfig['WINEBOOT']} && sleep 2");
+
+
+            /**
+             * Apply reg files
+             */
+            if (file_exists($this->gameInfo['REGS'])) {
+                $regs = array_map('file_get_contents', glob("{$this->gameInfo['REGS']}/*.reg"));
+                file_put_contents("{$this->gameInfo['REGS']}/tmp.reg", implode("\n", $regs));
+                $this->runExternal("{$this->wineConfig['REGEDIT']} \"{$this->gameInfo['REGS']}/tmp.reg\"");
+                unlink("{$this->gameInfo['REGS']}/tmp.reg");
+            }
+
+
+            /**
+             * Copy required dlls and override them
+             */
+            $dlls = [''];
+            $isDll32 = file_exists($this->gameInfo['DLL32']);
+            $isDll64 = file_exists($this->gameInfo['DLL64']);
+
+            if ($isDll32) {
+                foreach (glob("{$this->gameInfo['DLL32']}/*.dll") as $filePath) {
+                    $fileName = basename($filePath);
+                    $dll32 = $this->relativePath($this->gameInfo['DLL32']);
+                    $this->runExternal("ln -sfr '{$dll32}/{$fileName}' '{$this->wineConfig['DRIVE_C']}/windows/system32'");
+                    $dlls[] = '"' . $fileName . '"="native"';
+                }
+            }
+
+            if ($isDll64) {
+                foreach (glob("{$this->gameInfo['DLL64']}/*.dll") as $filePath) {
+                    $fileName = basename($filePath);
+                    $dll32 = $this->relativePath($this->gameInfo['DLL64']);
+                    $this->runExternal("ln -sfr '{$dll32}/{$fileName}' '{$this->wineConfig['DRIVE_C']}/windows/syswow64'");
+                    $dlls[] = '"' . $fileName . '"="native"';
+                }
+            }
+
+            if ($isDll32 || $isDll64) {
+                if (array_filter($dlls)) {
+                    file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", $dlls));
+                    $this->runExternal("{$this->wineConfig['REGEDIT']} \"{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg\"");
+                    unlink("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg");
+                }
+            }
+
+
+            /**
+             * Sandbox the prefix; Borrowed from winetricks scripts
+             */
+            if ($this->wineConfig['SANDBOX']) {
+                unlink("{$this->wineConfig['WINEPREFIX']}/dosdevices/z:");
+
+                foreach (glob("{$this->wineConfig['DRIVE_C']}/users/{$this->userName}/*") as $filePath) {
+                    if (is_link($filePath)) {
+                        unlink($filePath);
+                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
+                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
+                        }
+                    }
+                }
+
+                $this->runExternal("{$this->wineConfig['REGEDIT']} /d 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}'");
+                file_put_contents("{$this->wineConfig['WINEPREFIX']}/.update-timestamp", 'disable');
+            }
+
+
+            /**
+             * Create symlinks to additional folders
+             */
+            if (file_exists($this->gameInfo['ADDITIONAL']) && file_exists("{$this->gameInfo['ADDITIONAL']}/path.txt")) {
+
+                $folders = array_filter(array_map('trim', explode("\n", file_get_contents("{$this->gameInfo['ADDITIONAL']}/path.txt"))));
+
+                if ($folders) {
+                    $adds = glob("{$this->gameInfo['ADDITIONAL']}/*/");
+                    $isCyrillic = trim($this->runExternal('locale | grep LANG=ru'));
+
+                    if (count($adds) >= count($folders)) {
+                        foreach ($adds as $i => $path) {
+
+                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->userName, trim($folders[$i], " \t\n\r\0\x0B/"));
+
+                            if (!$isCyrillic) {
+                                $add = str_replace('Мои документы', 'My Documents', $add);
+                            }
+
+                            $gameInfoAddDir = $this->relativePath($path);
+
+                            $this->runExternal("mkdir -p \"{$this->wineConfig['DRIVE_C']}/{$add}\" && rm -r \"{$this->wineConfig['DRIVE_C']}/{$add}\" && ln -sfr \"{$gameInfoAddDir}\" \"{$this->wineConfig['DRIVE_C']}/{$add}\"");
+                        }
+                    } else {
+                        $this->log('Not the same count dirs in "game_info/additional/dir_*" and "game_info/additional/path.txt" file.');
+                    }
+                }
+            }
+
+            /**
+             * Enable or disable CSMT
+             */
+            $this->csmtUpdate();
+        }
+    }
+
+    private function init()
+    {
+        if (posix_geteuid() === 0) {
+            $this->log('Do not run this script as root!');
+            exit(0);
+        }
+
+        if (!file_exists($this->wineConfig['WINE'])) {
+            $this->wineConfig['WINE']       = 'wine';
+            $this->wineConfig['REGEDIT']    = 'regedit';
+            $this->wineConfig['WINEBOOT']   = 'wineboot';
+            $this->wineConfig['WINEFILE']   = 'winefile';
+            $this->wineConfig['WINECFG']    = 'winecfg';
+            $this->wineConfig['WINESERVER'] = 'wineserver';
+        }
+
+        $this->userName = get_current_user();
+
+        if (!file_exists($this->gameInfo['DIR'])) {
+
+            if (file_exists("{$this->currentDir}/wine/bin")) {
+                $this->runExternal("chmod +x -R {$this->currentDir}/wine/bin/*");
+            }
+
+            foreach ($this->gameInfo as $key => $path) {
+                if ($key === 'INFOFILE') {
+                    continue;
+                }
+                if (!mkdir($path, 0775, true) && !is_dir($path)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+                }
+            }
+
+            $readme = 'readme.txt';
+
+
+            /**
+             * game_info/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['DIR']}/{$readme}",
+                "Эта директория необходима для работы скрипта.
+
+Описание директорий/файлов:
+
+game_info.txt - информация об игре (обязательная директория)
+data - каталог с игрой (обязательная директория)
+dlls - дополнительные dll файлы (необязательная директория)
+dlls64 - дополнительные dll файлы (необязательная директория)
+additional - специфичные для игры настройки (необязательная директория)
+regs - файлы реестра windows (необязательная директория)"
+            );
+
+
+            /**
+             * game_info/game_info.txt
+             */
+
+            file_put_contents(
+                $this->gameInfo['INFOFILE'],
+                "путь_к_игре_относительно_drive_c            (1 строка)
+версия_игры                                 (2 строка)
+исполняемый_файл_игры                       (3 строка)
+аргументы_запуска                           (4 строка)
+дополнительный_путь_к_исполняемому_файлу    (5 строка)
+название_игры                               (6 строка)
+
+--------------------------------------------------------------------
+
+Пример содержания файла game_info.txt:
+
+Program Files/The Super Game
+1.0.0
+Game.exe
+-language=russian
+bin
+The Super Game: Deluxe Edition
+
+p.s. Обязательно соблюдайте нумерацию строк. Если игре не нужны
+аргументы запуска или дополнительный путь к exe файлу, просто
+оставляйте строки 4 и/или 5 пустыми."
+            );
+
+
+            /**
+             * game_info/data/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['DATA']}/{$readme}",
+                "Здесь должна находиться игра."
+            );
+
+
+            /**
+             * game_info/dlls/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['DLL32']}/{$readme}",
+                "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
+директорию можно удалить."
+            );
+
+
+            /**
+             * game_info/dlls64/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['DLL64']}/{$readme}",
+                "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
+директорию можно удалить."
+            );
+
+
+            /**
+             * game_info/regs/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['REGS']}/{$readme}",
+                "Здесь должны находиться .reg файлы."
+            );
+
+
+            /**
+             * game_info/additional/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['ADDITIONAL']}/{$readme}",
+                "Специфичные для игры настройки. Класть в директории dir_1, dir_2, dir_3
+и т.д. Путь для копирования (относительно drive_c) нужно указывать
+в файле path.txt. Первая строчка для dir_1, вторая - для dir_2 и т.д.
+Всю директорию additional можно удалить, если к игре не нужно заранее
+применять настройки.
+
+--REPLACE_WITH_USERNAME-- в файле path.txt заменяется на имя пользователя
+автоматически."
+            );
+
+
+            /**
+             * game_info/additional/path.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['ADDITIONAL']}/path.txt",
+                "users/--REPLACE_WITH_USERNAME--/Мои документы/JoWooD/NFH2"
+            );
+
+            if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_1", 0775, true) && !is_dir($path)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+            }
+
+
+            /**
+             * game_info/additional/dir_1/readme.txt
+             */
+
+            file_put_contents(
+                "{$this->gameInfo['ADDITIONAL']}/dir_1/{$readme}",
+                "Здесь должно находиться содержимое директории dir_1."
+            );
+
+            /**
+             * readme.txt
+             */
+
+            file_put_contents(
+                "{$this->currentDir}/{$readme}",
+                "Этот скрипт предназначен в первую очередь для облегчения
+создания и распространения Wine раздач игр/программ, но может применяться
+и в других целях. Работа скрипта гарантируется на всех дистрибутивах
+Linux, где установлены стандартные утилиты GNU, оболочка bash и php 5.4+.
+
+Я не несу никакой ответственности за нанесенный скриптами вред!
+
+=======================================================================
+
+Если в системе установлен xrandr скрипт будет проверять изменения настроек
+мониторов, для каждого в отдельности, восстанавливаются только изменившиеся 
+параметры. Поддерживается восстановление разрешения, яркости и гаммы.
+
+Не поддерживается частота.
+
+=======================================================================
+
+Что нужно знать о скрипте start:
+
+- В скрипте определены 4 переменные, которые вы, возможно, захотите
+изменить:
+	* Переменная CSMT определяет, будет ли включен CSMT
+	* Переменная SANDBOX определяет, будет ли Wine использовать
+		домашний каталог пользователя.
+	* Переменная WINETRICKS_UPDATE определяет, будет ли скрипт запуска
+		скачивать winetricks при первом создании префикса
+	* Пременная VIRTUAL_DESKTOP отвечает за запуск игры в виртуальном
+		рабочем столе (окне)
+
+- Остальные переменные, как правило, нет смысла изменять. Кроме
+переменной WINEARCH, если вы создаете 64-битную раздачу.
+
+=======================================================================
+
+Help:
+./start                     - Run game
+./start winetricks d3dx9    - Winetricks install d3dx9
+./start cfg                 - Configure
+./start fm                  - File Manager
+./start regedit (reg)       - Windows Registry Editor
+./start kill                - Kill this instance Wine
+./start help
+
+=======================================================================
+
+Краткая инструкция по созданию раздачи Wine игры/программы:
+
+1. Скачать готовую сборку Wine и поместить каталог wine рядом со скриптом start. 
+В случае отсутствия директории wine, скрипт будет использовать
+установленный в системе Wine.
+
+2. Запустить установщик игры/программы с помощью скрипта ./start fm
+и установить игру/программу
+
+3. Изменить файл game_info/game_info.txt в соответствии с игрой/программой
+
+4. Если игре необходимы какие-то дополнительные dll файлы, нужно установить
+их с помощью ./start winetricks, а затем скопировать 
+из prefix/drive_c/windows/system32 в game_info/dlls
+
+5. Если игре требуются какие-то дополнительные файлы, нужно поместить их
+в каталоги (dri_1, dri_2 и т.д.) в game_info/additional и прописать пути
+в game_info/additional/path.txt
+
+6. Переместить все файлы из каталога с игрой в каталог game_info/data
+
+7. Если какие-то каталоги в game_info остались пустыми (например, вы не
+использовали каталог dlls, так как игре не нужны дополнительные dll файлы),
+можно их удалить
+
+8. Удалить папку prefix.
+
+9. Запустить игру скриптом ./start и проверить ее работоспособность.
+
+10. Если никаких проблем не возникло, нужно снова удалить папку prefix (обязательно!), 
+а также все посторонние файлы.
+
+11. Теперь можно запаковывать игру в архив и распространять.
+"
+            );
+        }
+
+        $gameInfoInit = false;
+
+        if (file_exists($this->gameInfo['INFOFILE'])) {
+            $gameInfoFile = explode("\n", file_get_contents($this->gameInfo['INFOFILE']));
+
+            if (!empty($gameInfoFile[0]) && strpos($gameInfoFile[0], 'строка') === false) {
+                $this->gameInfo['GAME_PATH'] = "{$this->wineConfig['DRIVE_C']}/$gameInfoFile[0]";
+                $this->gameInfo['VERSION']   = $gameInfoFile[1];
+                $this->gameInfo['EXE']       = $gameInfoFile[2];
+                $this->gameInfo['ARGS']      = $gameInfoFile[3];
+                $this->gameInfo['PATH']      = $gameInfoFile[4];
+                $this->gameInfo['GAME']      = $gameInfoFile[5];
+
+                $gameInfoInit = true;
+            } else {
+                $this->log('Incorrect game_info.txt file!');
+                exit(0);
+            }
+        }
+
+        if ($gameInfoInit === false) {
+            $this->log('There is no game_info.txt file!');
+            exit(0);
+        }
+
+        $isWine = trim($this->runExternal("which {$this->wineConfig['WINE']}"));
+
+        if (!$isWine) {
+            $this->log('There is no Wine available in your system!');
+            exit(0);
+        }
+
+
+        /**
+         * Create symlink to game directory
+         */
+        if (!file_exists($this->gameInfo['GAME_PATH']) && file_exists($this->wineConfig['WINEPREFIX'])) {
+
+            $data = $this->relativePath($this->gameInfo['DATA']);
+            $game = $this->gameInfo['GAME_PATH'];
+            $this->runExternal("mkdir -p \"{$game}\" && rm -r \"{$game}\" && ln -sfr \"{$data}\" \"{$game}\"");
+        }
+
+        /**
+         * Enable or disable CSMT
+         */
+        $this->csmtUpdate();
+
+        if ($this->useXrandr) {
+            $this->xrandr = (bool)trim($this->runExternal("which xrandr"));
+        }
+
+        $this->vulkan = (bool)trim($this->runExternal("which vulkaninfo"));
+    }
+
+    private function downloadWinetricks()
+    {
+        if (!file_exists("{$this->currentDir}/winetricks")) {
+            $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
+            $winetricks = file_get_contents($url);
+            file_put_contents("{$this->currentDir}/winetricks", $winetricks);
+            $this->runExternal("chmod +x {$this->currentDir}/winetricks");
+        }
+
+        $this->winetricksVersion();
+    }
+
+    private function winetricksVersion()
+    {
+        $winetricks = file_get_contents("{$this->currentDir}/winetricks");
+        foreach (explode("\n", $winetricks) as $line) {
+            if (strpos($line, 'WINETRICKS_VERSION') !== false) {
+                $this->log("{$line}\n");
+                unset($winetricks);
+                return;
+            }
+        }
+    }
+
+    private function checkLibs()
+    {
+        $result = $this->runExternal("{$this->wineConfig['WINE']} --check-libs");
+        $result = array_filter(
+            array_map('trim', explode("\n", $result)),
+            function ($line) {
+                if (!$line) {
+                    return false;
+                }
+
+                list($left, $right) = array_map(
+                    function ($s) {return trim($s, " \t\n\r\0\x0B.");},
+                    explode(':', $line)
+                );
+
+                return strpos($right, '.') === false;
+            }
+        );
+
+        if ($result) {
+            $result = implode(
+                "\n",
+                array_merge([
+                    "Wine missing libs",
+                    "(Not all libraries are required)",
+                    "--------------------"
+                ], $result)
+            );
+
+            $this->log("{$result}\n");
+        }
+    }
+
+    private function wineVersion()
+    {
+        $version = trim($this->runExternal("{$this->wineConfig['WINE']} --version"));
+        $csmt = $this->wineConfig['CSMT'] ? 'with CSMT enabled' : '';
+
+        $this->log("Using {$version} ({$this->wineConfig['WINEARCH']}) {$csmt}\n");
+    }
+
+    private function xrandrVersion()
+    {
+        if (!$this->xrandr) {
+            return;
+        }
+
+        $version = trim($this->runExternal("xrandr --version"));
+        $this->log("{$version}\n");
+    }
+
+    private function vulkanVersion()
+    {
+        if (!$this->vulkan) {
+            return;
+        }
+
+        $version = trim($this->runExternal("vulkaninfo --json"));
+        $version = json_decode($version, true);
+        $this->log("Vulkan API version: {$version['comments']['vulkanApiVersion']}\n");
+    }
+
+    private function gameVersion()
+    {
+        $this->log("\nRunning {$this->gameInfo['GAME']} version {$this->gameInfo['VERSION']}\n");
+    }
+
+    private function csmtUpdate()
+    {
+        if (!file_exists($this->wineConfig['WINEPREFIX'])) {
+            return;
+        }
+
+        $csmt = [
+            "Windows Registry Editor Version 5.00\n",
+            "[HKEY_CURRENT_USER\Software\Wine\Direct3D]\n",
+        ];
+
+        if ($this->wineConfig['CSMT'] && !file_exists("{$this->wineConfig['DRIVE_C']}/csmt.reg")) {
+            $csmt[] = "\"csmt\"=dword:1\n";
+            file_put_contents("{$this->wineConfig['DRIVE_C']}/csmt.reg", implode("\n", $csmt));
+            $this->runExternal("{$this->wineConfig['REGEDIT']} {$this->wineConfig['DRIVE_C']}/csmt.reg");
+        } elseif ($this->wineConfig['CSMT'] === false && file_exists("{$this->wineConfig['DRIVE_C']}/csmt.reg")) {
+            $csmt[] = "\"csmt\"=dword:0\n";
+            file_put_contents("{$this->wineConfig['DRIVE_C']}/csmt.reg", implode("\n", $csmt));
+            $this->runExternal("{$this->wineConfig['REGEDIT']} {$this->wineConfig['DRIVE_C']}/csmt.reg");
+            unlink("{$this->wineConfig['DRIVE_C']}/csmt.reg");
+        }
+    }
+
+    private function runExternal($cmd, $outputConsole=false)
+    {
+        $exported = [
+            'export WINE'             => $this->wineConfig['WINE'],
+            'export WINEPREFIX'       => $this->wineConfig['WINEPREFIX'],
+            'export WINEBOOT'         => $this->wineConfig['WINEBOOT'],
+            'export WINEFILE'         => $this->wineConfig['WINEFILE'],
+            'export WINECFG'          => $this->wineConfig['WINECFG'],
+            'export WINESERVER'       => $this->wineConfig['WINESERVER'],
+            'export REGEDIT'          => $this->wineConfig['REGEDIT'],
+            'export WINEARCH'         => $this->wineConfig['WINEARCH'],
+            'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
+            'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
+        ];
+
+        $prefix = [];
+
+        foreach ($exported as $key => $value) {
+            $prefix[] = "{$key}=\"{$value}\";";
+        }
+
+        $prefix = implode(' ', $prefix);
+
+        $cmd = "{$prefix} {$cmd}";
+
+
+        if ($outputConsole) {
+
+            system($cmd);
+
+            return '';
+        }
+
+        $descriptorspec = array(
+            0 => array("pipe", "r"), // stdin is a pipe that the child will read from
+            1 => array("pipe", "w"), // stdout is a pipe that the child will write to
+            2 => array("pipe", "w") // stderr is a file to write to
+        );
+
+        $pipes = array();
+        $process = proc_open($cmd, $descriptorspec, $pipes);
+
+        $output = "";
+
+        if (!is_resource($process)) return false;
+
+        #close child's input imidiately
+        fclose($pipes[0]);
+
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        $todo = array($pipes[1], $pipes[2]);
+
+        while (true) {
+            $read = array();
+            if (!feof($pipes[1])) $read[] = $pipes[1];
+            if (!feof($pipes[2])) $read[] = $pipes[2];
+
+            if (!$read) break;
+
+            $ready = @stream_select($read, $write = NULL, $ex = NULL, 2);
+
+            if ($ready === false) {
+                break; #should never happen - something died
+            }
+
+            foreach ($read as $r) {
+                $s = fread($r, 1024);
+                $output .= $s;
+            }
+        }
+
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        #$code = proc_close($process);
+
+        return $output;
+    }
+
+    private function log($text='')
+    {
+        print "{$text}\n";
+    }
+
+    private function relativePath($absPath)
+    {
+        return trim(str_replace($this->currentDir, '', $absPath), " \t\n\r\0\x0B/");
+    }
+
+    private function resolutions()
+    {
+        if (!$this->xrandr) {
+            return;
+        }
+
+        $head = '/^(.*) connected( | primary )([0-9]{3,4}x[0-9]{3,4}).*\n*/m';
+        $dump = $this->runExternal('xrandr --verbose');
+        $array = explode("\n", $dump);
+        $monitors = [];
+
+        preg_match_all($head, $dump, $matches);
+
+        foreach ($matches[0] as $i => $_line) {
+            $monitors[$matches[1][$i]] = [
+                'output' => $matches[1][$i],
+                'resolution' => $matches[3][$i],
+            ];
+
+            $inner = false;
+            foreach ($array as $line) {
+                if (!$line || !$_line) {
+                    continue;
+                }
+                if ($inner === false && strpos($_line, $line) !== false) {
+                    $inner = true;
+                } elseif ($inner) {
+                    if (strpos($line, 'connected') !== false || strpos($line, 'disconnected') !== false) {
+                        $inner = false;
+                    } else {
+                        if (isset($monitors[$matches[1][$i]]['brightness'], $monitors[$matches[1][$i]]['gamma'])) {
+                            $inner = false;
+                            break;
+                        }
+                        if (strpos($line, 'Brightness:') !== false) {
+                            $value = trim(str_replace('Brightness:', '', $line));
+                            $monitors[$matches[1][$i]]['brightness'] = $value;
+                        }
+                        if (strpos($line, 'Gamma:') !== false) {
+                            $value = trim(str_replace('Gamma:', '', $line));
+                            $monitors[$matches[1][$i]]['gamma'] = $value;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $monitors;
+    }
+
+    private function restoreResolutions()
+    {
+        if (!$this->xrandr) {
+            return;
+        }
+
+        $monitors = $this->resolutions();
+
+        foreach ($this->monitors?:[] as $output => $params) {
+            if ($monitors[$output]) {
+                if ($params['gamma'] !== $monitors[$output]['gamma']) {
+                    $this->runExternal("xrandr --output {$output} --gamma {$params['brightness']}");
+                }
+                if ($params['brightness'] !== $monitors[$output]['brightness']) {
+                    $this->runExternal("xrandr --output {$output} --brightness {$params['brightness']}");
+                }
+                if ($params['resolution'] !== $monitors[$output]['resolution']) {
+                    $this->runExternal("xrandr --output {$output} --mode {$params['resolution']}");
+                }
+            }
+        }
+    }
+}
+
+
+$start = new Start($argv);
+$start->start();
