@@ -939,7 +939,7 @@ and others
                     continue;
                 }
                 if (!empty($newSnapshotFlip[$type][$name])) {
-                    $changeFiles[$type][$newSnapshotFlip[$type][$name]] = "[{$md5}][{$newSnapshotFlip[$type][$name]}] {$name}";
+                    $changeFiles[$type][$newSnapshotFlip[$type][$name]] = $name;
                     unset($newSnapshot[$type][$newSnapshotFlip[$type][$name]]);
                     continue;
                 }
