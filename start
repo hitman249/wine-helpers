@@ -93,7 +93,7 @@ class Start
         if ($method === 'diff') {
             $this->diff = $this->getSnapshot();
             $method = $args[0];
-            $args   = array_splice($this->args, 1);
+            $args   = array_splice($args, 1);
         }
 
         if (method_exists($this, $method)) {
