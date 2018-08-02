@@ -112,7 +112,7 @@ class Start
     {
         $this->gameVersion();
 
-        $cmd = implode(' ', $args);
+        $cmd = $this->quoteArgs($args);
         $desktop = $this->wineConfig['VIRTUAL_DESKTOP_ENABLE'] ? $this->wineConfig['VIRTUAL_DESKTOP'] : '';
         $this->runExternal("cd \"{$this->gameInfo['GAME_PATH']}/{$this->gameInfo['PATH']}/\" && {$this->wineConfig['WINE']} {$desktop} {$this->gameInfo['EXE']} {$cmd}", true);
     }
@@ -122,7 +122,7 @@ class Start
         $this->downloadWinetricks();
 
         if (file_exists("{$this->currentDir}/winetricks")) {
-            $cmd = implode(' ', $args);
+            $cmd = $this->quoteArgs($args);
             $this->runExternal("{$this->currentDir}/winetricks {$cmd}", true);
         } else {
             $this->log('Not found winetricks.');
@@ -131,19 +131,25 @@ class Start
 
     private function fm($args)
     {
-        $cmd = implode(' ', $args);
+        $cmd = $this->quoteArgs($args);
         $this->runExternal("{$this->wineConfig['WINEFILE']} {$cmd}", true);
     }
 
     private function cfg($args)
     {
-        $cmd = implode(' ', $args);
+        $cmd = $this->quoteArgs($args);
         $this->runExternal("{$this->wineConfig['WINECFG']} {$cmd}", true);
+    }
+
+    private function wine($args)
+    {
+        $cmd = $this->quoteArgs($args);
+        $this->runExternal("{$this->wineConfig['WINE']} {$cmd}", true);
     }
 
     private function kill($args)
     {
-        $cmd = implode(' ', $args);
+        $cmd = $this->quoteArgs($args);
 
         if ($cmd) {
             $this->runExternal("{$this->wineConfig['WINESERVER']} {$cmd}", true);
@@ -159,7 +165,7 @@ class Start
 
     private function regedit($args)
     {
-        $cmd = implode(' ', $args);
+        $cmd = $this->quoteArgs($args);
         $this->runExternal("{$this->wineConfig['REGEDIT']} {$cmd}", true);
     }
 
@@ -181,6 +187,8 @@ class Start
             './start diff winetricks d3dx9',
             './start diff cfg',
             'and others',
+            '',
+            './start wine                - Get Wine Instance',
         ];
 
         $this->log(implode("\n", $help));
@@ -521,6 +529,8 @@ or
 ./start diff winetricks d3dx9
 ./start diff cfg
 and others
+
+./start wine                - Get Wine Instance
 
 =======================================================================
 
@@ -984,6 +994,11 @@ and others
                 $this->log(implode("\n", $change));
             }
         }
+    }
+
+    private function quoteArgs($args)
+    {
+        return implode(' ', array_map(function ($a) {return "\"{$a}\"";}, $args));
     }
 }
 
