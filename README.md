@@ -55,9 +55,9 @@ Help:
 ./start regedit (reg)       - Windows Registry Editor
 ./start kill                - Kill this instance Wine
 ./start help
-./start diff fm             - Enable change files analyze from system32, syswow64 folders
+./start diff                - Enable change files analyze from system32, syswow64 folders
 or 
-./start diff
+./start diff fm
 ./start diff winetricks d3dx9
 ./start diff cfg
 and others
