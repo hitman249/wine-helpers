@@ -291,6 +291,11 @@ class Start
              * Enable or disable CSMT
              */
             $this->csmtUpdate();
+
+            /**
+             * Create symlink to game directory
+             */
+            $this->createGameDirectory();
         }
     }
 
@@ -588,16 +593,7 @@ and others
             exit(0);
         }
 
-
-        /**
-         * Create symlink to game directory
-         */
-        if (!file_exists($this->gameInfo['GAME_PATH']) && file_exists($this->wineConfig['WINEPREFIX'])) {
-
-            $data = $this->relativePath($this->gameInfo['DATA']);
-            $game = $this->gameInfo['GAME_PATH'];
-            $this->runExternal("mkdir -p \"{$game}\" && rm -r \"{$game}\" && ln -sfr \"{$data}\" \"{$game}\"");
-        }
+        $this->createGameDirectory();
 
         /**
          * Enable or disable CSMT
@@ -617,7 +613,7 @@ and others
             $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
             $winetricks = file_get_contents($url);
             file_put_contents("{$this->currentDir}/winetricks", $winetricks);
-            $this->runExternal("chmod +x {$this->currentDir}/winetricks");
+            $this->runExternal("chmod +x \"{$this->currentDir}/winetricks\"");
         }
 
         $this->winetricksVersion();
@@ -722,6 +718,19 @@ and others
             file_put_contents("{$this->wineConfig['DRIVE_C']}/csmt.reg", implode("\n", $csmt));
             $this->runExternal("{$this->wineConfig['REGEDIT']} {$this->wineConfig['DRIVE_C']}/csmt.reg");
             unlink("{$this->wineConfig['DRIVE_C']}/csmt.reg");
+        }
+    }
+
+    private function createGameDirectory()
+    {
+        /**
+         * Create symlink to game directory
+         */
+        if (!file_exists($this->gameInfo['GAME_PATH']) && file_exists($this->wineConfig['WINEPREFIX'])) {
+
+            $data = $this->relativePath($this->gameInfo['DATA']);
+            $game = $this->gameInfo['GAME_PATH'];
+            $this->runExternal("mkdir -p \"{$game}\" && rm -r \"{$game}\" && ln -sfr \"{$data}\" \"{$game}\"");
         }
     }
 
