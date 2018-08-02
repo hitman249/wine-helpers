@@ -11,7 +11,7 @@
 * выполнить:
 
 ```bash
-wget -q -O start ttps://raw.githubusercontent.com/hitman249/wine-helpers/master/start
+wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start
 chmod +x start
 ```
 
