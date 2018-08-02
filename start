@@ -11,6 +11,7 @@ class Start
     private $wineConfig;
     private $userName;
     private $args;
+    private $diff;
     private $monitors;
     private $xrandr;
     private $vulkan;
@@ -89,9 +90,20 @@ class Start
             $args   = array_splice($this->args, 1);
         }
 
+        if ($method === 'diff') {
+            $this->diff = $this->getSnapshot();
+            $method = $args[0];
+            $args   = array_splice($this->args, 1);
+        }
+
         if (method_exists($this, $method)) {
             $this->monitors = $this->resolutions();
             $this->{$method}($args);
+
+            if ($this->diff) {
+                $this->diff();
+            }
+
             $this->restoreResolutions();
         }
     }
@@ -712,6 +724,7 @@ Help:
             'export WINEARCH'         => $this->wineConfig['WINEARCH'],
             'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
             'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
+            'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$this->currentDir}/wine/lib:{$this->currentDir}/wine/lib64",
         ];
 
         $prefix = [];
@@ -859,6 +872,93 @@ Help:
                 if ($params['resolution'] !== $monitors[$output]['resolution']) {
                     $this->runExternal("xrandr --output {$output} --mode {$params['resolution']}");
                 }
+            }
+        }
+    }
+
+    private function getSnapshot()
+    {
+        $result   = ['system32' => [], 'syswow64' => []];
+        $system32 = "{$this->wineConfig['DRIVE_C']}/windows/system32";
+        $syswow64 = "{$this->wineConfig['DRIVE_C']}/windows/syswow64";
+
+        if (file_exists($system32)) {
+            foreach (glob("{$system32}/*") as $filePath) {
+                if (!is_dir($filePath)) {
+                    $result['system32'][md5_file($filePath)] = basename($filePath);
+                }
+            }
+        }
+
+        if (file_exists($syswow64)) {
+            foreach (glob("{$syswow64}/*") as $filePath) {
+                if (!is_dir($filePath)) {
+                    $result['syswow64'][md5_file($filePath)] = basename($filePath);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function diff()
+    {
+        $changeFiles = ['system32' => [], 'syswow64' => []];
+        $deleteFiles = ['system32' => [], 'syswow64' => []];
+
+        $newSnapshot = $this->getSnapshot();
+        $newSnapshotFlip = [
+            'system32' => array_flip($newSnapshot['system32']),
+            'syswow64' => array_flip($newSnapshot['syswow64'])
+        ];
+
+        $oldSnapshot = $this->diff?:['system32' => [], 'syswow64' => []];
+
+        foreach (['system32', 'syswow64'] as $type) {
+            foreach ($oldSnapshot[$type] as $md5 => $name) {
+                if (!empty($newSnapshot[$type][$md5])
+                    && !empty($newSnapshotFlip[$type][$name])
+                    && $md5 === $newSnapshotFlip[$type][$name]
+                    && $name === $newSnapshot[$type][$md5])
+                {
+                    unset($newSnapshot[$type][$md5]);
+                    continue;
+                }
+                if (!empty($newSnapshotFlip[$type][$name])) {
+                    $changeFiles[$type][$newSnapshotFlip[$type][$name]] = "[{$md5}][{$newSnapshotFlip[$type][$name]}] {$name}";
+                    unset($newSnapshot[$type][$newSnapshotFlip[$type][$name]]);
+                    continue;
+                }
+
+                $deleteFiles[$type][$md5] = $name;
+            }
+        }
+
+        foreach (['system32', 'syswow64'] as $type) {
+            foreach ($newSnapshot[$type] as $md5 => $name) {
+                $changeFiles[$type][$md5] = $name;
+            }
+        }
+
+        if ($changeFiles['system32'] || $changeFiles['syswow64']) {
+            if ($changeFiles['system32']) {
+                $change = array_merge(['', 'change system32 files', '--------------------'], $changeFiles['system32'], ['--------------------', '']);
+                $this->log(implode("\n", $change));
+            }
+            if ($changeFiles['syswow64']) {
+                $change = array_merge(['', 'change syswow64 files', '--------------------'], $changeFiles['syswow64'], ['--------------------', '']);
+                $this->log(implode("\n", $change));
+            }
+        }
+
+        if ($deleteFiles['system32'] || $deleteFiles['syswow64']) {
+            if ($deleteFiles['system32']) {
+                $change = array_merge(['', 'delete system32 files', '--------------------'], $deleteFiles['system32'], ['--------------------', '']);
+                $this->log(implode("\n", $change));
+            }
+            if ($deleteFiles['syswow64']) {
+                $change = array_merge(['', 'delete syswow64 files', '--------------------'], $deleteFiles['syswow64'], ['--------------------', '']);
+                $this->log(implode("\n", $change));
             }
         }
     }

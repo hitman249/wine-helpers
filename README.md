@@ -55,6 +55,12 @@ Help:
 ./start regedit (reg)       - Windows Registry Editor
 ./start kill                - Kill this instance Wine
 ./start help
+./start diff fm             - Enable change files analyze from system32, syswow64 folders
+or 
+./start diff
+./start diff winetricks d3dx9
+./start diff cfg
+and others
 ```
 
 ## Возможности
@@ -67,6 +73,24 @@ Help:
 * При использовании `winetricks` он автоматически выкачивается.
 * Показывает недостающие либы wine
 * Показывает используемую версию Wine, Vulkan, xrandr, winetricks
+* Если после `./start` следует аттрибут `diff` а затем команда, то как только команда отработает 
+скрипт покажет изменившиеся файлы в директориях `system32`, `syswow64`
+
+```text
+change system32 files
+--------------------
+d3d11.dll
+dxgi.dll
+--------------------
+
+
+delete system32 files
+--------------------
+d3d8.dll
+d3dcompiler_33.dll
+--------------------
+
+```
  
  
  ## Полезные ссылки
