@@ -92,7 +92,7 @@ class Start
 
         if ($method === 'diff') {
             $this->diff = $this->getSnapshot();
-            $method = $args[0];
+            $method = $args[0]?:'game';
             $args   = array_splice($args, 1);
         }
 
