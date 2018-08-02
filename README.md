@@ -68,3 +68,13 @@ Help:
 * Показывает недостающие либы wine
 * Показывает используемую версию Wine, Vulkan, xrandr, winetricks
  
+ 
+ ## Полезные ссылки
+ 
+ * dxvk [GPU driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)
+ * dxvk [releases](https://github.com/doitsujin/dxvk/releases)
+ * wine builds for support vulkan [yandex disk](https://yadi.sk/d/IrofgqFSqHsPu) 
+ or [google disk](https://drive.google.com/open?id=1fTfJQhQSzlEkY-j3g0H6p4lwmQayUNSR)
+ * [wine standalone](https://lutris.net/files/runners/)
+ * [Installer Repacks](https://repacks.net/)
+ 
