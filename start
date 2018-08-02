@@ -55,7 +55,7 @@ class Start
             'DRIVE_C'                => "{$winePrefix}/drive_c",
             'WINEDEBUG'              => '-all',
             'WINEARCH'               => 'win32',
-            'WINEDLLOVERRIDES'       => 'winemenubuilder.exe=d;mscoree,mshtml=',
+            'WINEDLLOVERRIDES'       => '', // 'winemenubuilder.exe=d;mscoree,mshtml='
             'CSMT'                   => true,
             'SANDBOX'                => true,
             'WINETRICKS_UPDATE'      => false,
@@ -643,6 +643,12 @@ and others
 
     private function checkLibs()
     {
+        $help = $this->runExternal("{$this->wineConfig['WINE']} --help");
+
+        if (strpos($help, '--check-libs') === false) {
+            return;
+        }
+
         $result = $this->runExternal("{$this->wineConfig['WINE']} --check-libs");
         $result = array_filter(
             array_map('trim', explode("\n", $result)),

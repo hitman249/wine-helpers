@@ -92,7 +92,6 @@ delete system32 files
 d3d8.dll
 d3dcompiler_33.dll
 --------------------
-
 ```
  
  
