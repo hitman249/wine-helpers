@@ -3,6 +3,8 @@
 
 /**
  * Requires php 5.4 or up
+ *
+ * @version 0.1
  */
 class Start
 {
@@ -214,35 +216,7 @@ class Start
             /**
              * Copy required dlls and override them
              */
-            $dlls = [''];
-            $isDll32 = file_exists($this->gameInfo['DLL32']);
-            $isDll64 = file_exists($this->gameInfo['DLL64']);
-
-            if ($isDll32) {
-                foreach (glob("{$this->gameInfo['DLL32']}/*.dll") as $filePath) {
-                    $fileName = basename($filePath);
-                    $dll32 = $this->relativePath($this->gameInfo['DLL32']);
-                    $this->runExternal("ln -sfr '{$dll32}/{$fileName}' '{$this->wineConfig['DRIVE_C']}/windows/system32'");
-                    $dlls[] = '"' . $fileName . '"="native"';
-                }
-            }
-
-            if ($isDll64) {
-                foreach (glob("{$this->gameInfo['DLL64']}/*.dll") as $filePath) {
-                    $fileName = basename($filePath);
-                    $dll32 = $this->relativePath($this->gameInfo['DLL64']);
-                    $this->runExternal("ln -sfr '{$dll32}/{$fileName}' '{$this->wineConfig['DRIVE_C']}/windows/syswow64'");
-                    $dlls[] = '"' . $fileName . '"="native"';
-                }
-            }
-
-            if ($isDll32 || $isDll64) {
-                if (array_filter($dlls)) {
-                    file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", array_filter($dlls)));
-                    $this->runExternal("{$this->wineConfig['REGEDIT']} \"{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg\"");
-                    unlink("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg");
-                }
-            }
+            $this->updateDlls();
 
 
             /**
@@ -609,6 +583,11 @@ and others
          * Enable or disable CSMT
          */
         $this->csmtUpdate();
+
+        /**
+         * Copy required dlls and override them
+         */
+        $this->updateDlls();
 
         if ($this->useXrandr) {
             $this->xrandr = (bool)trim($this->runExternal("which xrandr"));
@@ -1005,6 +984,65 @@ and others
     private function quoteArgs($args)
     {
         return implode(' ', array_map(function ($a) {return "\"{$a}\"";}, $args));
+    }
+
+    private function updateDlls()
+    {
+        /**
+         * Copy required dlls and override them
+         */
+        $dlls     = [''];
+        $isDll32  = file_exists($this->gameInfo['DLL32']);
+        $isDll64  = file_exists($this->gameInfo['DLL64']);
+        $isChange = false;
+
+        if ($isDll32) {
+            foreach (glob("{$this->gameInfo['DLL32']}/*.dll") as $filePath) {
+                $fileName = basename($filePath);
+                $to = "{$this->wineConfig['DRIVE_C']}/windows/system32/{$fileName}";
+                $dlls[] = '"' . $fileName . '"="native"';
+
+                if (file_exists($to)) {
+                    if (md5_file($filePath) === md5_file($to)) {
+                        continue;
+                    } else {
+                        unlink($to);
+                    }
+                }
+
+                $isChange = true;
+                $dll32 = $this->relativePath($this->gameInfo['DLL32']);
+                $this->runExternal("ln -sfr \"{$dll32}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/system32\"");
+            }
+        }
+
+        if ($isDll64) {
+            foreach (glob("{$this->gameInfo['DLL64']}/*.dll") as $filePath) {
+                $fileName = basename($filePath);
+                $to = "{$this->wineConfig['DRIVE_C']}/windows/syswow64/{$fileName}";
+                $dlls[] = '"' . $fileName . '"="native"';
+
+                if (file_exists($to)) {
+                    if (md5_file($filePath) === md5_file($to)) {
+                        continue;
+                    } else {
+                        unlink($to);
+                    }
+                }
+
+                $isChange = true;
+                $dll32 = $this->relativePath($this->gameInfo['DLL64']);
+                $this->runExternal("ln -sfr '{$dll32}/{$fileName}' '{$this->wineConfig['DRIVE_C']}/windows/syswow64'");
+            }
+        }
+
+        if ($isChange) {
+            if (array_filter($dlls)) {
+                file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", array_filter($dlls)));
+                $this->runExternal("{$this->wineConfig['REGEDIT']} \"{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg\"");
+                unlink("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg");
+            }
+        }
     }
 }
 
