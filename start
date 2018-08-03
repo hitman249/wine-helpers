@@ -124,6 +124,7 @@ class Start
         $this->downloadWinetricks();
 
         if (file_exists("{$this->currentDir}/winetricks")) {
+            $this->wineConfig['WINEDEBUG'] = '';
             $cmd = $this->quoteArgs($args);
             $this->runExternal("{$this->currentDir}/winetricks {$cmd}", true);
         } else {
