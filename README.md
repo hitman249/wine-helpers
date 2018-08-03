@@ -48,22 +48,23 @@ Linux, где установлены стандартные утилиты GNU, 
 
 ```text
 Help:
-./start                     - Run game
-./start winetricks d3dx9    - Winetricks install d3dx9
-./start cfg                 - Configure
-./start fm                  - File Manager
-./start regedit (reg)       - Windows Registry Editor
-./start kill                - Kill this instance Wine
+./start                           - Run game
+./start winetricks d3dx9          - Winetricks install d3dx9
+./start cfg                       - Configure
+./start fm                        - File Manager
+./start regedit (reg)             - Windows Registry Editor
+./start kill                      - Kill this instance Wine
 ./start help
 
-./start diff                - Enable change files analyze from system32, syswow64 folders
-or 
+./start diff                      - Enable change files analyze from system32, syswow64 folders
+or
 ./start diff fm
 ./start diff winetricks d3dx9
 ./start diff cfg
 and others
 
-./start wine                - Get Wine Instance
+./start wine                     - Get Wine Instance
+./start config game_info1.ini    - Use other config
 ```
 
 ## Возможности
@@ -78,6 +79,48 @@ and others
 * Показывает используемую версию Wine, Vulkan, xrandr, winetricks
 * Если после `./start` следует аттрибут `diff` а затем команда, то как только команда отработает 
 скрипт покажет изменившиеся файлы в директориях `system32`, `syswow64`
+* Использование ini файла для настроек:
+```ini
+[game]
+path = "Program Files/The Super Game"
+additional_path = "bin"
+exe = "Game.exe"
+cmd = "-language=russian"
+name = "The Super Game: Deluxe Edition"
+version = "1.0.0"
+
+[script]
+csmt = 1
+dxvk = 0
+winetricks = 0
+
+; Not use /home/user directory
+sandbox = 1
+
+; Windows version (win7, winxp, win2k)
+winver = "win7"
+
+; Set sound driver to PulseAudio or ALSA
+pulse = 1
+
+; Auto fixed resolution, brightness, gamma for all monitors
+fixres = 1
+
+[wine]
+WINEDEBUG = "-all"
+WINEARCH = "win32"
+WINEDLLOVERRIDES = ""
+
+[window]
+enable = 0
+title = "Wine"
+resolution = "800x600"
+```  
+* Использование нескольких конфигураций
+* Выбор между PulseAudio и ALSA
+* Автоматическое скачивание последнего dxvk
+* Выбор версии windows
+* Возможность использования нескольких ini файлов. Для совмещения нескольких игр в одном префиксе.
 
   Пример:
 
