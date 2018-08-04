@@ -109,10 +109,16 @@ class Start
         if (method_exists($this, $method)) {
             $this->monitors = $this->resolutions();
 
-            $this->firedHooksBeforeRun();
+            if ($method === 'game') {
+                $this->firedHooksBeforeRun();
+            }
+
             $this->{$method}($args);
             $this->log('');
-            $this->firedHooksAfterExit();
+
+            if ($method === 'game') {
+                $this->firedHooksAfterExit();
+            }
 
             if ($this->diff) {
                 $this->diff();
