@@ -1360,8 +1360,11 @@ and others
                 }
 
                 $trimHook = trim($hookCmd, '&');
-                $this->log("Run {$trimHook}\n");
-                $this->runExternal("cd \"{$this->gameInfo['HOOKS']}\"; chmod +x " . $trimHook . "; ./{$hookCmd}", true);
+
+                if (file_exists("{$this->gameInfo['HOOKS']}/{$trimHook}")) {
+                    $this->log("Run {$trimHook}\n");
+                    $this->runExternal("cd \"{$this->gameInfo['HOOKS']}\"; chmod +x " . $trimHook . "; ./{$hookCmd}", true);
+                }
             }
         }
     }
