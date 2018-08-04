@@ -5,10 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@adasm.com
- * @version 0.3
+ * @version 0.4
  */
 class Start
 {
+    private $version = 0.4;
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -79,17 +80,6 @@ class Start
 
     public function start()
     {
-        $this->wineVersion();
-
-        if ($this->wineConfig['WINETRICKS_UPDATE']) {
-            $this->downloadWinetricks();
-        }
-
-        $this->xrandrVersion();
-        $this->vulkanVersion();
-        $this->checkLibs();
-        $this->createPrefix();
-
         $method = 'game';
         $args = [];
 
@@ -105,6 +95,23 @@ class Start
             $method = $args[0]?:'game';
             $args   = array_splice($args, 1);
         }
+
+        $this->version([]);
+
+        if ($method === 'version') {
+            exit(1);
+        }
+
+        $this->wineVersion();
+
+        if ($this->wineConfig['WINETRICKS_UPDATE']) {
+            $this->downloadWinetricks();
+        }
+
+        $this->xrandrVersion();
+        $this->vulkanVersion();
+        $this->checkLibs();
+        $this->createPrefix();
 
         if (method_exists($this, $method)) {
             $this->monitors = $this->resolutions();
@@ -125,6 +132,8 @@ class Start
             }
 
             $this->restoreResolutions();
+        } else {
+            $this->log("Error, method \"{$method}\" not support.\n");
         }
     }
 
@@ -200,6 +209,25 @@ class Start
         $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" {$cmd}", true);
     }
 
+    private function update($args)
+    {
+        $cmd = $this->quoteArgs($args);
+        $newStart = file_get_contents('https://raw.githubusercontent.com/hitman249/wine-helpers/master/start');
+
+        if ($newStart) {
+            file_put_contents("{$this->currentDir}/start", $newStart);
+            $this->runExternal("chmod +x \"{$this->currentDir}/start\"");
+            $this->log("Success self update!\n");
+        }
+    }
+
+    private function version($args)
+    {
+        $cmd = $this->quoteArgs($args);
+
+        $this->log("This script version {$this->version}.\n");
+    }
+
     private function help($args)
     {
         $help = [
@@ -221,6 +249,8 @@ class Start
             '',
             './start wine                     - Get Wine Instance',
             './start config game_info1.ini    - Use other config',
+            './start update                   - Update this script.',
+            './start version',
         ];
 
         $this->log(implode("\n", $help));
@@ -514,22 +544,24 @@ Linux, где установлены стандартные утилиты GNU, 
 =======================================================================
 
 Help:
-./start                     - Run game
-./start winetricks d3dx9    - Winetricks install d3dx9
-./start cfg                 - Configure
-./start fm                  - File Manager
-./start regedit (reg)       - Windows Registry Editor
-./start kill                - Kill this instance Wine
+./start                           - Run game
+./start winetricks d3dx9          - Winetricks install d3dx9
+./start cfg                       - Configure
+./start fm                        - File Manager
+./start regedit (reg)             - Windows Registry Editor
+./start kill                      - Kill this instance Wine
 ./start help
 
-./start diff                - Enable change files analyze from system32, syswow64 folders
-or 
+./start diff                      - Enable change files analyze from system32, syswow64 folders
+or
 ./start diff fm
 ./start diff winetricks d3dx9
 ./start diff cfg
 and others
 
-./start wine                - Get Wine Instance
+./start wine                     - Get Wine Instance
+./start config game_info1.ini    - Use other config
+./start version
 
 =======================================================================
 
