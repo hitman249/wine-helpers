@@ -4,6 +4,18 @@
 * php 5.4 + 
 * xrandr 1.5 +
 
+```bash
+# Для Ubuntu, winetricks зависимости:
+sudo add-apt-repository ppa:ubuntu-wine/ppa
+sudo apt-get update
+sudo apt-get install binutils cabextract p7zip-full unrar unzip wget wine zenity
+```
+* Чтобы использовать Vulkan, его должны поддерживать:
+  * Драйвера на видеокарту, утилита `vulkaninfo` должна говорить что всё ок.
+  * Сама видеокарта должна поддерживать Vulkan.
+  * Wine сборка должна быть не меньше 3.10 и собрана с поддержкой Vulkan, дистрибутивы из репозиториев ОС обычно собраны без Vulkan.
+  * Только после этого можно использовать `dxvk` (d3d11)
+
 ## Установка
 
 * создать папку (желательно без пробелов в пути и кириллицы)

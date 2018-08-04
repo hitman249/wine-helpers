@@ -225,7 +225,7 @@ class Start
     {
         $cmd = $this->quoteArgs($args);
 
-        $this->log("This script version {$this->version}.\n");
+        $this->log("This script version {$this->version}\n\nhttps://github.com/hitman249/wine-helpers\n");
     }
 
     private function help($args)
