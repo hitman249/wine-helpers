@@ -5,7 +5,7 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@adasm.com
- * @version 0.2
+ * @version 0.3
  */
 class Start
 {
@@ -43,7 +43,7 @@ class Start
             'ADDITIONAL' => "{$gameInfo}/additional",
             'DATA'       => "{$gameInfo}/data",
             'REGS'       => "{$gameInfo}/regs",
-            'EXE'        => "{$gameInfo}/exe",
+            'HOOKS'      => "{$gameInfo}/hooks",
             'INFOFILE'   => "{$gameInfo}/{$this->infoFile}",
 
         ];
@@ -108,7 +108,11 @@ class Start
 
         if (method_exists($this, $method)) {
             $this->monitors = $this->resolutions();
+
+            $this->firedHooksBeforeRun();
             $this->{$method}($args);
+            $this->log('');
+            $this->firedHooksAfterExit();
 
             if ($this->diff) {
                 $this->diff();
@@ -318,6 +322,12 @@ class Start
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
             $this->updateDxvk();
+
+
+            /**
+             * Fired hooks
+             */
+            $this->firedHooksCreatePrefix();
         }
     }
 
@@ -551,6 +561,33 @@ and others
 
 11. Теперь можно запаковывать игру в архив и распространять.
 "
+            );
+
+
+            /**
+             * game_info/hooks/after.sh
+             */
+            file_put_contents(
+                "{$this->gameInfo['HOOKS']}/after.sh",
+                '#' ."!/bin/bash\necho \"After!\""
+            );
+
+
+            /**
+             * game_info/hooks/before.sh
+             */
+            file_put_contents(
+                "{$this->gameInfo['HOOKS']}/before.sh",
+                '#' ."!/bin/bash\necho \"Before!\""
+            );
+
+
+            /**
+             * game_info/hooks/create.sh
+             */
+            file_put_contents(
+                "{$this->gameInfo['HOOKS']}/create.sh",
+                '#' ."!/bin/bash\necho \"Create prefix!\""
             );
         }
 
@@ -1055,10 +1092,14 @@ and others
 
     private function updateDlls()
     {
+        if (!file_exists($this->wineConfig['WINEPREFIX'])) {
+            return;
+        }
+
         /**
          * Copy required dlls and override them
          */
-        $dlls     = [''];
+        $dlls     = [];
         $isDll32  = file_exists($this->gameInfo['DLL32']);
         $isDll64  = file_exists($this->gameInfo['DLL64']);
         $isChange = false;
@@ -1067,7 +1108,7 @@ and others
             foreach (glob("{$this->gameInfo['DLL32']}/*.dll") as $filePath) {
                 $fileName = basename($filePath);
                 $to = "{$this->wineConfig['DRIVE_C']}/windows/system32/{$fileName}";
-                $dlls[] = '"' . $fileName . '"="native"';
+                $dlls[$fileName] = 'native';
 
                 if (file_exists($to)) {
                     if (md5_file($filePath) === md5_file($to)) {
@@ -1087,7 +1128,7 @@ and others
             foreach (glob("{$this->gameInfo['DLL64']}/*.dll") as $filePath) {
                 $fileName = basename($filePath);
                 $to = "{$this->wineConfig['DRIVE_C']}/windows/syswow64/{$fileName}";
-                $dlls[] = '"' . $fileName . '"="native"';
+                $dlls[$fileName] = 'native';
 
                 if (file_exists($to)) {
                     if (md5_file($filePath) === md5_file($to)) {
@@ -1104,10 +1145,25 @@ and others
         }
 
         if ($isChange) {
-            if (array_filter($dlls)) {
-                file_put_contents("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg", implode("\n", array_filter($dlls)));
-                $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg\"");
-                unlink("{$this->wineConfig['WINEPREFIX']}/dlloverrides.reg");
+            $dlls = array_filter($dlls);
+            if ($dlls) {
+//                $this->runExternal("\"{$this->wineConfig['WINE']}\" reg delete \"HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides\" /f");
+
+                foreach ($dlls as $dll => $typeOverride) {
+                    if ($this->config && !empty($this->config['dlls']) && !empty($this->config['dlls']['dll']) && !empty($this->config['dlls']['dll'][$dll])) {
+                        if ($this->config['dlls']['dll'][$dll] === 'nooverride') {
+                            continue;
+                        }
+                        if ($this->config['dlls']['dll'][$dll] === 'register') {
+                            $this->runExternal("\"{$this->wineConfig['WINE']}\" regsvr32 \"{$dll}\"");
+                            continue;
+                        }
+
+                        $typeOverride = $this->config['dlls']['dll'][$dll];
+                    }
+
+                    $this->runExternal("\"{$this->wineConfig['WINE']}\" reg add \"HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides\" /v \"{$dll}\" /d \"{$typeOverride}\" /f");
+                }
 
                 $this->log("Update dll overrides.\n");
             }
@@ -1284,6 +1340,36 @@ and others
         }
     }
 
+    private function firedHooksCreatePrefix($type = 'after_create_prefix')
+    {
+        if (!file_exists($this->wineConfig['WINEPREFIX']) || !file_exists($this->gameInfo['HOOKS'])) {
+            return;
+        }
+
+        if ($this->config && !empty($this->config['hooks']) && !empty($this->config['hooks'][$type])) {
+            foreach ((array)$this->config['hooks'][$type] as $hookCmd) {
+                $hookCmd = trim($hookCmd);
+                if (!$hookCmd) {
+                    continue;
+                }
+
+                $trimHook = trim($hookCmd, '&');
+                $this->log("Run {$trimHook}\n");
+                $this->runExternal("cd \"{$this->gameInfo['HOOKS']}\"; chmod +x " . $trimHook . "; ./{$hookCmd}", true);
+            }
+        }
+    }
+
+    private function firedHooksBeforeRun()
+    {
+        $this->firedHooksCreatePrefix('before_run_game');
+    }
+
+    private function firedHooksAfterExit()
+    {
+        $this->firedHooksCreatePrefix('after_exit_game');
+    }
+
     private function getDefaultConfig()
     {
         return "[game]
@@ -1321,7 +1407,37 @@ WINEDLLOVERRIDES = \"\"
 [window]
 enable = 0
 title = \"Wine\"
-resolution = \"800x600\"";
+resolution = \"800x600\"
+
+;
+; Additional dlls folder logic
+; Example: dll[name_file.dll] = \"nooverride\"
+;
+; Variables:
+; \"builtin\"        - Встроенная
+; \"native\"         - Сторонняя (default)
+; \"builtin,native\" - Встроенная, Сторонняя
+; \"native,builtin\" - Сторонняя, Встроенная
+; \"nooverride\"     - Не заносить в реестр
+; \"register\"       - Зарегистрировать библиотеку через regsvr32
+;
+; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
+;
+[dlls]
+; dll[d3d11.dll] = \"nooverride\"
+; dll[l3codecx.ax] = \"register\"
+
+;
+; Хуки
+; after_create_prefix - команды выполняются после создания префикса
+; before_run_game - команды выполняются перед запуском игры
+; after_exit_game - команды выполняются после завершения игры
+;
+[hooks]
+; after_create_prefix[] = \"create.sh\"
+; before_run_game[] = \"before.sh\"
+; after_exit_game[] = \"after.sh\"
+; after_exit_game[] = \"after2.sh\"";
     }
 
     private function writeIniFile($file, $array = [])

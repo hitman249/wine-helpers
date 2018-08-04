@@ -115,12 +115,45 @@ WINEDLLOVERRIDES = ""
 enable = 0
 title = "Wine"
 resolution = "800x600"
+
+;
+; Additional dlls folder logic
+; Example: dll[name_file.dll] = "nooverride"
+;
+; Variables:
+; "builtin"        - Встроенная
+; "native"         - Сторонняя (default)
+; "builtin,native" - Встроенная, Сторонняя
+; "native,builtin" - Сторонняя, Встроенная
+; "nooverride"     - Не заносить в реестр
+; "register"       - Зарегистрировать библиотеку через regsvr32
+;
+; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
+;
+[dlls]
+; dll[d3d11.dll] = "nooverride"
+; dll[l3codecx.ax] = "register"
+
+;
+; Хуки
+; after_create_prefix - команды выполняются после создания префикса
+; before_run_game - команды выполняются перед запуском игры
+; after_exit_game - команды выполняются после завершения игры
+;
+[hooks]
+; after_create_prefix[] = "create.sh"
+; before_run_game[] = "before.sh"
+; after_exit_game[] = "after.sh"
+; after_exit_game[] = "after2.sh"
 ```  
 * Использование нескольких конфигураций
 * Выбор между PulseAudio и ALSA
 * Автоматическое скачивание последнего dxvk
 * Выбор версии windows
 * Возможность использования нескольких ini файлов. Для совмещения нескольких игр в одном префиксе.
+* Возможность использования хуков после создания префикса, перед запуском и после остановки приложения.
+* Выставление для каждой dll индивидуальных настроек.
+* Возможность зарегистрировать библиотеку через regsvr32.
 
   Пример:
 
