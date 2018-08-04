@@ -77,6 +77,7 @@ and others
 
 ./start wine                     - Get Wine Instance
 ./start config game_info1.ini    - Use other config
+./start update                   - Update this script.
 ./start version
 ```
 
