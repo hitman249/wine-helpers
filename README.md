@@ -23,8 +23,7 @@ sudo apt-get install binutils cabextract p7zip-full unrar unzip wget wine zenity
 * выполнить:
 
 ```bash
-wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start
-chmod +x start
+wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
 ```
 
 * после чего в папке у вас должны получиться 2 элемента, папка `wine` и рядом файл `start`
