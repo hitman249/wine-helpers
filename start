@@ -1214,6 +1214,12 @@ and others
             "[HKEY_CURRENT_USER\Software\Wine\Drivers]\n",
         ];
 
+        $isInstallPulseAudio = (bool)trim($this->runExternal("which pulseaudio"));
+
+        if ($isInstallPulseAudio === false && $this->wineConfig['PULSE'] === true) {
+            $this->wineConfig['PULSE'] = false;
+        }
+
         if ($this->wineConfig['PULSE'] && !file_exists("{$this->wineConfig['DRIVE_C']}/usepulse.reg")) {
 
             $reg[] = "\"Audio\"=\"pulse\"\n";
