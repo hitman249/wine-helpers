@@ -5,11 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.4
+ * @version 0.5
  */
 class Start
 {
-    private $version = 0.4;
+    private $version = 0.5;
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -221,6 +221,133 @@ class Start
         }
     }
 
+    private function icon($args)
+    {
+        $isDelete = in_array(trim(reset($args)), ['delete', 'remove', 'purge'], true);
+        $user     = get_current_user();
+        $home     = getenv("HOME") ?: "/home/{$user}";
+        $local    = "{$home}/.local/share/applications";
+
+        if (!file_exists($local)) {
+            if (!mkdir($local, 0775, true) && !is_dir($local)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $local));
+            }
+        }
+
+        $paths    = [$local];
+        $find     = [
+            "{$home}/Рабочий стол/Games",
+            "{$home}/Рабочий стол/games",
+            "{$home}/Рабочий стол/Игры",
+            "{$home}/Рабочий стол/игры",
+            "{$home}/Desktop/Games",
+            "{$home}/Desktop/games",
+            "{$home}/Desktop/Игры",
+            "{$home}/Desktop/игры",
+            "{$home}/Рабочий стол",
+            "{$home}/Desktop",
+        ];
+
+
+        if ($isDelete) {
+
+            $removes = [];
+
+            foreach (array_merge($paths, $find) as $item) {
+                $v1 = "{$item}/{$this->gameInfo['GAME']}";
+                $v2 = "{$v1}.desktop";
+
+                if (file_exists($v1) && !is_dir($v1)) {
+                    $removes[] = $v1;
+                    unlink($v1);
+                } elseif (file_exists($v2) && !is_dir($v2)) {
+                    $removes[] = $v2;
+                    unlink($v2);
+                }
+            }
+
+            if ($removes) {
+
+                $this->log("\nSuccess icon delete!\n");
+
+                foreach ($removes as $remove) {
+                    $this->log("Remove file \"{$remove}\"");
+                }
+            } else {
+                $this->log("\nIcons not found!\n");
+            }
+
+        } else {
+
+            $root     = glob("{$this->currentDir}/*.png");
+            $gameInfo = glob("{$this->currentDir}/game_info/*.png");
+            $icons    = array_filter(array_merge($root, $gameInfo));
+            $pngPath  = '';
+
+            foreach ($find as $desktop) {
+                if (file_exists($desktop) && is_dir($desktop)) {
+                    $paths[] = $desktop;
+                    break;
+                }
+            }
+
+            if (count($icons) > 1) {
+
+                $this->log('Select icon:');
+
+                foreach ($icons as $i => $png) {
+                    $num = $i+1;
+                    $relativePath = $this->relativePath($png);
+                    $this->log("{$num}) ./{$relativePath}");
+                }
+
+                $i = (int)trim(fgets( STDIN )) - 1;
+                $pngPath = $icons[$i];
+
+            } else {
+                $pngPath = reset($icons);
+            }
+
+            $icon = "[Desktop Entry]
+Version=1.0
+Exec={$this->currentDir}/start
+Path={$this->currentDir}
+Icon={$pngPath}
+Name={$this->gameInfo['GAME']}
+Terminal=false
+TerminalOptions=
+Type=Application
+Categories=Game";
+
+            $puts = [];
+            foreach ($paths as $path) {
+                $v1 = "{$path}/{$this->gameInfo['GAME']}";
+                $v2 = "{$v1}.desktop";
+                if (file_exists($v2) && !is_dir($v2)) {
+                    file_put_contents($v2, $icon);
+                    $puts[] = $v2;
+                    $this->runExternal("chmod +x \"{$v2}\"");
+                } elseif (file_exists($v1) && !is_dir($v1)) {
+                    file_put_contents($v1, $icon);
+                    $puts[] = $v1;
+                    $this->runExternal("chmod +x \"{$v1}\"");
+                } else {
+                    file_put_contents($v2, $icon);
+                    $puts[] = $v2;
+                    $this->runExternal("chmod +x \"{$v2}\"");
+                }
+            }
+
+            $this->log("\nSuccess icon create!\n");
+
+            foreach ($puts as $put) {
+                $this->log("Put file \"{$put}\"");
+            }
+
+            $this->log('');
+        }
+    }
+
     private function version($args)
     {
         $cmd = $this->quoteArgs($args);
@@ -250,6 +377,8 @@ class Start
             './start wine                     - Get Wine Instance',
             './start config game_info1.ini    - Use other config',
             './start update                   - Update this script.',
+            './start icon                     - Create desktop icon.',
+            './start icon delete (remove)     - Delete desktop icon.',
             './start version',
         ];
 
@@ -561,6 +690,9 @@ and others
 
 ./start wine                     - Get Wine Instance
 ./start config game_info1.ini    - Use other config
+./start update                   - Update this script.
+./start icon                     - Create desktop icon.
+./start icon delete (remove)     - Delete desktop icon.
 ./start version
 
 =======================================================================
@@ -1520,7 +1652,6 @@ resolution = \"800x600\"
         return true;
     }
 }
-
 
 $start = new Start($argv);
 $start->start();

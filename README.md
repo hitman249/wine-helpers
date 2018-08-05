@@ -77,6 +77,8 @@ and others
 ./start wine                     - Get Wine Instance
 ./start config game_info1.ini    - Use other config
 ./start update                   - Update this script.
+./start icon                     - Create desktop icon.
+./start icon delete (remove)     - Delete desktop icon.
 ./start version
 ```
 
@@ -187,6 +189,8 @@ d3dcompiler_33.dll
 ```
 * Библиотеки из папок `dlls` и `dlls64` применяются сразу без пересоздания префикса.
 * Обеспечена корректная установка **.NET Framework**
+* "Умное" создание иконки, создаёт в папке `Games` \ `Игры` если она присутствует на рабочем столе, также ищет файл 
+без расширения `.desktop` (иногда нужна иконка без расширения).
  
  ## Полезные ссылки
  
