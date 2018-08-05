@@ -107,11 +107,13 @@ version = "1.0.0"
 
 [script]
 csmt = 1
-dxvk = 0
 winetricks = 0
 
 ; Not use /home/user directory
 sandbox = 1
+
+; Download latest d3d11.dll and dxgi.dll
+dxvk = 0
 
 ; Windows version (win7, winxp, win2k)
 winver = "win7"
@@ -161,6 +163,9 @@ resolution = "800x600"
 ; before_run_game[] = "before.sh"
 ; after_exit_game[] = "after.sh"
 ; after_exit_game[] = "after2.sh"
+; gpu_amd[] = "gpu/amd.sh"
+; gpu_nvidia[] = "gpu/nvidia.sh"
+; gpu_intel[] = "gpu/intel.sh"
 ```  
 * Использование нескольких конфигураций
 * Выбор между PulseAudio и ALSA
@@ -193,6 +198,7 @@ d3dcompiler_33.dll
 * "Умное" создание иконки, создаёт в папке `Games` \ `Игры` если она присутствует на рабочем столе, также ищет файл 
 без расширения `.desktop` (иногда нужна иконка без расширения), ищет `png` файлы в качестве картинки, в папках `./` и 
 `./game_info`, если таковых несколько предлагает выбрать конкретную.
+* Хуки для GPU применяются только один раз, после создания префикса и после хуков на создание префикса.
  
  ## Полезные ссылки
  
