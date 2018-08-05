@@ -638,7 +638,7 @@ regs - файлы реестра windows (необязательная дире�
              */
             file_put_contents(
                 "{$this->gameInfo['ADDITIONAL']}/path.txt",
-                "users/--REPLACE_WITH_USERNAME--/Мои документы/JoWooD/NFH2"
+                "users/--REPLACE_WITH_USERNAME--/Мои документы"
             );
 
             if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_1", 0775, true) && !is_dir($path)) {
