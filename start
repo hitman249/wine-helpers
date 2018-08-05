@@ -171,6 +171,7 @@ class Start
 
     private function fm($args)
     {
+        $this->wineConfig['WINEDEBUG'] = '';
         $cmd = $this->quoteArgs($args);
         $this->runExternal("\"{$this->wineConfig['WINEFILE']}\" {$cmd}", true);
     }
