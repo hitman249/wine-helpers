@@ -5,11 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.6
+ * @version 0.7
  */
 class Start
 {
-    private $version = 0.6;
+    private $version = 0.7;
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -356,6 +356,15 @@ Categories=Game";
         }
     }
 
+    private function settings($args)
+    {
+        if ($this->config && !empty($this->config['hooks']) && !empty($this->config['hooks']['settings'])) {
+            $this->firedHooksCreatePrefix('settings');
+        } else {
+            $this->log("This game has no settings!\n");
+        }
+    }
+
     private function version($args)
     {
         $cmd = $this->quoteArgs($args);
@@ -368,6 +377,7 @@ Categories=Game";
         $help = [
             'Help:',
             './start                           - Run game.',
+            './start settings                  - Settings game.',
             './start winetricks d3dx9          - Winetricks install d3dx9.',
             './start cfg                       - Configure.',
             './start fm                        - File Manager.',
@@ -771,6 +781,15 @@ and others
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/create.sh",
                 '#' ."!/bin/bash\necho \"Create prefix!\""
+            );
+
+
+            /**
+             * game_info/hooks/settings.sh
+             */
+            file_put_contents(
+                "{$this->gameInfo['HOOKS']}/settings.sh",
+                '#' ."!/bin/bash\necho \"Here change game settings!\"\necho \"Run './start settings' exec this file!\""
             );
 
 
@@ -1691,7 +1710,8 @@ resolution = \"800x600\"
 ; after_exit_game[] = \"after2.sh\"
 ; gpu_amd[] = \"gpu/amd.sh\"
 ; gpu_nvidia[] = \"gpu/nvidia.sh\"
-; gpu_intel[] = \"gpu/intel.sh\"";
+; gpu_intel[] = \"gpu/intel.sh\"
+; settings[] = \"settings.sh\"";
     }
 
     private function writeIniFile($file, $array = [])
