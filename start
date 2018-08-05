@@ -96,6 +96,12 @@ class Start
             $args   = array_splice($args, 1);
         }
 
+        if ($method === 'debug') {
+            $this->wineConfig['WINEDEBUG'] = '';
+            $method = $args[0]?:'game';
+            $args   = array_splice($args, 1);
+        }
+
         $this->version([]);
 
         if ($method === 'version') {
