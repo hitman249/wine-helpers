@@ -696,6 +696,7 @@ Linux, где установлены стандартные утилиты GNU, 
 
 Help:
 ./start                           - Run game.
+./start settings                  - Settings game.
 ./start winetricks d3dx9          - Winetricks install d3dx9.
 ./start cfg                       - Configure.
 ./start fm                        - File Manager.
