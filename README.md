@@ -10,6 +10,11 @@ sudo add-apt-repository ppa:ubuntu-wine/ppa
 sudo apt-get update
 sudo apt-get install binutils cabextract p7zip-full unrar unzip wget wine zenity
 ```
+
+```bash
+# Для Ubuntu, зависимости самого скрипта
+sudo apt-get install x11-xserver-utils php php-cli php-readline php-curl php-gd php-common php-bz2 php-json php-mbstring php-timer php-zip
+```
 * Чтобы использовать Vulkan, его должны поддерживать:
   * Драйвера на видеокарту, утилита `vulkaninfo` должна говорить что всё ок.
   * Сама видеокарта должна поддерживать Vulkan.
