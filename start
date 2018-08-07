@@ -87,19 +87,19 @@ class Start
         if (!$this->args) {
             $method = 'game';
         } else {
-            $method = $this->args[0];
+            $method = $this->args ? $this->args[0] : 'game';
             $args   = array_splice($this->args, 1);
         }
 
         if ($method === 'diff') {
             $this->diff = $this->getSnapshot();
-            $method = $args[0]?:'game';
+            $method = $args ? $args[0] : 'game';
             $args   = array_splice($args, 1);
         }
 
         if ($method === 'debug') {
             $this->wineConfig['WINEDEBUG'] = '';
-            $method = $args[0]?:'game';
+            $method = $args ? $args[0] : 'game';
             $args   = array_splice($args, 1);
         }
 
