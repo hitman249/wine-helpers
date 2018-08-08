@@ -5,11 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.8
+ * @version 0.9
  */
 class Start
 {
-    private $version = 0.8;
+    private $version = 0.9;
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -124,11 +124,15 @@ class Start
 
             if ($this->wineConfig['DIALOGS']) {
                 if ($this->existSettings()) {
-                    $method = $this->showDialog();
-
-                    if (!$method) {
+                    $result = $this->showDialog();
+                    if (!$result) {
                         exit(1);
                     }
+
+                    $method = $result['method'];
+                    $this->infoFile = $result['file'];
+                    $this->gameInfo['INFOFILE'] = "{$this->gameInfo['DIR']}/{$this->infoFile}";
+                    $this->init();
                 }
             }
 
@@ -855,7 +859,12 @@ dll[l3codecx.ax] = \"register\"
 `./game_info`, если таковых несколько предлагает выбрать конкретную.
 
 * Если в конфиге задан хук settings, будет отображён диалог выбора запуска настроек или игры.   
-![Settings](1d0825aa-2187-4d9b-a0a2-bf40d3c829da.png)
+ 
+ ![Settings](1.png)
+
+* Если в папке `./game_info` находятся несколько `*.ini` файлов, они все будут учтены и отображены в окне.
+
+ ![Settings](2.png)
 
 * Хуки для GPU применяются только один раз, после создания префикса и после хуков на создание префикса.
 ```ini
@@ -2005,44 +2014,107 @@ resolution = \"800x600\"
 
     private function showDialog()
     {
+        $result = $this->findParams();
+        $menu   = [];
+
         $title    = 'Run';
-        $variants = [
-            'game'     => 'Game',
-            'settings' => 'Settings',
-        ];
+        $settings = 'Settings';
 
         $isCyrillic = trim($this->runExternal('locale | grep LANG=ru'));
 
         if ($isCyrillic) {
             $title    = 'Запустить';
-            $variants = [
-                'game'     => 'Игру',
-                'settings' => 'Настройки',
+            $settings = 'Настройки';
+        }
+
+        foreach ($result['configs']?:[] as $ini => $name) {
+            $menu[] = [
+                'method' => 'game',
+                'file'   => $ini,
+                'name'   => $name,
             ];
         }
 
-        $result = trim(exec("zenity --list --title=\"\" --column=\"{$title}\" \"{$variants['game']}\" \"{$variants['settings']}\""));
-
-        if (!$result) {
-            return null;
-        }
-
-        $variants = array_flip($variants);
-
-        return $variants[$result];
-    }
-
-    private function existSettings()
-    {
-        if ($this->config && !empty($this->config['hooks']) && !empty($this->config['hooks']['settings'])) {
-            foreach ($this->config['hooks']['settings'] as $setting) {
-                if (file_exists("{$this->gameInfo['HOOKS']}/{$setting}")) {
-                    return true;
+        if ($result['settings']) {
+            if (count($result['settings']) === 1) {
+                $menu[] = [
+                    'method' => 'settings',
+                    'file'   => reset($result['settings']),
+                    'name'   => $settings,
+                ];
+            } else {
+                foreach ($result['settings']?:[] as $ini) {
+                    $menu[] = [
+                        'method' => 'settings',
+                        'file'   => $ini,
+                        'name'   => "{$settings} ({$result['configs'][$ini]})",
+                    ];
                 }
             }
         }
 
-        return false;
+        $query = [];
+
+        foreach ($menu as $i => $line) {
+            $query[] = $i;
+            $query[] = $line['name'];
+        }
+
+        print_r("zenity --list --title=\"\" --width=400 --height=300 --hide-column=1 --column=\"\" --column=\"{$title}\"" . $this->quoteArgs($query));
+
+        $result = trim(exec("zenity --list --title=\"\" --width=400 --height=300 --hide-column=1 --column=\"\" --column=\"{$title}\" " . $this->quoteArgs($query)));
+
+        if ($result === '') {
+            return null;
+        }
+
+        return $menu[(int)$result];
+    }
+
+    private function existSettings()
+    {
+        $i = 0;
+
+        $result = $this->findParams();
+
+        foreach ($result['configs'] as $c) {
+            $i++;
+        }
+
+        foreach ($result['settings'] as $c) {
+            $i++;
+        }
+
+        return $i > 1;
+    }
+
+    private function findParams()
+    {
+        $configs  = [];
+        $settings = [];
+
+        foreach (glob("{$this->currentDir}/game_info/*.ini") as $iniPath) {
+
+            $fileName = basename($iniPath);
+
+            if (file_exists($iniPath) && !is_dir($iniPath)) {
+                $config = parse_ini_file($iniPath, true);
+
+                if (!empty($config['game']['name'])) {
+                    $configs[$fileName] = $config['game']['name'];
+                }
+                if (!empty($config['hooks']['settings'])) {
+                    foreach ((array)$config['hooks']['settings'] as $setting) {
+                        if (file_exists("{$this->gameInfo['HOOKS']}/{$setting}")) {
+                            $settings[] = $fileName;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return compact('settings', 'configs');
     }
 }
 
