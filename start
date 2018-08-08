@@ -2060,8 +2060,6 @@ resolution = \"800x600\"
             $query[] = $line['name'];
         }
 
-        print_r("zenity --list --title=\"\" --width=400 --height=300 --hide-column=1 --column=\"\" --column=\"{$title}\"" . $this->quoteArgs($query));
-
         $result = trim(exec("zenity --list --title=\"\" --width=400 --height=300 --hide-column=1 --column=\"\" --column=\"{$title}\" " . $this->quoteArgs($query)));
 
         if ($result === '') {
