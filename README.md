@@ -6,21 +6,17 @@
 
 ```bash
 # Для Ubuntu, winetricks зависимости:
-sudo add-apt-repository ppa:ubuntu-wine/ppa
+sudo dpkg --add-architecture i386
+wget -nc https://dl.winehq.org/wine-builds/Release.key
+sudo apt-key add Release.key
+sudo apt-add-repository https://dl.winehq.org/wine-builds/ubuntu/
 sudo apt-get update
 sudo apt-get install binutils cabextract p7zip-full unrar unzip wget wine zenity
 ```
 
 ```bash
 # Для Ubuntu, зависимости самого скрипта
-sudo apt-get install x11-xserver-utils wget php php-cli php-readline php-curl php-gd php-common php-bz2 php-json php-mbstring php-timer php-zip
-```
-
-```bash
-# Для Ubuntu, проще установить wine из репозиториев, тогда необходимые зависимости установятся сами.
-# Остальное подскажет сам скрипт в процессе использования.
-
-sudo apt-get install wine
+sudo apt-get install x11-xserver-utils wget wine zenity php php-cli php-readline php-curl php-gd php-common php-bz2 php-json php-mbstring php-timer php-zip
 ```
 
 * Чтобы использовать Vulkan, его должны поддерживать:
