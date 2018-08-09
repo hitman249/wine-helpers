@@ -9,7 +9,7 @@
  */
 class Start
 {
-    private $version = 0.10;
+    private $version = '0.10';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
