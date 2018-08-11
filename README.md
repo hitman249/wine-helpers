@@ -243,6 +243,7 @@ enable = 0
 title = "Wine"
 resolution = "800x600"
 
+[dlls]
 ;
 ; Additional dlls folder logic
 ; Example: dll[name_file.dll] = "nooverride"
@@ -257,17 +258,18 @@ resolution = "800x600"
 ;
 ; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
 ;
-[dlls]
+
 ; dll[d3d11.dll] = "nooverride"
 ; dll[l3codecx.ax] = "register"
 
+[hooks]
 ;
 ; Хуки
 ; after_create_prefix - команды выполняются после создания префикса
 ; before_run_game - команды выполняются перед запуском игры
 ; after_exit_game - команды выполняются после завершения игры
 ;
-[hooks]
+
 ; after_create_prefix[] = "create.sh"
 ; before_run_game[] = "before.sh"
 ; after_exit_game[] = "after.sh"
@@ -276,6 +278,19 @@ resolution = "800x600"
 ; gpu_nvidia[] = "gpu/nvidia.sh"
 ; gpu_intel[] = "gpu/intel.sh"
 ; settings[] = "settings.sh"
+
+[export]
+;
+; Экспорт дополнительных переменных к команде запуска игры
+; Примеры:
+;
+
+; DXVK_FAKE_DX10_SUPPORT=1
+; DXVK_HUD=fps
+; DXVK_HUD=1
+; DXVK_HUD=fps,devinfo,memory
+; DXVK_HUD=fps,devinfo,frametimes,memory
+; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
 ```  
 * Если после `./start` следует аттрибут `diff` а затем команда, то как только команда отработает 
 скрипт покажет изменившиеся файлы в директориях `system32`, `syswow64`
