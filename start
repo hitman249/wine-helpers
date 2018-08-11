@@ -306,9 +306,9 @@ class Start
             $icons = [];
             $icons[] = glob("{$this->currentDir}/*.png");
             $icons[] = glob("{$this->currentDir}/game_info/*.png");
-            $icons[] = glob("{$this->gameInfo['GAME_PATH']}/*.png");
+            $icons[] = glob("{$this->gameInfo['DATA']}/*.png");
             if ($this->gameInfo['PATH']) {
-                $icons[] = glob("{$this->gameInfo['GAME_PATH']}/{$this->gameInfo['PATH']}/*.png");
+                $icons[] = glob("{$this->gameInfo['DATA']}/{$this->gameInfo['PATH']}/*.png");
             }
             $icons    = array_filter(call_user_func_array('array_merge', $icons));
             $pngPath  = '';
