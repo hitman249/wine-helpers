@@ -101,6 +101,7 @@ and others
 ./start update                   - Update this script.
 ./start icon                     - Create desktop icon.
 ./start icon delete (remove)     - Delete desktop icon.
+./start check                    - Check script dependencies.
 ./start version
 ```
 

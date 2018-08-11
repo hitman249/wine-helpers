@@ -5,11 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.11
+ * @version 0.12
  */
 class Start
 {
-    private $version = '0.11';
+    private $version = '0.12';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -388,6 +388,20 @@ Categories=Game";
         $this->log("This script version {$this->version}\n\nhttps://github.com/hitman249/wine-helpers\n");
     }
 
+    public function check()
+    {
+        $this->log("\nCheck script dependencies:\n");
+
+        foreach (['zenity', 'xrandr', 'vulkaninfo', 'pulseaudio', 'glxinfo', 'grep'] as $app) {
+            $is = trim($this->runExternal("which {$app}"));
+            if ($is) {
+                $this->log("- {$app}: ok");
+            } else {
+                $this->log("- {$app}: fail");
+            }
+        }
+    }
+
     private function help($args)
     {
         $help = [
@@ -414,6 +428,7 @@ Categories=Game";
             './start update                   - Update this script.',
             './start icon                     - Create desktop icon.',
             './start icon delete (remove)     - Delete desktop icon.',
+            './start check                    - Check script dependencies.',
             './start version',
         ];
 
@@ -779,6 +794,7 @@ and others
 ./start update                   - Update this script.
 ./start icon                     - Create desktop icon.
 ./start icon delete (remove)     - Delete desktop icon.
+./start check                    - Check script dependencies.
 ./start version
 ```
 
