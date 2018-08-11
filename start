@@ -5,11 +5,11 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.12
+ * @version 0.13
  */
 class Start
 {
-    private $version = '0.12';
+    private $version = '0.13';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -303,9 +303,14 @@ class Start
 
         } else {
 
-            $root     = glob("{$this->currentDir}/*.png");
-            $gameInfo = glob("{$this->currentDir}/game_info/*.png");
-            $icons    = array_filter(array_merge($root, $gameInfo));
+            $icons = [];
+            $icons[] = glob("{$this->currentDir}/*.png");
+            $icons[] = glob("{$this->currentDir}/game_info/*.png");
+            $icons[] = glob("{$this->gameInfo['GAME_PATH']}/*.png");
+            if ($this->gameInfo['PATH']) {
+                $icons[] = glob("{$this->gameInfo['GAME_PATH']}/{$this->gameInfo['PATH']}/*.png");
+            }
+            $icons    = array_filter(call_user_func_array('array_merge', $icons));
             $pngPath  = '';
 
             foreach ($find as $desktop) {
