@@ -598,8 +598,6 @@ Categories=Game";
 
         $this->gpu = $this->getTypeGPU();
 
-        $this->autoupdate([]);
-
         if (!file_exists($this->gameInfo['DIR'])) {
 
             if (file_exists("{$this->currentDir}/wine/bin")) {
@@ -1184,6 +1182,11 @@ d3dcompiler_33.dll
             $this->log('There is no Wine available in your system!');
             exit(0);
         }
+
+        /**
+         * Autoupdate script
+         */
+        $this->autoupdate([]);
 
 
         /**
