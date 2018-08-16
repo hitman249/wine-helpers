@@ -8,7 +8,7 @@
  */
 class Start
 {
-    private $version = '0.14';
+    private $version = '0.15';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -48,6 +48,7 @@ class Start
             'REGS'       => "{$gameInfo}/regs",
             'HOOKS'      => "{$gameInfo}/hooks",
             'INFOFILE'   => "{$gameInfo}/{$this->infoFile}",
+            'DXVK'       => "{$gameInfo}/dxvk.conf",
 
         ];
 
@@ -257,10 +258,24 @@ class Start
         }
     }
 
+    private function dxvkAutoupdate($args)
+    {
+        if ($this->isDXVKAutoupdate() && $this->isConnected()) {
+            if (file_exists("{$this->wineConfig['DRIVE_C']}/dxvk")) {
+                $newVersion = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'));
+                $oldVersion = trim(file_get_contents("{$this->wineConfig['DRIVE_C']}/dxvk"));
+
+                if ($newVersion !== $oldVersion) {
+                    $this->updateDxvk();
+                }
+            }
+        }
+    }
+
     private function autoupdate($args)
     {
-        if ($this->isConnected()) {
-            $version = trim(file_get_contents('https://raw.githubusercontent.com/hitman249/wine-helpers/master/version'));
+        if ($this->isScriptAutoupdate() && $this->isConnected()) {
+            $version = trim(file_get_contents('https://raw.githubusercontent.com/hitman249/wine-helpers/master/RELEASE'));
             if ($version !== $this->version) {
                 $this->update([]);
             }
@@ -605,7 +620,7 @@ Categories=Game";
             }
 
             foreach ($this->gameInfo as $key => $path) {
-                if ($key === 'INFOFILE') {
+                if ($key === 'INFOFILE' || $key === 'DXVK') {
                     continue;
                 }
                 if (!mkdir($path, 0775, true) && !is_dir($path)) {
@@ -950,6 +965,7 @@ sandbox = 1
 
 ; Download latest d3d11.dll and dxgi.dll
 dxvk = 0
+dxvk_autoupdate = 1
 
 ; Windows version (win7, winxp, win2k)
 winver = \"win7\"
@@ -1183,10 +1199,17 @@ d3dcompiler_33.dll
             exit(0);
         }
 
+
         /**
          * Autoupdate script
          */
         $this->autoupdate([]);
+
+
+        /**
+         * Autoupdate dxvk
+         */
+        $this->dxvkAutoupdate([]);
 
 
         /**
@@ -1377,6 +1400,7 @@ d3dcompiler_33.dll
             'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
             'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
             'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$this->currentDir}/wine/lib:{$this->currentDir}/wine/lib64",
+            'export DXVK_CONFIG_FILE' => $this->gameInfo['DXVK'],
         ];
 
         if (!empty($this->config['export'])) {
@@ -1903,7 +1927,12 @@ d3dcompiler_33.dll
          */
         if ($this->wineConfig['DXVK']) {
             $this->winetricks(['dxvk']);
-            file_put_contents($dxvk, ' ');
+            $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'));
+            file_put_contents($dxvk, $version);
+
+            if (!file_exists($this->gameInfo['DXVK'])) {
+                file_put_contents($this->gameInfo['DXVK'], $this->getDefaultDXVKConfig());
+            }
         }
     }
 
@@ -1987,6 +2016,7 @@ sandbox = 1
 
 ; Download latest d3d11.dll and dxgi.dll
 dxvk = 0
+dxvk_autoupdate = 1
 
 ; Windows version (win7, winxp, win2k)
 winver = \"win7\"
@@ -2040,6 +2070,106 @@ resolution = \"800x600\"
 ; gpu_nvidia[] = \"gpu/nvidia.sh\"
 ; gpu_intel[] = \"gpu/intel.sh\"
 ; settings[] = \"settings.sh\"";
+    }
+
+    private function getDefaultDXVKConfig()
+    {
+        return "# Create the VkSurface on the first call to IDXGISwapChain::Present,
+# rather than when creating the swap chain. Some games that start
+# rendering with a different graphics API may require this option,
+# or otherwise the window may stay black.
+# 
+# Supported values: True, False
+# 
+# Enabled by default for:
+# - Frostpunk
+
+# dxgi.deferSurfaceCreation = False
+
+
+# Return S_OK from IDXGIDevice::CheckInterfaceSupport when querying
+# support for a Direct3D 10 COM interface. Some games require this
+# in order to start up, others may break when this option is set.
+# 
+# Supported values: True, False
+# 
+# Enabled by default for:
+# - World of Warcraft
+
+# dxgi.fakeDx10Support = False
+
+
+# Enforce a stricter maximum frame latency. Overrides the application
+# setting specified by calling IDXGIDevice::SetMaximumFrameLatency.
+# Setting this to 0 will have no effect.
+# 
+# Supported values : 0 - 16
+
+# dxgi.maxFrameLatency = 0
+
+
+# Override PCI vendor and device IDs reported to the application. Can
+# cause the app to adjust behaviour depending on the selected values.
+#
+# Supported values: Any four-digit hex number.
+
+# dxgi.customDeviceId = 0000
+# dxgi.customVendorId = 0000
+
+
+# Handle D3D11_MAP_FLAG_DO_NOT_WAIT correctly when D3D11DeviceContext::Map()
+# is called. Enabling this can potentially improve performance, but breaks
+# games which do not expect Map() to return an error despite using the flag.
+# 
+# Supported values: True, False
+#
+# Enabled by default for:
+# - Dishonored 2
+# - Far Cry 5
+
+# d3d11.allowMapFlagNoWait = False
+
+
+# Fake Stream Output support. This reports a success code to applications
+# calling CreateGeometryShaderWithStreamOutput, even if the device does
+# not actually support transform feedback. Allows some games to run that
+# would otherwise crash or show an error message.
+#
+# Supported values: True, False
+#
+# Enabled by default for:
+# - F1 2015
+# - Final Fantasy XV
+# - Mafia 3
+# - Overwatch
+
+# d3d11.fakeStreamOutSupport = False
+
+
+# Override the maximum feature level that a D3D11 device can be created
+# with. Setting this to a higher value may allow some applications to run
+# that would otherwise fail to create a D3D11 device.
+#
+# Supported values: 9_1, 9_2, 9_3, 10_0, 10_1, 11_0, 11_1
+
+# d3d11.maxFeatureLevel = 11_0
+
+
+# Allow allocating more device memory from a Vulkan heap than the heap
+# provides. May in some cases improve performance in low-memory conditions.
+#
+# Supported values: True, False
+
+# dxvk.allowMemoryOvercommit = False
+
+
+# Use asynchronous pipeline compilation with DISABLE_OPTIMIZATION_BIT.
+# This may reduce shader compiler stutter. Currently only supported on
+# RADV. May cause issues.
+#
+# Supported values: True, False
+
+# dxvk.useAsyncPipeCompiler = False";
     }
 
     private function writeIniFile($file, $array = [])
@@ -2205,12 +2335,28 @@ resolution = \"800x600\"
         return compact('settings', 'configs');
     }
 
-    private function isConnected()
+    private function isScriptAutoupdate()
     {
-        if (!isset($this->config['script']['autoupdate']) || (string)$this->config['script']['autoupdate'] === '0') {
+        if (!isset($this->config['script']['autoupdate'])
+            || (string)$this->config['script']['autoupdate'] === '0') {
             return false;
         }
 
+        return true;
+    }
+
+    private function isDXVKAutoupdate()
+    {
+        if (!isset($this->config['script']['dxvk_autoupdate'])
+            || (string)$this->config['script']['dxvk_autoupdate'] === '0') {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isConnected()
+    {
         if ($this->isConnected !== null) {
             return $this->isConnected;
         }

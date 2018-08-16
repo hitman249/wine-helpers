@@ -226,6 +226,7 @@ sandbox = 1
 
 ; Download latest d3d11.dll and dxgi.dll
 dxvk = 0
+dxvk_autoupdate = 1
 
 ; Windows version (win7, winxp, win2k)
 winver = "win7"
