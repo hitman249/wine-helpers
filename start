@@ -5,11 +5,10 @@
  * Requires php 5.4 or up
  *
  * @author hitman2491@gmail.com
- * @version 0.13
  */
 class Start
 {
-    private $version = '0.13';
+    private $version = '0.14';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -23,6 +22,8 @@ class Start
     private $infoFile = 'game_info.ini';
     private $gpu;
     private $config;
+    private $isConnected;
+    private $prints = [];
 
 
     /**
@@ -166,7 +167,17 @@ class Start
         $cmd = $this->quoteArgs($args);
         $desktop = $this->wineConfig['VIRTUAL_DESKTOP_ENABLE'] ? $this->wineConfig['VIRTUAL_DESKTOP'] : '';
         $path = implode('/', array_filter([$this->gameInfo['GAME_PATH'], $this->gameInfo['PATH']]));
-        $this->runExternal("cd \"{$path}/\" && \"{$this->wineConfig['WINE']}\" {$desktop} \"{$this->gameInfo['GAME_EXE']}\" {$cmd}", true);
+        $this->runExternal("cd \"{$path}/\" && \"{$this->wineConfig['WINE']}\" {$desktop} \"{$this->gameInfo['GAME_EXE']}\" {$this->gameInfo['ARGS']} {$cmd}", true);
+    }
+
+    private function info($args)
+    {
+        $cmd = $this->quoteArgs($args);
+
+        $this->log("\n{$this->gameInfo['GAME']} version {$this->gameInfo['VERSION']}\n");
+
+        $path = implode('/', array_filter([$this->gameInfo['GAME_PATH'], $this->gameInfo['PATH'], $this->gameInfo['GAME_EXE']]));
+        $this->log("CMD: {$path} {$this->gameInfo['ARGS']}\n");
     }
 
     private function config($args)
@@ -174,8 +185,9 @@ class Start
         if ($args) {
             $this->infoFile = $args[0];
             $this->gameInfo['INFOFILE'] = "{$this->gameInfo['DIR']}/{$this->infoFile}";
+            $this->args = array_splice($args, 1);
             $this->init();
-            $this->game([]);
+            $this->start();
         }
     }
 
@@ -242,6 +254,16 @@ class Start
             file_put_contents("{$this->currentDir}/start", $newStart);
             $this->runExternal("chmod +x \"{$this->currentDir}/start\"");
             $this->log("Success self update!\n");
+        }
+    }
+
+    private function autoupdate($args)
+    {
+        if ($this->isConnected()) {
+            $version = trim(file_get_contents('https://raw.githubusercontent.com/hitman249/wine-helpers/master/version'));
+            if ($version !== $this->version) {
+                $this->update([]);
+            }
         }
     }
 
@@ -388,6 +410,10 @@ Categories=Game";
 
     private function version($args)
     {
+        if (!$this->isPrints('version')) {
+            return;
+        }
+
         $cmd = $this->quoteArgs($args);
 
         $this->log("This script version {$this->version}\n\nhttps://github.com/hitman249/wine-helpers\n");
@@ -571,6 +597,8 @@ Categories=Game";
         $this->userName = get_current_user();
 
         $this->gpu = $this->getTypeGPU();
+
+        $this->autoupdate([]);
 
         if (!file_exists($this->gameInfo['DIR'])) {
 
@@ -784,6 +812,7 @@ Help:
 ./start fm                        - File Manager.
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
+./start info                      - Info about the game.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
@@ -916,6 +945,7 @@ version = \"1.0.0\"
 csmt = 1
 winetricks = 0
 dialogs = 1
+autoupdate = 1
 
 ; Not use /home/user directory
 sandbox = 1
@@ -984,7 +1014,6 @@ resolution = \"800x600\"
 ; Примеры:
 ;
 
-; DXVK_FAKE_DX10_SUPPORT=1
 ; DXVK_HUD=fps
 ; DXVK_HUD=1
 ; DXVK_HUD=fps,devinfo,memory
@@ -1228,6 +1257,10 @@ d3dcompiler_33.dll
 
     private function checkLibs()
     {
+        if (!$this->isPrints('checkLibs')) {
+            return;
+        }
+
         $help = $this->runExternal("\"{$this->wineConfig['WINE']}\" --help");
 
         if (strpos($help, '--check-libs') === false) {
@@ -1267,6 +1300,10 @@ d3dcompiler_33.dll
 
     private function wineVersion()
     {
+        if (!$this->isPrints('wineVersion')) {
+            return;
+        }
+
         $version = trim($this->runExternal("\"{$this->wineConfig['WINE']}\" --version"));
         $csmt = $this->wineConfig['CSMT'] ? 'with CSMT enabled' : '';
 
@@ -1279,6 +1316,10 @@ d3dcompiler_33.dll
             return;
         }
 
+        if (!$this->isPrints('xrandrVersion')) {
+            return;
+        }
+
         $version = trim($this->runExternal("xrandr --version"));
         $this->log("{$version}\n");
     }
@@ -1286,6 +1327,10 @@ d3dcompiler_33.dll
     private function vulkanVersion()
     {
         if (!$this->vulkan) {
+            return;
+        }
+
+        if (!$this->isPrints('vulkanVersion')) {
             return;
         }
 
@@ -1932,6 +1977,7 @@ version = \"1.0.0\"
 csmt = 1
 winetricks = 0
 dialogs = 1
+autoupdate = 1
 
 ; Not use /home/user directory
 sandbox = 1
@@ -2154,6 +2200,39 @@ resolution = \"800x600\"
         }
 
         return compact('settings', 'configs');
+    }
+
+    private function isConnected()
+    {
+        if (!isset($this->config['script']['autoupdate']) || (string)$this->config['script']['autoupdate'] === '0') {
+            return false;
+        }
+
+        if ($this->isConnected !== null) {
+            return $this->isConnected;
+        }
+
+        $connected = @fsockopen('www.google.com', 80);
+
+        if ($connected) {
+            $this->isConnected = true;
+            fclose($connected);
+        } else {
+            $this->isConnected = false;
+        }
+
+        return $this->isConnected;
+    }
+
+    private function isPrints($method)
+    {
+        if (!empty($this->prints[$method])) {
+            return true;
+        }
+
+        $this->prints[$method] = true;
+
+        return false;
     }
 }
 

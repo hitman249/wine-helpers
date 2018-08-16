@@ -86,6 +86,7 @@ Help:
 ./start fm                        - File Manager.
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
+./start info                      - Info about the game.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
@@ -218,6 +219,7 @@ version = "1.0.0"
 csmt = 1
 winetricks = 0
 dialogs = 1
+autoupdate = 1
 
 ; Not use /home/user directory
 sandbox = 1
@@ -286,7 +288,6 @@ resolution = "800x600"
 ; Примеры:
 ;
 
-; DXVK_FAKE_DX10_SUPPORT=1
 ; DXVK_HUD=fps
 ; DXVK_HUD=1
 ; DXVK_HUD=fps,devinfo,memory
