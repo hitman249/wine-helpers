@@ -452,7 +452,7 @@ Categories=Game";
 
     private function version($args)
     {
-        if (!$this->isPrints('version')) {
+        if ($this->isPrints('version')) {
             return;
         }
 
@@ -1276,7 +1276,7 @@ d3dcompiler_33.dll
 
     private function checkLibs()
     {
-        if (!$this->isPrints('checkLibs')) {
+        if ($this->isPrints('checkLibs')) {
             return;
         }
 
@@ -1319,7 +1319,7 @@ d3dcompiler_33.dll
 
     private function wineVersion()
     {
-        if (!$this->isPrints('wineVersion')) {
+        if ($this->isPrints('wineVersion')) {
             return;
         }
 
@@ -1335,7 +1335,7 @@ d3dcompiler_33.dll
             return;
         }
 
-        if (!$this->isPrints('xrandrVersion')) {
+        if ($this->isPrints('xrandrVersion')) {
             return;
         }
 
@@ -1349,7 +1349,7 @@ d3dcompiler_33.dll
             return;
         }
 
-        if (!$this->isPrints('vulkanVersion')) {
+        if ($this->isPrints('vulkanVersion')) {
             return;
         }
 
