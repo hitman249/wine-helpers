@@ -4,7 +4,7 @@ RUN_FROM="./php"
 
 if [[ ! -f "$RUN_FROM" ]]; then
 
-    wget -q -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
+    wget -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
 
     if [[ ! -f "$RUN_FROM" ]]; then
         RUN_FROM="php"
@@ -16,7 +16,7 @@ else
     chmod +x "$RUN_FROM"
 fi
 
-tail -n +17 ./start > "$(pwd -P)/start-tmp"
+tail -n +25 ./start > "$(pwd -P)/start-tmp"
 
 "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
 
