@@ -222,6 +222,11 @@ class Start
         $this->log(json_encode($monitors, JSON_PRETTY_PRINT));
     }
 
+    private function monitors($args)
+    {
+        $this->monitor($args);
+    }
+
     private function config($args)
     {
         if ($args) {
