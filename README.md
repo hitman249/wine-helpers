@@ -304,4 +304,4 @@ d3dcompiler_33.dll
  or [google disk](https://drive.google.com/open?id=1fTfJQhQSzlEkY-j3g0H6p4lwmQayUNSR)
  * [wine standalone](https://lutris.net/files/runners/)
  * [Installer Repacks](https://repacks.net/)
- 
+ * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
