@@ -133,7 +133,7 @@ class Start
             $args   = array_splice($args, 1);
         }
 
-        if (in_array($method, ['info', 'help', 'monitor', 'check'], true)) {
+        if (in_array($method, ['info', 'help', 'monitor', 'monitors', 'check'], true)) {
             $this->print = false;
         }
 
