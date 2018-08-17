@@ -38,7 +38,6 @@ CentOS 7, Deepin 15.6, Manjaro 17.1.11.
 
 2) Скопировать туда папку wine, сборки с поддержкой vulkan можно скачать [отсюда](https://yadi.sk/d/IrofgqFSqHsPu), выполнить:
 ```bash
-wget -q -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
 wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
 ```
 
