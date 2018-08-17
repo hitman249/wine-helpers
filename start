@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.16';
+    private $version = '0.17';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -47,6 +47,7 @@ class Start
     private $config;
     private $isConnected;
     private $prints = [];
+    private $print = true;
 
 
     /**
@@ -132,6 +133,10 @@ class Start
             $args   = array_splice($args, 1);
         }
 
+        if (in_array($method, ['info', 'help', 'monitor', 'check'], true)) {
+            $this->print = false;
+        }
+
         $this->version([]);
 
         if ($method === 'version') {
@@ -205,7 +210,16 @@ class Start
         $this->log("\n{$this->gameInfo['GAME']} version {$this->gameInfo['VERSION']}\n");
 
         $path = implode('/', array_filter([$this->gameInfo['GAME_PATH'], $this->gameInfo['PATH'], $this->gameInfo['GAME_EXE']]));
-        $this->log("CMD: {$path} {$this->gameInfo['ARGS']}\n");
+        $this->log("{$path} {$this->gameInfo['ARGS']}\n");
+    }
+
+    private function monitor($args)
+    {
+        $cmd = $this->quoteArgs($args);
+
+        $monitors = $this->resolutions();
+
+        $this->log(json_encode($monitors, JSON_PRETTY_PRINT));
     }
 
     private function config($args)
@@ -486,6 +500,7 @@ Categories=Game";
             './start fm                        - File Manager.',
             './start regedit (reg)             - Windows Registry Editor.',
             './start kill                      - Kill this instance Wine.',
+            './start monitor                   - Monitors info.',
             './start help',
             '',
             './start diff                      - Enable change files analyze from system32, syswow64 folders.',
@@ -512,6 +527,12 @@ Categories=Game";
     {
         if (!file_exists($this->wineConfig['WINEPREFIX'])) {
             $this->runExternal("\"{$this->wineConfig['WINEBOOT']}\" && \"{$this->wineConfig['WINESERVER']}\" -w");
+
+
+            /**
+             * Apply replace {WIDTH}, {HEIGHT} from files
+             */
+            $this->updateReplaces();
 
 
             /**
@@ -853,6 +874,7 @@ Help:
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
 ./start info                      - Info about the game.
+./start monitor                   - Monitors info.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
@@ -899,6 +921,9 @@ and others
 * (Опционально) Хуки после создания префикса, перед запуском и после остановки приложения.
 
 * (Опционально) Хуки GPU для внесения специфичных от производителя видеокарты исправлений (после создания префикса).
+
+* (Опционально) Можно автоматически подменять ширину и высоту в конфигурационных файлах игры при создании префикса 
+(изменяет перед применением *.reg файлов).
 
 * (Опционально) Отображение диалога с выбором что запускать, если обнаруживается несколько *.ini файлов.
 
@@ -1000,6 +1025,18 @@ resolution = \"800x600\"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
+
+[replaces]
+;
+; При создании префикса ищет и заменяет в указанных файлах теги.
+; Путь относительно позиции файла ./start
+; Выполняется ДО регистрации *.reg файлов
+;
+; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
+; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
+;
+
+; file[] = \"game_info/data/example.conf\"
 ``` 
 
  ## Полезные советы
@@ -1504,6 +1541,7 @@ d3dcompiler_33.dll
                 }
                 if ($inner === false && strpos($_line, $line) !== false) {
                     $inner = true;
+                    $monitors[$matches[1][$i]]['default'] = strpos($line, 'primary') !== false;
                 } elseif ($inner) {
                     if (strpos($line, 'connected') !== false || strpos($line, 'disconnected') !== false) {
                         $inner = false;
@@ -1820,6 +1858,51 @@ d3dcompiler_33.dll
         }
     }
 
+    private function updateReplaces()
+    {
+        if (!file_exists($this->wineConfig['WINEPREFIX'])) {
+            return;
+        }
+
+        if (empty($this->config['replaces']) || empty($this->config['replaces']['file'])) {
+            return;
+        }
+
+        if (!$this->monitors) {
+            $this->monitors = $this->resolutions();
+        }
+
+        $width  = '';
+        $height = '';
+
+        foreach ($this->monitors as $output => $monitor) {
+            if (!$width || !$height) {
+                list($w, $h) = explode('x', $monitor['resolution']);
+                $width  = $w;
+                $height = $h;
+            }
+            if ($monitor['default']) {
+                list($w, $h) = explode('x', $monitor['resolution']);
+                $width  = $w;
+                $height = $h;
+            }
+        }
+
+        foreach ((array)$this->config['replaces']['file'] as $file) {
+
+            $file = trim($file, " \t\n\r\0\x0B/");
+
+            if (file_exists("{$this->currentDir}/{$file}")) {
+                $data = file_get_contents("{$this->currentDir}/{$file}");
+                $data = str_replace(['{WIDTH}', '{HEIGHT}'], [$width, $height], $data);
+                @file_put_contents("{$this->currentDir}/{$file}", $data);
+                $this->log("Replace {WIDTH}x{HEIGHT} from file \"{$file}\"");
+            }
+        }
+
+        $this->log('');
+    }
+
     private function updateWinVersion()
     {
         if (!file_exists($this->wineConfig['WINEPREFIX'])) {
@@ -2030,6 +2113,7 @@ enable = 0
 title = \"Wine\"
 resolution = \"800x600\"
 
+[dlls]
 ;
 ; Additional dlls folder logic
 ; Example: dll[name_file.dll] = \"nooverride\"
@@ -2044,17 +2128,18 @@ resolution = \"800x600\"
 ;
 ; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
 ;
-[dlls]
+
 ; dll[d3d11.dll] = \"nooverride\"
 ; dll[l3codecx.ax] = \"register\"
 
+[hooks]
 ;
 ; Хуки
 ; after_create_prefix - команды выполняются после создания префикса
 ; before_run_game - команды выполняются перед запуском игры
 ; after_exit_game - команды выполняются после завершения игры
 ;
-[hooks]
+
 ; after_create_prefix[] = \"create.sh\"
 ; before_run_game[] = \"before.sh\"
 ; after_exit_game[] = \"after.sh\"
@@ -2062,7 +2147,31 @@ resolution = \"800x600\"
 ; gpu_amd[] = \"gpu/amd.sh\"
 ; gpu_nvidia[] = \"gpu/nvidia.sh\"
 ; gpu_intel[] = \"gpu/intel.sh\"
-; settings[] = \"settings.sh\"";
+; settings[] = \"settings.sh\"
+
+[export]
+;
+; Экспорт дополнительных переменных к команде запуска игры
+; Примеры:
+;
+
+; DXVK_HUD=fps
+; DXVK_HUD=1
+; DXVK_HUD=fps,devinfo,memory
+; DXVK_HUD=fps,devinfo,frametimes,memory
+; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
+
+[replaces]
+;
+; При создании префикса ищет и заменяет в указанных файлах теги.
+; Путь относительно позиции файла ./start
+; Выполняется ДО регистрации *.reg файлов
+;
+; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
+; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
+;
+
+; file[] = \"game_info/data/example.conf\"";
     }
 
     private function getDefaultDXVKConfig()
@@ -2368,6 +2477,10 @@ resolution = \"800x600\"
 
     private function isPrints($method)
     {
+        if ($this->print === false) {
+            return true;
+        }
+
         if (!empty($this->prints[$method])) {
             return true;
         }

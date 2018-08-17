@@ -87,6 +87,7 @@ Help:
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
 ./start info                      - Info about the game.
+./start monitor                   - Monitors info.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
@@ -133,6 +134,9 @@ and others
 * (Опционально) Хуки после создания префикса, перед запуском и после остановки приложения.
 
 * (Опционально) Хуки GPU для внесения специфичных от производителя видеокарты исправлений (после создания префикса).
+
+* (Опционально) Можно автоматически подменять ширину и высоту в конфигурационных файлах игры при создании префикса 
+(изменяет перед применением *.reg файлов).
 
 * (Опционально) Отображение диалога с выбором что запускать, если обнаруживается несколько *.ini файлов.
 
@@ -234,6 +238,18 @@ resolution = "800x600"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
+
+[replaces]
+;
+; При создании префикса ищет и заменяет в указанных файлах теги.
+; Путь относительно позиции файла ./start
+; Выполняется ДО регистрации *.reg файлов
+;
+; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
+; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
+;
+
+; file[] = "game_info/data/example.conf"
 ``` 
 
  ## Полезные советы
