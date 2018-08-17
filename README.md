@@ -41,8 +41,8 @@ CentOS 7, Deepin 15.6, Manjaro 17.1.11.
 wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
 ```
 
-3) В папке у вас должны получиться 3 элемента, папка `wine` и 2 файла `start`, `php`.   
-Если папки wine или файла php нет, будет использоваться wine или php установленный в систему.
+3) В папке у вас должны получиться 2 элемента, папка `wine` и файл `start`.   
+Если папки wine нет, будет использоваться wine установленный в систему.
 
 4) Запускаете файл `./start`
 
