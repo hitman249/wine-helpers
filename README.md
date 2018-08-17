@@ -14,11 +14,6 @@ sudo apt-get update
 sudo apt-get install binutils cabextract p7zip-full unrar unzip wget wine zenity
 ```
 
-```bash
-# Для Ubuntu, зависимости самого скрипта
-sudo apt-get install x11-xserver-utils wget wine zenity php php-cli php-readline php-curl php-gd php-common php-bz2 php-json php-mbstring php-timer php-zip
-```
-
 * Чтобы использовать Vulkan, его должны поддерживать:
   * Драйвера на видеокарту, утилита `vulkaninfo` должна говорить что всё ок.
   * Сама видеокарта должна поддерживать Vulkan.
@@ -32,8 +27,10 @@ sudo apt-get install x11-xserver-utils wget wine zenity php php-cli php-readline
 
 Этот скрипт предназначен в первую очередь для облегчения создания и распространения Wine раздач игр/программ, но может 
 применяться и в других целях. Работа скрипта гарантируется на всех дистрибутивах Linux, где установлены стандартные 
-утилиты GNU, оболочка bash и php 5.4+.
+утилиты GNU и оболочка bash.
 
+**Portable PHP 5.6.37** `amd64` идущий в комплекте, протестирован на Ubuntu 18.04, 16.04, Debian 8, Rosa R8, R10, 
+CentOS 7, Deepin 15.6, Manjaro 17.1.11.
 
 ## Как сделать порт игры
 
@@ -41,10 +38,12 @@ sudo apt-get install x11-xserver-utils wget wine zenity php php-cli php-readline
 
 2) Скопировать туда папку wine, сборки с поддержкой vulkan можно скачать [отсюда](https://yadi.sk/d/IrofgqFSqHsPu), выполнить:
 ```bash
+wget -q -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
 wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
 ```
-3) В папке у вас должны получиться 2 элемента, папка `wine` и рядом файл `start`. Если папки wine нет, будет 
-использоваться wine установленный в систему.
+
+3) В папке у вас должны получиться 3 элемента, папка `wine` и 2 файла `start`, `php`.   
+Если папки wine или файла php нет, будет использоваться wine или php установленный в систему.
 
 4) Запускаете файл `./start`
 
@@ -275,6 +274,12 @@ d3dcompiler_33.dll
   
 * В ini файлах можно пробросить дополнительные переменные для ENV окружения, секция `[export]`.
  
+* Если не использовать php интерпретатор который идёт из коробки.
+ 
+ ```bash
+ # Для Ubuntu, зависимости самого скрипта
+ sudo apt-get install x11-xserver-utils wget wine zenity php php-cli php-readline php-curl php-gd php-common php-bz2 php-json php-mbstring php-timer php-zip
+ ```
  
  ## Полезные ссылки
  
