@@ -1,4 +1,17 @@
-#!/usr/bin/php
+#!/bin/bash
+
+RUN_FROM="./php"
+
+if [[ ! -f "$RUN_FROM" ]]; then
+    RUN_FROM="php"
+fi
+
+tail -n +15 ./start > "$(pwd -P)/start-tmp"
+
+"$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+
+exit;
+
 <?php
 
 /**
@@ -8,7 +21,7 @@
  */
 class Start
 {
-    private $version = '0.15';
+    private $version = '0.16';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -32,6 +45,10 @@ class Start
      */
     public function __construct($arguments)
     {
+        if (file_exists(__DIR__ . '/start-tmp')) {
+            @unlink(__DIR__ . '/start-tmp');
+        }
+
         $this->args = array_splice($arguments, 1);
 
         $this->currentDir = __DIR__;
