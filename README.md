@@ -1,8 +1,8 @@
 
 ## Требования
 
-* php 5.4 + 
 * xrandr 1.5 +
+* zenity
 
 ```bash
 # Для Ubuntu, winetricks зависимости:
