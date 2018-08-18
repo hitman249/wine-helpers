@@ -331,7 +331,7 @@ class Start
     private function icon($args)
     {
         $isDelete = in_array(trim(reset($args)), ['delete', 'remove', 'purge'], true);
-        $user     = get_current_user();
+        $user     = $this->getUserName();
         $home     = getenv("HOME") ?: "/home/{$user}";
         $local    = "{$home}/.local/share/applications";
 
@@ -548,6 +548,7 @@ Categories=Game";
                 file_put_contents("{$this->gameInfo['REGS']}/tmp.reg", implode("\n", $regs));
                 $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->gameInfo['REGS']}/tmp.reg\"");
                 unlink("{$this->gameInfo['REGS']}/tmp.reg");
+                $this->log("Apply reg files\n");
             }
 
 
@@ -662,7 +663,7 @@ Categories=Game";
             $this->wineConfig['WINESERVER'] = 'wineserver';
         }
 
-        $this->userName = get_current_user();
+        $this->userName = $this->getUserName();
 
         $this->gpu = $this->getTypeGPU();
 
@@ -1745,6 +1746,7 @@ d3dcompiler_33.dll
                 $isChange = true;
                 $dll32 = $this->relativePath($this->gameInfo['DLL32']);
                 $this->runExternal("ln -sfr \"{$dll32}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/system32\"");
+                $this->log("Add system32/{$fileName}");
             }
         }
 
@@ -1765,6 +1767,7 @@ d3dcompiler_33.dll
                 $isChange = true;
                 $dll32 = $this->relativePath($this->gameInfo['DLL64']);
                 $this->runExternal("ln -sfr \"{$dll32}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/syswow64\"");
+                $this->log("Add syswow64/{$fileName}");
             }
         }
 
@@ -1787,6 +1790,7 @@ d3dcompiler_33.dll
                     }
 
                     $this->runExternal("\"{$this->wineConfig['WINE']}\" reg add \"HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides\" /v \"{$dll}\" /d \"{$typeOverride}\" /f");
+                    $this->log("Register {$dll}");
                 }
 
                 $this->log("Update dll overrides.\n");
@@ -2494,6 +2498,17 @@ resolution = \"800x600\"
         $this->prints[$method] = true;
 
         return false;
+    }
+
+    private function getUserName()
+    {
+        static $userName = null;
+
+        if ($userName === null) {
+            $userName = trim($this->runExternal('id -u -n'));
+        }
+
+        return $userName;
     }
 }
 
