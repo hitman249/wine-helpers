@@ -305,3 +305,4 @@ d3dcompiler_33.dll
  * [wine standalone](https://lutris.net/files/runners/)
  * [Installer Repacks](https://repacks.net/)
  * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
+ * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
