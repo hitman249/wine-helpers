@@ -306,3 +306,4 @@ d3dcompiler_33.dll
  * [Installer Repacks](https://repacks.net/)
  * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
  * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
+ * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
