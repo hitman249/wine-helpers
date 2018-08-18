@@ -1593,7 +1593,7 @@ d3dcompiler_33.dll
                 }
                 if ($params['resolution'] !== $monitors[$output]['resolution']) {
                     $this->runExternal("\"{$this->wineConfig['WINESERVER']}\" -w && xrandr --output {$output} --mode {$params['resolution']}");
-                    $this->log("Revert brightness, output {$output}, brightness {$monitors[$output]['resolution']} > {$params['resolution']}.\n");
+                    $this->log("Revert resolution, output {$output}, resolution {$monitors[$output]['resolution']} > {$params['resolution']}.\n");
                 }
             }
         }
