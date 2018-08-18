@@ -1453,7 +1453,7 @@ d3dcompiler_33.dll
 
         $prefix = implode(' ', $prefix);
 
-        $cmd = "{$prefix} {$cmd}";
+        $cmd = "{$prefix} cd \"{$this->currentDir}\" && {$cmd}";
 
 
         if ($outputConsole) {
