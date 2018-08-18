@@ -86,16 +86,14 @@ Help:
 ./start fm                        - File Manager.
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
-./start info                      - Info about the game.
 ./start monitor                   - Monitors info.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
-or
+
+Examples:
 ./start diff fm
 ./start diff winetricks d3dx9
-./start diff cfg
-and others
 
 ./start debug                    - Enable debug mode, work analog "diff".
 ./start wine                     - Get Wine Instance.
