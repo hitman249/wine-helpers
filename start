@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.19';
+    private $version = '0.20';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -133,7 +133,7 @@ class Start
             $args   = array_splice($args, 1);
         }
 
-        if (in_array($method, ['info', 'help', 'monitor', 'monitors', 'check'], true)) {
+        if (in_array($method, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo'], true)) {
             $this->print = false;
         }
 
@@ -506,6 +506,7 @@ Categories=Game";
             './start regedit (reg)             - Windows Registry Editor.',
             './start kill                      - Kill this instance Wine.',
             './start monitor                   - Monitors info.',
+            './start sysinfo                   - System info.',
             './start help',
             '',
             './start diff                      - Enable change files analyze from system32, syswow64 folders.',
@@ -881,6 +882,7 @@ Help:
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
 ./start monitor                   - Monitors info.
+./start sysinfo                   - System info.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
@@ -2514,8 +2516,133 @@ resolution = \"800x600\"
     private function getGlibcVersion()
     {
         $text = explode("\n", trim($this->runExternal('ldd --version')));
+        $text = explode(' ', trim(reset($text)));
 
-        return end(explode(' ', trim(reset($text))));
+        return end($text);
+    }
+
+    private function getCPU()
+    {
+        $cpuinfo = explode("\n", trim($this->runExternal('cat /proc/cpuinfo')));
+
+        foreach ($cpuinfo as $line) {
+            if (strpos($line, 'model name') !== false) {
+                $line = explode(':', $line);
+                return trim(end($line));
+            }
+        }
+
+        return '';
+    }
+
+    private function getGPU()
+    {
+        $gpuinfo = explode("\n", trim($this->runExternal('glxinfo')));
+
+        foreach ($gpuinfo as $line) {
+            if (strpos($line, 'Device') !== false) {
+                $line = explode(':', $line);
+                return trim(end($line));
+            }
+        }
+
+        return '';
+    }
+
+    private function getRAM()
+    {
+        $meminfo = explode("\n", trim($this->runExternal('cat /proc/meminfo')));
+
+        foreach ($meminfo as $line) {
+            if (strpos($line, 'MemTotal') !== false) {
+                $line = explode(':', $line);
+                $line = array_filter(explode(' ', end($line)));
+                $line = trim(reset($line));
+                $line = round($line / 1024);
+
+                return $line;
+            }
+        }
+
+        return '';
+    }
+
+    private function getLinuxVersion()
+    {
+        return trim($this->runExternal('uname -mrs'));
+    }
+
+    private function getDistrName()
+    {
+        $release = explode("\n", trim($this->runExternal('cat /etc/*-release')));
+
+        $name = null;
+        $version = null;
+
+        foreach ($release as $line) {
+            if ($name === null && strpos($line, 'DISTRIB_ID=') !== false) {
+                $line = explode('=', $line);
+                $name = trim(end($line));
+                continue;
+            }
+
+            if ($version === null && strpos($line, 'DISTRIB_RELEASE=') !== false) {
+                $line = explode('=', $line);
+                $version = trim(end($line));
+                continue;
+            }
+        }
+
+        if ($name === null || $version === null) {
+            foreach ($release as $line) {
+                if ($name === null && strpos($line, 'NAME=') !== false) {
+                    $line = explode('=', $line);
+                    $name = trim(end($line));
+                    continue;
+                }
+
+                if ($version === null && strpos($line, 'VERSION=') !== false) {
+                    $line = explode('=', $line);
+                    $version = trim(end($line));
+                    continue;
+                }
+            }
+        }
+
+        return trim("{$name} {$version}");
+    }
+
+    private function getMesaVersion()
+    {
+        $mesa = explode("\n", trim($this->runExternal('glxinfo | grep "Mesa"')));
+        $version = null;
+
+        foreach ($mesa as $line) {
+            if ($version === null && strpos($line, 'OpenGL version string') !== false) {
+                $line = explode('Mesa', $line);
+                $line = trim(end($line));
+                $line = explode(' ', $line);
+                $version = trim(reset($line));
+                break;
+            }
+        }
+
+        return $version ?: '';
+    }
+
+    private function sysinfo($args)
+    {
+        $result = [];
+
+        $result['CPU']   = $this->getCPU();
+        $result['GPU']   = $this->getGPU();
+        $result['RAM']   = $this->getRAM();
+        $result['Distr'] = $this->getDistrName();
+        $result['Linux'] = $this->getLinuxVersion();
+        $result['GLIBC'] = $this->getGlibcVersion();
+        $result['Mesa']  = $this->getMesaVersion();
+
+        $this->log(json_encode($result, JSON_PRETTY_PRINT));
     }
 }
 

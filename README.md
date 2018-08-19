@@ -87,6 +87,7 @@ Help:
 ./start regedit (reg)             - Windows Registry Editor.
 ./start kill                      - Kill this instance Wine.
 ./start monitor                   - Monitors info.
+./start sysinfo                   - System info.
 ./start help
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.

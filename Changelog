@@ -1,3 +1,16 @@
+0.20
+
+* Добавил вывод информации о системе ./start sysinfo
+{
+    "CPU": "AMD FX-8320E Eight-Core Processor",
+    "GPU": "AMD Radeon (TM) RX 480 Graphics (POLARIS10, DRM 3.23.0, 4.15.0-33-generic, LLVM 6.0.1) (0x67df)",
+    "RAM": 16039,
+    "Distr": "Ubuntu 18.04",
+    "Linux": "Linux 4.15.0-33-generic x86_64",
+    "GLIBC": "2.27",
+    "Mesa": "18.3.0-devel"
+}
+
 0.19
 
 * Скрипт теперь автоматически использует системный Wine, если версия GLIBC в системе меньше чем 2.19.
