@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.22';
+    private $version = '0.23';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1721,6 +1721,8 @@ d3dcompiler_33.dll
             $this->log("Convert game_info.txt to game_info.ini.\n");
 
         }
+
+        $this->updateConfig();
     }
 
     private function updateDlls()
@@ -2098,7 +2100,6 @@ exe = \"Game.exe\"
 cmd = \"-language=russian\"
 name = \"The Super Game: Deluxe Edition\"
 version = \"1.0.0\"
-
 [script]
 csmt = 1
 winetricks = 0
@@ -2120,17 +2121,14 @@ pulse = 1
 
 ; Auto fixed resolution, brightness, gamma for all monitors
 fixres = 1
-
 [wine]
 WINEDEBUG = \"-all\"
 WINEARCH = \"win32\"
 WINEDLLOVERRIDES = \"\"
-
 [window]
 enable = 0
 title = \"Wine\"
 resolution = \"800x600\"
-
 [dlls]
 ;
 ; Additional dlls folder logic
@@ -2149,7 +2147,6 @@ resolution = \"800x600\"
 
 ; dll[d3d11.dll] = \"nooverride\"
 ; dll[l3codecx.ax] = \"register\"
-
 [hooks]
 ;
 ; Хуки
@@ -2166,7 +2163,6 @@ resolution = \"800x600\"
 ; gpu_nvidia[] = \"gpu/nvidia.sh\"
 ; gpu_intel[] = \"gpu/intel.sh\"
 ; settings[] = \"settings.sh\"
-
 [export]
 ;
 ; Экспорт дополнительных переменных к команде запуска игры
@@ -2178,7 +2174,6 @@ resolution = \"800x600\"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
-
 [replaces]
 ;
 ; При создании префикса ищет и заменяет в указанных файлах теги.
@@ -2655,6 +2650,155 @@ resolution = \"800x600\"
         $result['Mesa']  = $this->getMesaVersion();
 
         $this->log(json_encode($result, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    private function startsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (strpos($haystack, $str) === 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || strpos($haystack, (string)$needle) === 0;
+    }
+
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    private function endsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (substr($haystack, -strlen($str)) === $str) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || substr($haystack, (string)-strlen($needle)) === $needle;
+    }
+
+    private function updateConfig()
+    {
+        if (!file_exists($this->gameInfo['INFOFILE'])) {
+            return;
+        }
+
+        $result = [];
+
+        $current          = parse_ini_file($this->gameInfo['INFOFILE'], true);
+        $currentText      = file_get_contents($this->gameInfo['INFOFILE']);
+        $defaultText      = $this->getDefaultConfig();
+        $defaultTextArray = explode("\n", $defaultText);
+
+        $section = null;
+        $space = null;
+        foreach ($defaultTextArray as $line) {
+            $line = trim($line);
+
+            if (!$line) {
+                $result[] = '';
+                continue;
+            }
+            if ($this->startsWith($line, '[') && $this->endsWith($line, ']')) {
+
+                if ($section !== null) {
+                    if ($space === null) {
+                        $space = true;
+                        $result[] = '';
+                    }
+
+                    if ($current[$section]) {
+                        foreach ($current[$section]?:[] as $key => $value) {
+                            if (is_array($value)) {
+                                foreach ($value?:[] as $k => $v) {
+                                    $v = is_numeric($v) && $v !== null && $v !== '' ? $v : "\"{$v}\"";
+                                    if (is_numeric($k)) {
+                                        $result[] = "{$key}[] = {$v}";
+                                    } else {
+                                        $result[] = "{$key}[{$k}] = {$v}";
+                                    }
+                                }
+                            } else {
+                                $value = is_numeric($value) && $value !== null && $value !== '' ? $value : "\"{$value}\"";
+                                $result[] = "{$key} = {$value}";
+                            }
+                        }
+
+                        $result[] = '';
+                    }
+                }
+
+                $space = null;
+                $result[] = $line;
+                $section  = trim(str_replace(['[',']'], '', $line));
+                continue;
+            }
+            if ($this->startsWith($line, ';')) {
+                $result[] = $line;
+                continue;
+            }
+
+            if ($section !== null) {
+
+                list($key, $value) = array_map(function ($n) { return trim($n, " \t\n\r\0\x0B\"'");}, explode('=', $line));
+
+                if ($this->endsWith($key, ']')) {
+
+                } else {
+                    if (!isset($current[$section][$key])) {
+                        $result[] = $line;
+                    } else {
+                        $value = $current[$section][$key];
+                        $value = is_numeric($value) && $value !== null && $value !== '' ? $value : "\"{$value}\"";
+                        $result[] = "{$key} = {$value}";
+                        unset($current[$section][$key]);
+                    }
+                }
+            }
+        }
+
+        if ($section !== null) {
+            $result[] = '';
+
+            foreach ($current[$section]?:[] as $key => $value) {
+                if (is_array($value)) {
+                    foreach ($value?:[] as $k => $v) {
+                        $v = is_numeric($v) && $v !== null && $v !== '' ? $v : "\"{$v}\"";
+                        if (is_numeric($k)) {
+                            $result[] = "{$key}[] = {$v}";
+                        } else {
+                            $result[] = "{$key}[{$k}] = {$v}";
+                        }
+                    }
+                } else {
+                    $value = is_numeric($value) && $value !== null && $value !== '' ? $value : "\"{$value}\"";
+                    $result[] = "{$key} = {$value}";
+                }
+            }
+
+            $result[] = '';
+        }
+
+        $newConfig = implode("\n", $result);
+
+        if (md5($currentText) !== md5($newConfig)) {
+            file_put_contents($this->gameInfo['INFOFILE'], $newConfig);
+        }
     }
 }
 
