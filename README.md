@@ -80,15 +80,18 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 ```text
 Help:
 ./start                           - Run game.
+./start cfg                       - Configure.
+./start check                     - Check script dependencies.
+./start fm                        - File Manager.
+./start icon                      - Create desktop icon.
+./start icon delete (remove)      - Delete desktop icon.
+./start kill                      - Kill this instance Wine.
+./start regedit (reg)             - Windows Registry Editor.
+
+./start debug                     - Enable debug mode, work analog "diff".
 ./start settings                  - Settings game.
 ./start winetricks d3dx9          - Winetricks install d3dx9.
-./start cfg                       - Configure.
-./start fm                        - File Manager.
-./start regedit (reg)             - Windows Registry Editor.
-./start kill                      - Kill this instance Wine.
-./start monitor                   - Monitors info.
-./start sysinfo                   - System info.
-./start help
+./start config game_info1.ini     - Use other config.
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
 
@@ -96,14 +99,13 @@ Examples:
 ./start diff fm
 ./start diff winetricks d3dx9
 
-./start debug                    - Enable debug mode, work analog "diff".
-./start wine                     - Get Wine Instance.
-./start config game_info1.ini    - Use other config.
-./start update                   - Update this script.
-./start icon                     - Create desktop icon.
-./start icon delete (remove)     - Delete desktop icon.
-./start check                    - Check script dependencies.
+./start wine                      - Get Wine Instance.
+./start update                    - Update this script.
+
+./start monitor                   - Monitors info.
+./start sysinfo                   - System info.
 ./start version
+./start help
 ```
 
 ## Возможности
