@@ -1,3 +1,7 @@
+0.22
+
+* Fix hidden "Use system Wine!" message.
+
 0.21
 
 * Fix определения GPU.
