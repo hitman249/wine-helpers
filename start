@@ -653,7 +653,7 @@ Categories=Game";
         }
 
         foreach ($this->args?:[] as $item) {
-            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo', 'version'], true)) {
+            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo'], true)) {
                 $this->print = false;
                 break;
             }
