@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.26';
+    private $version = '0.27';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1331,11 +1331,22 @@ d3dcompiler_33.dll
 
     private function downloadWinetricks()
     {
-        if (!file_exists("{$this->currentDir}/winetricks")) {
+        $filePath = "{$this->currentDir}/winetricks";
+
+        if (file_exists($filePath)) {
+            $createAt  = filectime($filePath);
+            $currentAt = time();
+
+            if (($currentAt - $createAt) > 86400) {
+                unlink($filePath);
+            }
+        }
+
+        if (!file_exists($filePath)) {
             $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
             $winetricks = file_get_contents($url);
-            file_put_contents("{$this->currentDir}/winetricks", $winetricks);
-            $this->runExternal("chmod +x \"{$this->currentDir}/winetricks\"");
+            file_put_contents($filePath, $winetricks);
+            $this->runExternal("chmod +x \"{$filePath}\"");
             $this->log("Success downloaded winetricks.\n");
         }
 
