@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.23';
+    private $version = '0.24';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1739,15 +1739,26 @@ d3dcompiler_33.dll
          * Copy required dlls and override them
          */
         $dlls     = [];
-        $isDll32  = file_exists($this->gameInfo['DLL32']);
-        $isDll64  = file_exists($this->gameInfo['DLL64']);
+        $isDll32  = file_exists($this->gameInfo['DLL32']) && file_exists("{$this->wineConfig['DRIVE_C']}/windows/system32/");
+        $isDll64  = file_exists($this->gameInfo['DLL64']) && file_exists("{$this->wineConfig['DRIVE_C']}/windows/syswow64/");
         $isChange = false;
 
         if ($isDll32) {
-            foreach (glob("{$this->gameInfo['DLL32']}/*.dll") as $filePath) {
+
+            $files = glob("{$this->gameInfo['DLL32']}/*.dll");
+
+            if (!empty($this->config['dlls']['dll'])) {
+                foreach ($this->config['dlls']['dll'] as $dll => $rule) {
+                    $path = "{$this->gameInfo['DLL32']}/{$dll}";
+                    if (file_exists($path) && !in_array($path, $files, true)) {
+                        $files[] = $path;
+                    }
+                }
+            }
+
+            foreach ($files as $filePath) {
                 $fileName = basename($filePath);
                 $to = "{$this->wineConfig['DRIVE_C']}/windows/system32/{$fileName}";
-                $dlls[$fileName] = 'native';
 
                 if (file_exists($to)) {
                     if (md5_file($filePath) === md5_file($to)) {
@@ -1758,6 +1769,7 @@ d3dcompiler_33.dll
                 }
 
                 $isChange = true;
+                $dlls[$fileName] = 'native';
                 $dll32 = $this->relativePath($this->gameInfo['DLL32']);
                 $this->runExternal("ln -sfr \"{$dll32}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/system32\"");
                 $this->log("Add system32/{$fileName}");
@@ -1765,10 +1777,21 @@ d3dcompiler_33.dll
         }
 
         if ($isDll64) {
-            foreach (glob("{$this->gameInfo['DLL64']}/*.dll") as $filePath) {
+
+            $files = glob("{$this->gameInfo['DLL64']}/*.dll");
+
+            if (!empty($this->config['dlls']['dll'])) {
+                foreach ($this->config['dlls']['dll'] as $dll => $rule) {
+                    $path = "{$this->gameInfo['DLL64']}/{$dll}";
+                    if (file_exists($path) && !in_array($path, $files, true)) {
+                        $files[] = $path;
+                    }
+                }
+            }
+
+            foreach ($files as $filePath) {
                 $fileName = basename($filePath);
                 $to = "{$this->wineConfig['DRIVE_C']}/windows/syswow64/{$fileName}";
-                $dlls[$fileName] = 'native';
 
                 if (file_exists($to)) {
                     if (md5_file($filePath) === md5_file($to)) {
@@ -1779,8 +1802,9 @@ d3dcompiler_33.dll
                 }
 
                 $isChange = true;
-                $dll32 = $this->relativePath($this->gameInfo['DLL64']);
-                $this->runExternal("ln -sfr \"{$dll32}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/syswow64\"");
+                $dlls[$fileName] = 'native';
+                $dll64 = $this->relativePath($this->gameInfo['DLL64']);
+                $this->runExternal("ln -sfr \"{$dll64}/{$fileName}\" \"{$this->wineConfig['DRIVE_C']}/windows/syswow64\"");
                 $this->log("Add syswow64/{$fileName}");
             }
         }
