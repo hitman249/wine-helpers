@@ -1920,7 +1920,7 @@ d3dcompiler_33.dll
                 $data = file_get_contents("{$this->currentDir}/{$file}");
                 $data = str_replace(['{WIDTH}', '{HEIGHT}'], [$width, $height], $data);
                 @file_put_contents("{$this->currentDir}/{$file}", $data);
-                $this->log("Replace {WIDTH}x{HEIGHT} from file \"{$file}\"");
+                $this->log("Replace {WIDTH}x{HEIGHT} -> {$width}x{$height} from file \"{$file}\"");
             }
         }
 
