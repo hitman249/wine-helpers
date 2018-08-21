@@ -165,6 +165,7 @@ csmt = 1
 winetricks = 0
 dialogs = 1
 autoupdate = 1
+ulimit = 100000
 
 ; Not use /home/user directory
 sandbox = 1
@@ -239,6 +240,11 @@ resolution = "800x600"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
+; WINEESYNC=1
+; PBA_DISABLE=1
+;
+; Если в игре хрипит звук можно попробовать
+; PULSE_LATENCY_MSEC=60
 
 [replaces]
 ;
