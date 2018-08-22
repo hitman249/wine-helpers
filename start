@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.28';
+    private $version = '0.29';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -106,6 +106,8 @@ class Start
 
         ];
 
+        $this->mountWine();
+        $this->mountData();
 
         $this->init();
     }
@@ -519,6 +521,14 @@ Categories=Game";
             './start kill                      - Kill this instance Wine.',
             './start regedit (reg)             - Windows Registry Editor.',
             '',
+            'Operations "pack" or "unpack" not delete originals.',
+            '',
+            '/start pack data                  - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.',
+            '/start pack wine                  - Packing "./wine" folder to "./wine.squashfs" file.',
+            '/start unpack data                - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.',
+            '/start unpack wine                - Unpacking "./wine.squashfs" file to "./wine" folder.',
+            '/start build                      - Build game to "./build" folder.',
+            '',
             './start debug                     - Enable debug mode, work analog "diff".',
             './start settings                  - Settings game.',
             './start winetricks d3dx9          - Winetricks install d3dx9.',
@@ -672,7 +682,7 @@ Categories=Game";
             if ($item === 'version') {
                 $this->isPrints('ulimit');
             }
-            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo'], true)) {
+            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo', 'pack'], true)) {
                 $this->print = false;
                 break;
             }
@@ -1051,6 +1061,18 @@ regs - файлы реестра windows (необязательная дире�
         }
 
         $this->winetricksVersion();
+    }
+
+    private function downloadSquashfuse()
+    {
+        $filePath = "{$this->currentDir}/squashfuse";
+
+        if (!file_exists($filePath)) {
+            $squashfuse = file_get_contents("{$this->repo}/squashfuse");
+            file_put_contents($filePath, $squashfuse);
+            $this->runExternal("chmod +x \"{$filePath}\"");
+            $this->log("Success downloaded squashfuse.\n");
+        }
     }
 
     private function winetricksVersion()
@@ -2617,6 +2639,256 @@ resolution = \"800x600\"
         }
 
         return true;
+    }
+
+    private function pack($args)
+    {
+        $method = reset($args);
+
+        $isSquashfs = trim($this->runExternal('which mksquashfs'));
+
+        if (!$isSquashfs) {
+            $this->log("Error, not found \"mksquashfs\"\n");
+            exit(0);
+        }
+
+        if ($method === 'data') {
+
+            if (!file_exists($this->gameInfo['DATA'])) {
+                $this->log("Error, not found \"game_info/data/\" folder.\n");
+                exit(0);
+            }
+
+            if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
+                unlink("{$this->gameInfo['DIR']}/data.squashfs");
+            }
+
+            $result = exec("mksquashfs \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DIR']}/data.squashfs\"");
+
+            if ($result) {
+                $this->log("Success pack to data.squashfs\n");
+            } else {
+                $this->log("Error packing data!\n");
+            }
+
+            exit(1);
+
+        } elseif ($method === 'wine') {
+
+            if (!file_exists("{$this->currentDir}/wine")) {
+                $this->log("Error, not found \"wine/\" folder.\n");
+                exit(0);
+            }
+
+            if (file_exists("{$this->currentDir}/wine.squashfs")) {
+                unlink("{$this->currentDir}/wine.squashfs");
+            }
+
+            $result = exec("mksquashfs \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine.squashfs\"");
+
+            if ($result) {
+                $this->log("Success pack to wine.squashfs\n");
+            } else {
+                $this->log("Error packing wine!\n");
+            }
+
+            exit(1);
+        }
+
+        $this->log("Set \"./start pack data\" OR \"./start pack wine\"\n");
+        exit(1);
+    }
+
+    private function unpack($args)
+    {
+        $method = reset($args);
+
+        if ($method === 'data') {
+            if (file_exists($this->gameInfo['DATA'])) {
+                $this->log("Unpack error. Exist \"data\" folder.\n");
+                return;
+            }
+
+            system("cp -rv \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DATA']}_tmp\"");
+
+            register_shutdown_function(function () {
+                exec("mv \"{$this->gameInfo['DATA']}_tmp\" \"{$this->gameInfo['DATA']}\"");
+            });
+
+        } elseif ($method === 'wine') {
+            if (file_exists("{$this->currentDir}/wine")) {
+                $this->log("Unpack error. Exist \"wine\" folder.\n");
+                return;
+            }
+
+            system("cp -rv \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine_tmp\"");
+
+            register_shutdown_function(function () {
+                exec("mv \"{$this->currentDir}/wine_tmp\" \"{$this->currentDir}/wine\"");
+            });
+        }
+    }
+
+    private function isMounted($file)
+    {
+        static $mounted = [];
+
+        if (isset($mounted[$file])) {
+            return true;
+        }
+
+        $mounted[$file] = true;
+
+        return false;
+    }
+
+    private function mountWine()
+    {
+        if ($this->isMounted('wine')) {
+            return;
+        }
+
+        $this->runExternal("fusermount -u \"{$this->currentDir}/wine\"");
+
+        if (file_exists("{$this->currentDir}/wine") && file_exists("{$this->currentDir}/wine.squashfs")) {
+            @rmdir("{$this->currentDir}/wine");
+        }
+
+        if (file_exists("{$this->currentDir}/wine.squashfs") && !file_exists("{$this->currentDir}/wine")) {
+
+            $this->downloadSquashfuse();
+
+            if (!mkdir("{$this->currentDir}/wine", 0775) && !is_dir("{$this->currentDir}/wine")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/wine"));
+            }
+
+            exec("\"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/wine\"");
+
+            $this->log("Mount wine.\n");
+
+            register_shutdown_function(function () {
+
+                exec("fusermount -u \"{$this->currentDir}/wine\"");
+
+                $this->log("Unmount wine.\n");
+
+                if (file_exists("{$this->currentDir}/wine")) {
+                    @rmdir("{$this->currentDir}/wine");
+                }
+            });
+        }
+    }
+
+    private function mountData()
+    {
+        if ($this->isMounted('data')) {
+            return;
+        }
+
+        $this->runExternal("fusermount -u \"{$this->gameInfo['DATA']}\"");
+
+        if (file_exists($this->gameInfo['DATA']) && file_exists("{$this->gameInfo['DATA']}.squashfs")) {
+            @rmdir($this->gameInfo['DATA']);
+        }
+
+        if (file_exists("{$this->gameInfo['DATA']}.squashfs") && !file_exists($this->gameInfo['DATA'])) {
+
+            $this->downloadSquashfuse();
+
+            if (!mkdir($this->gameInfo['DATA'], 0775) && !is_dir($this->gameInfo['DATA'])) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $this->gameInfo['DATA']));
+            }
+
+            exec("\"{$this->currentDir}/squashfuse\" \"{$this->gameInfo['DATA']}.squashfs\" \"{$this->gameInfo['DATA']}\"");
+
+            $this->log("Mount data.\n");
+
+            register_shutdown_function(function () {
+
+                exec("fusermount -u \"{$this->gameInfo['DATA']}\"");
+
+                $this->log("Unmount data.\n");
+
+                if (file_exists($this->gameInfo['DATA'])) {
+                    @rmdir($this->gameInfo['DATA']);
+                }
+            });
+        }
+    }
+
+    private function build($args)
+    {
+        if (file_exists("{$this->currentDir}/build")) {
+            $this->runExternal("rm -rf \"{$this->currentDir}/build\"");
+        }
+
+        if (!mkdir("{$this->currentDir}/build/static/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/static/game_info")) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/static/game_info"));
+        }
+        if (!mkdir("{$this->currentDir}/build/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/game_info")) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/game_info"));
+        }
+
+        foreach (glob("{$this->currentDir}/*.png") as $path) {
+            $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/static/\"");
+        }
+
+        if (file_exists("{$this->currentDir}/wine.squashfs")) {
+            $this->runExternal("cp --link \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/build/static/\"");
+        } elseif (file_exists("{$this->currentDir}/wine")) {
+            $this->runExternal("cp -r --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/static/wine\"");
+        }
+
+        if (file_exists("{$this->currentDir}/README.md")) {
+            $this->runExternal("cp --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/static/\"");
+        }
+        if (file_exists("{$this->currentDir}/php")) {
+            $this->runExternal("cp --link \"{$this->currentDir}/php\" \"{$this->currentDir}/build/static/\"");
+        }
+        if (file_exists("{$this->currentDir}/squashfuse")) {
+            $this->runExternal("cp --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/static/\"");
+        }
+        if (file_exists("{$this->currentDir}/start")) {
+            $this->runExternal("cp --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/static/\"");
+        }
+
+        foreach (glob("{$this->gameInfo['DIR']}/*") as $path) {
+            $file = basename($path);
+
+            if (in_array($file, ['data', 'data1', 'data2', 'data3', 'data4', 'data.squashfs'])) {
+                continue;
+            }
+
+            if (is_dir($path)) {
+                $this->runExternal("cp -r --link \"{$path}\" \"{$this->currentDir}/build/static/game_info/{$file}\"");
+            } else {
+                $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/static/game_info/\"");
+            }
+        }
+
+        if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
+            $this->runExternal("cp --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/game_info/\"");
+        } elseif (file_exists($this->gameInfo['DATA'])) {
+            system("cp -rv --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/static/data\"");
+        }
+
+        system("tar -cvzf \"{$this->currentDir}/build/static.tar.gz\" -C \"{$this->currentDir}/build/static\" .");
+        $this->runExternal("rm -rf \"{$this->currentDir}/build/static/\"");
+
+        /**
+         * build/extract.sh
+         */
+        file_put_contents("{$this->currentDir}/build/extract.sh",
+            "#!/bin/bash
+
+cd -P -- \"$(dirname -- \"$0\")\"
+
+tar -xvf ./static.tar.gz
+
+chmod +x ./start"
+        );
+
+        $this->runExternal("chmod +x \"{$this->currentDir}/build/extract.sh\"");
     }
 }
 
