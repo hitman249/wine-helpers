@@ -2663,7 +2663,7 @@ resolution = \"800x600\"
                 unlink("{$this->gameInfo['DIR']}/data.squashfs");
             }
 
-            $result = exec("mksquashfs \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DIR']}/data.squashfs\" -b 1048576 -comp xz -Xdict-size 100%");
+            $result = exec("mksquashfs \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DIR']}/data.squashfs\" -b 1048576 -comp gzip -Xcompression-level 9");
 
             if ($result) {
                 $this->log("Success pack to data.squashfs\n");
@@ -2684,7 +2684,7 @@ resolution = \"800x600\"
                 unlink("{$this->currentDir}/wine.squashfs");
             }
 
-            $result = exec("mksquashfs \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine.squashfs\" -b 1048576 -comp xz -Xdict-size 100%");
+            $result = exec("mksquashfs \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine.squashfs\" -b 1048576 -comp gzip -Xcompression-level 9");
             if ($result) {
                 $this->log("Success pack to wine.squashfs\n");
             } else {
@@ -2767,7 +2767,8 @@ resolution = \"800x600\"
 
             register_shutdown_function(function () {
 
-                exec("fusermount -u \"{$this->currentDir}/wine\"");
+                exec("\"{$this->wineConfig['WINESERVER']}\" -w && fusermount -u \"{$this->currentDir}/wine\"");
+                exec("echo \"\" & sleep 5 && fusermount -u \"{$this->currentDir}/wine\"");
 
                 $this->log("Unmount wine.\n");
 
