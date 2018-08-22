@@ -1019,7 +1019,10 @@ regs - файлы реестра windows (необязательная дире�
         if ($ulimit !== '1' && !empty($this->config['script']['ulimit'])) {
             $ulimit = "ulimit -n {$this->config['script']['ulimit']}";
             $this->runExternal($ulimit);
-            $this->log("Set: {$ulimit} (Add ULIMIT_DISABLE=1 in ENV to disable) \n");
+
+            if (!$this->isPrints('ulimit')) {
+                $this->log("Set: {$ulimit} (Add ULIMIT_DISABLE=1 in ENV to disable) \n");
+            }
         }
     }
 
