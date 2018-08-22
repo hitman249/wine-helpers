@@ -669,6 +669,9 @@ Categories=Game";
         }
 
         foreach ($this->args?:[] as $item) {
+            if ($item === 'version') {
+                $this->isPrints('ulimit');
+            }
             if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo'], true)) {
                 $this->print = false;
                 break;
