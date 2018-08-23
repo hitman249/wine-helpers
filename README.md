@@ -93,6 +93,10 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 Часто игры могут писать в собственную папку, для этого нужно вынести данные файлы и папки в директорию 
 `game_info/additional`, а в папке с игрой создать для них симлинки.
 
+Автоматически это можно сделать командой 
+
+* `./start link "путь_внутри_папки_data"` 
+
 Когда всё будет готово можно сделать сборку игры командой:
 
 * `./start build` 
@@ -113,11 +117,12 @@ Help:
 ./start kill                      - Kill this instance Wine.
 ./start regedit (reg)             - Windows Registry Editor.
 
-/start pack data                  - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.
-/start pack wine                  - Packing "./wine" folder to "./wine.squashfs" file.
-/start unpack data                - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.
-/start unpack wine                - Unpacking "./wine.squashfs" file to "./wine" folder.
-/start build                      - Build game to "./build" folder.
+./start pack data                 - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.
+./start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.
+./start unpack data               - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.
+./start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.
+./start symlink (link)            - Replace the folder with a symbolic link from the "data" folder.
+./start build                     - Build game to "./build" folder.
 
 ./start debug                     - Enable debug mode, work analog "diff".
 ./start settings                  - Settings game.
@@ -125,18 +130,18 @@ Help:
 ./start config game_info1.ini     - Use other config.
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
+./start wine                      - Get Wine Instance.
+./start update                    - Update this script.
+
+./start monitor(s)                - Monitors info.
+./start sysinfo                   - System info.
+./start version
+./start help
 
 Examples:
 ./start diff fm
 ./start diff winetricks d3dx9
-
-./start wine                      - Get Wine Instance.
-./start update                    - Update this script.
-
-./start monitor                   - Monitors info.
-./start sysinfo                   - System info.
-./start version
-./start help
+./start symlink "configs"
 ```
 
 ## Возможности

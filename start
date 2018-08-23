@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.31';
+    private $version = '0.32';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -521,11 +521,12 @@ Categories=Game";
             './start kill                      - Kill this instance Wine.',
             './start regedit (reg)             - Windows Registry Editor.',
             '',
-            '/start pack data                  - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.',
-            '/start pack wine                  - Packing "./wine" folder to "./wine.squashfs" file.',
-            '/start unpack data                - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.',
-            '/start unpack wine                - Unpacking "./wine.squashfs" file to "./wine" folder.',
-            '/start build                      - Build game to "./build" folder.',
+            './start pack data                 - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.',
+            './start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.',
+            './start unpack data               - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.',
+            './start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.',
+            './start symlink (link)            - Replace the folder with a symbolic link from the "data" folder.',
+            './start build                     - Build game to "./build" folder.',
             '',
             './start debug                     - Enable debug mode, work analog "diff".',
             './start settings                  - Settings game.',
@@ -533,18 +534,18 @@ Categories=Game";
             './start config game_info1.ini     - Use other config.',
             '',
             './start diff                      - Enable change files analyze from system32, syswow64 folders.',
+            './start wine                      - Get Wine Instance.',
+            './start update                    - Update this script.',
+            '',
+            './start monitor(s)                - Monitors info.',
+            './start sysinfo                   - System info.',
+            './start version',
+            './start help',
             '',
             'Examples:',
             './start diff fm',
             './start diff winetricks d3dx9',
-            '',
-            './start wine                      - Get Wine Instance.',
-            './start update                    - Update this script.',
-            '',
-            './start monitor                   - Monitors info.',
-            './start sysinfo                   - System info.',
-            './start version',
-            './start help',
+            './start symlink "configs"',
         ];
 
         $this->log(implode("\n", $help));
@@ -2898,6 +2899,82 @@ chmod +x ./start"
         );
 
         $this->runExternal("chmod +x \"{$this->currentDir}/build/{$gameDir}/extract.sh\"");
+    }
+
+    private function link($args)
+    {
+        $this->symlink($args);
+    }
+
+    private function symlink($args)
+    {
+        if (!$args) {
+            return;
+        }
+
+        $symlinks = "{$this->gameInfo['ADDITIONAL']}/symlinks";
+
+        if (!file_exists($symlinks)) {
+            if (!mkdir($symlinks, 0775, true) && !is_dir($symlinks)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $symlinks));
+            }
+        }
+
+        foreach ($args as $path) {
+            $path = trim($path, " \t\n\r\0\x0B/\\");
+            $item = "{$this->gameInfo['DATA']}/{$path}";
+
+            if (!file_exists($item)) {
+                $this->log("Not found \"game_info/data/{$path}\"");
+                return;
+            }
+
+            if (is_dir($item)) {
+                $dirName = basename($item);
+                $new = "{$symlinks}/{$dirName}";
+
+                if (file_exists($new)) {
+                    $start = 0;
+                    while (1) {
+                        $start++;
+                        $new = "{$symlinks}/{$dirName}{$start}";
+
+                        if (!file_exists($new)) {
+                            break;
+                        }
+                    }
+                }
+
+                exec("cp -r \"{$item}\" \"{$new}\"");
+                exec("rm -rf \"{$item}\"");
+                exec("ln -sfr \"{$new}\" \"{$item}\"");
+
+                $dirName = basename($new);
+                $this->log("Moved \"{$path}/\" to \"game_info/additional/symlinks/{$dirName}/\"");
+            } else {
+                $file = pathinfo($path);
+                $new  = "{$symlinks}/{$file['basename']}";
+
+                if (file_exists($new)) {
+                    $start = 0;
+                    while (1) {
+                        $start++;
+                        $new = "{$symlinks}/{$file['filename']}{$start}.{$file['extension']}";
+
+                        if (!file_exists($new)) {
+                            break;
+                        }
+                    }
+                }
+
+                exec("cp -r \"{$item}\" \"{$new}\"");
+                exec("rm -rf \"{$item}\"");
+                exec("ln -sfr \"{$new}\" \"{$item}\"");
+
+                $fileName = basename($new);
+                $this->log("Moved \"{$path}\" to \"game_info/additional/symlinks/{$fileName}\"");
+            }
+        }
     }
 }
 
