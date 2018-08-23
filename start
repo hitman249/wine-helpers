@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.30';
+    private $version = '0.31';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -2827,67 +2827,69 @@ resolution = \"800x600\"
 
     private function build($args)
     {
+        $gameDir = basename($this->currentDir);
+
         if (file_exists("{$this->currentDir}/build")) {
             $this->runExternal("rm -rf \"{$this->currentDir}/build\"");
         }
 
-        if (!mkdir("{$this->currentDir}/build/static/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/static/game_info")) {
-            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/static/game_info"));
+        if (!mkdir("{$this->currentDir}/build/{$gameDir}/static/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/{$gameDir}/static/game_info")) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/{$gameDir}/static/game_info"));
         }
-        if (!mkdir("{$this->currentDir}/build/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/game_info")) {
-            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/game_info"));
+        if (!mkdir("{$this->currentDir}/build/{$gameDir}/game_info", 0775, true) && !is_dir("{$this->currentDir}/build/{$gameDir}/game_info")) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->currentDir}/build/{$gameDir}/game_info"));
         }
 
         foreach (glob("{$this->currentDir}/*.png") as $path) {
-            $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
 
         if (file_exists("{$this->currentDir}/wine.squashfs")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         } elseif (file_exists("{$this->currentDir}/wine")) {
-            $this->runExternal("cp -r --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/static/wine\"");
+            $this->runExternal("cp -r --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/{$gameDir}/static/wine\"");
         }
 
         if (file_exists("{$this->currentDir}/README.md")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/php")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/php\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$this->currentDir}/php\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/squashfuse")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/start")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/static/\"");
+            $this->runExternal("cp --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
 
         foreach (glob("{$this->gameInfo['DIR']}/*") as $path) {
             $file = basename($path);
 
-            if (in_array($file, ['data', 'data1', 'data2', 'data3', 'data4', 'data.squashfs'])) {
+            if (in_array($file, ['data', 'data1', 'data2', 'data3', 'data4', 'data.squashfs', 'data1.squashfs', 'data2.squashfs'])) {
                 continue;
             }
 
             if (is_dir($path)) {
-                $this->runExternal("cp -r --link \"{$path}\" \"{$this->currentDir}/build/static/game_info/{$file}\"");
+                $this->runExternal("cp -r --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/{$file}\"");
             } else {
-                $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/static/game_info/\"");
+                $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/\"");
             }
         }
 
         if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
-            $this->runExternal("cp --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/game_info/\"");
+            $this->runExternal("cp --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists($this->gameInfo['DATA'])) {
-            system("cp -rv --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/static/data\"");
+            system("cp -rv --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/{$gameDir}/static/data\"");
         }
 
-        system("tar -cvzf \"{$this->currentDir}/build/static.tar.gz\" -C \"{$this->currentDir}/build/static\" .");
-        $this->runExternal("rm -rf \"{$this->currentDir}/build/static/\"");
+        system("tar -cvzf \"{$this->currentDir}/build/{$gameDir}/static.tar.gz\" -C \"{$this->currentDir}/build/{$gameDir}/static\" .");
+        $this->runExternal("rm -rf \"{$this->currentDir}/build/{$gameDir}/static/\"");
 
         /**
          * build/extract.sh
          */
-        file_put_contents("{$this->currentDir}/build/extract.sh",
+        file_put_contents("{$this->currentDir}/build/{$gameDir}/extract.sh",
             "#!/bin/bash
 
 cd -P -- \"$(dirname -- \"$0\")\"
@@ -2897,7 +2899,7 @@ tar -xvf ./static.tar.gz
 chmod +x ./start"
         );
 
-        $this->runExternal("chmod +x \"{$this->currentDir}/build/extract.sh\"");
+        $this->runExternal("chmod +x \"{$this->currentDir}/build/{$gameDir}/extract.sh\"");
     }
 }
 
