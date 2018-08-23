@@ -113,6 +113,12 @@ Help:
 ./start kill                      - Kill this instance Wine.
 ./start regedit (reg)             - Windows Registry Editor.
 
+/start pack data                  - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.
+/start pack wine                  - Packing "./wine" folder to "./wine.squashfs" file.
+/start unpack data                - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.
+/start unpack wine                - Unpacking "./wine.squashfs" file to "./wine" folder.
+/start build                      - Build game to "./build" folder.
+
 ./start debug                     - Enable debug mode, work analog "diff".
 ./start settings                  - Settings game.
 ./start winetricks d3dx9          - Winetricks install d3dx9.

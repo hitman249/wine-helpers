@@ -521,8 +521,6 @@ Categories=Game";
             './start kill                      - Kill this instance Wine.',
             './start regedit (reg)             - Windows Registry Editor.',
             '',
-            'Operations "pack" or "unpack" not delete originals.',
-            '',
             '/start pack data                  - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.',
             '/start pack wine                  - Packing "./wine" folder to "./wine.squashfs" file.',
             '/start unpack data                - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.',
