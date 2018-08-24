@@ -2771,7 +2771,7 @@ resolution = \"800x600\"
                 unlink("{$this->gameInfo['DIR']}/data.squashfs");
             }
 
-            $result = exec("mksquashfs \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DIR']}/data.squashfs\" -b 1048576 -comp xz -Xdict-size 100%");
+            $result = exec("mksquashfs \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DIR']}/data.squashfs\" -b 1048576 -comp gzip -Xcompression-level 9");
 
             if ($result) {
                 $this->log("Success pack to data.squashfs\n");
