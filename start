@@ -502,7 +502,11 @@ Categories=Game";
 
         $cmd = $this->quoteArgs($args);
 
-        $this->log("This script version {$this->version}\n\nhttps://github.com/hitman249/wine-helpers\n");
+        $this->logStart();
+        $this->log("This script version {$this->version}");
+        $this->log('', 'hr', $this->length);
+        $this->log("https://github.com/hitman249/wine-helpers");
+        $this->logStop();
     }
 
     public function check()
@@ -822,10 +826,14 @@ regs - файлы реестра windows (необязательная дире�
              */
             file_put_contents(
                 "{$this->gameInfo['ADDITIONAL']}/path.txt",
-                "users/--REPLACE_WITH_USERNAME--/Мои документы"
+                "users/--REPLACE_WITH_USERNAME--/Мои документы
+users/--REPLACE_WITH_USERNAME--/Documents"
             );
 
             if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_1", 0775, true) && !is_dir($path)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+            }
+            if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_2", 0775, true) && !is_dir($path)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
             }
 
@@ -1057,7 +1065,6 @@ regs - файлы реестра windows (необязательная дире�
                     $this->log("If it does not work, restart the system and try again.");
                     $this->logStop();
 
-                    $this->log('');
                 }
             }
         }
