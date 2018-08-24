@@ -201,7 +201,6 @@ csmt = 1
 winetricks = 0
 dialogs = 1
 autoupdate = 1
-ulimit = 100000
 
 ; Not use /home/user directory
 sandbox = 1

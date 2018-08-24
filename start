@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.33';
+    private $version = '0.34';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1035,10 +1035,10 @@ regs - файлы реестра windows (необязательная дире�
 
         $this->vulkan = (bool)trim($this->runExternal("which vulkaninfo"));
 
-        if (!empty($this->config['script']['ulimit'])) {
+        if (!empty($this->config['script']['dxvk']) || !empty($this->config['export']['WINEESYNC'])) {
 
             $currentUlimit = (int)trim($this->runExternal('ulimit -Hn'));
-            $newUlimit     = (int)$this->config['script']['ulimit'];
+            $newUlimit     = 100000;
 
             if ($currentUlimit < $newUlimit) {
                 if (!$this->isPrints('ulimit')) {
@@ -1986,7 +1986,6 @@ csmt = 1
 winetricks = 0
 dialogs = 1
 autoupdate = 1
-ulimit = 100000
 
 ; Not use /home/user directory
 sandbox = 1
