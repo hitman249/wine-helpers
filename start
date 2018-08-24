@@ -504,7 +504,7 @@ Categories=Game";
 
         $this->logStart();
         $this->log("This script version {$this->version}");
-        $this->log('', 'hr', $this->length);
+        $this->log('');
         $this->log("https://github.com/hitman249/wine-helpers");
         $this->logStop();
     }
