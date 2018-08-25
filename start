@@ -120,6 +120,13 @@ class Start
         $this->mountData();
 
         $this->init();
+
+        register_shutdown_function(function () {
+            $resolution = "{$this->currentDir}/resolutions.json";
+            if (file_exists($resolution)) {
+                @unlink($resolution);
+            }
+        });
     }
 
     public function start()
