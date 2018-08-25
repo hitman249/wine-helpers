@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.35';
+    private $version = '0.36';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -66,6 +66,14 @@ class Start
         $this->args = array_splice($arguments, 1);
 
         $this->currentDir = __DIR__;
+
+        if (!$this->lockExec()) {
+            $this->logStart();
+            $this->log('Application is already running.');
+            $this->logStop();
+            exit(1);
+        }
+
         $gameInfo         = "{$this->currentDir}/game_info";
         $winePrefix       = "{$this->currentDir}/prefix";
 
@@ -3111,6 +3119,28 @@ chmod +x ./start"
                 $this->log("Moved \"{$path}\" to \"game_info/additional/symlinks/{$fileName}\"");
             }
         }
+    }
+
+    private function lockExec()
+    {
+        $lock = "{$this->currentDir}/run.lock";
+        $fp   = @fopen($lock, 'w');
+
+        if (!@flock($fp, LOCK_EX | LOCK_NB)) {
+            return false;
+        }
+
+        register_shutdown_function(function () use ($lock, &$fp) {
+            if ($fp) {
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
+            }
+            if (file_exists($lock)) {
+                @unlink($lock);
+            }
+        });
+
+        return true;
     }
 }
 
