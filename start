@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.34';
+    private $version = '0.35';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -116,6 +116,16 @@ class Start
 
     public function start()
     {
+        if ($this->isCrashed()) {
+            $this->logStart();
+            $this->log('Restore resolutions and Exit.');
+            $this->log('The script found that the application crashed.');
+            $this->logStop();
+            $this->log('');
+
+            return;
+        }
+
         $method = 'game';
         $args = [];
 
@@ -1448,6 +1458,11 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             }
         }
 
+        file_put_contents(
+            "{$this->currentDir}/resolutions.json",
+            json_encode($monitors, JSON_PRETTY_PRINT)
+        );
+
         return $monitors;
     }
 
@@ -1475,6 +1490,22 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 }
             }
         }
+
+        if (file_exists("{$this->currentDir}/resolutions.json")) {
+            @unlink("{$this->currentDir}/resolutions.json");
+        }
+    }
+
+    private function isCrashed()
+    {
+        if (file_exists("{$this->currentDir}/resolutions.json")) {
+            $this->monitors = json_decode(file_get_contents("{$this->currentDir}/resolutions.json"), true);
+            $this->restoreResolutions();
+
+            return true;
+        }
+
+        return false;
     }
 
     private function getSnapshot()
