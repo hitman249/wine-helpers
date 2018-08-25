@@ -521,7 +521,7 @@ Categories=Game";
 
     public function check()
     {
-        $this->log("\nCheck script dependencies:\n");
+        $this->log("Check script dependencies:\n");
 
         foreach (['zenity', 'xrandr', 'vulkaninfo', 'pulseaudio', 'glxinfo', 'grep'] as $app) {
             $is = trim($this->runExternal("which {$app}"));
