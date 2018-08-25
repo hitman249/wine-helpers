@@ -1103,6 +1103,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                     $this->log("Please run from terminal to current user: \"ulimit -n {$newUlimit}\".");
                     $this->log("To check the current value, run \"ulimit -Hn\".");
                     $this->log("If it does not work, restart the system and try again.");
+                    $this->log("Or add to \"/etc/security/limits.conf\" file:");
+                    $this->log("* soft nofile {$newUlimit}");
+                    $this->log("* hard nofile {$newUlimit}");
                     $this->logStop();
 
                 }
