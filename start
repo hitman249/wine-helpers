@@ -1389,12 +1389,12 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         if ($lenght > 0) {
             $text    = "{$symbols['start']}{$text}";
-            $len     = strlen($text);
+            $len     = mb_strlen($text);
             $compare = $lenght - $len;
 
             if ($compare > 0) {
 
-                $len2 = $compare - (1 + strlen($symbols['end']));
+                $len2 = $compare - (1 + mb_strlen($symbols['end']));
 
                 if ($len2 > 0) {
                     $end = [];
