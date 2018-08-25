@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.36';
+    private $version = '0.37';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -125,6 +125,17 @@ class Start
             $resolution = "{$this->currentDir}/resolutions.json";
             if (file_exists($resolution)) {
                 @unlink($resolution);
+            }
+        });
+
+        pcntl_signal(SIGINT, function ($signal) {
+            switch($signal) {
+                case SIGINT:
+                case SIGKILL:
+                case SIGQUIT:
+                case SIGTERM:
+                case SIGSTOP:
+                    exit(1);
             }
         });
     }
@@ -3130,18 +3141,21 @@ chmod +x ./start"
 
     private function lockExec()
     {
-        $lock = "{$this->currentDir}/run.lock";
-        $fp   = @fopen($lock, 'w');
+        $lock = "{$this->currentDir}/run.pid";
 
-        if (!@flock($fp, LOCK_EX | LOCK_NB)) {
-            return false;
+        if (file_exists($lock)) {
+            $pid = trim(file_get_contents($lock));
+            if ($pid) {
+                $processExists = $this->runExternal("ps -p {$pid} -o comm=");
+                if ($processExists) {
+                    return false;
+                }
+            }
         }
 
-        register_shutdown_function(function () use ($lock, &$fp) {
-            if ($fp) {
-                @flock($fp, LOCK_UN);
-                @fclose($fp);
-            }
+        file_put_contents($lock, posix_getpid());
+
+        register_shutdown_function(function () use ($lock) {
             if (file_exists($lock)) {
                 @unlink($lock);
             }
