@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.37';
+    private $version = '0.38';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -168,8 +168,11 @@ class Start
             $args   = array_splice($args, 1);
         }
 
+        $winedebug = $this->wineConfig['WINEDEBUG'];
+
         if ($method === 'debug') {
             $this->wineConfig['WINEDEBUG'] = '';
+            $winedebug = '';
             $method = $args ? $args[0] : 'game';
             $args   = array_splice($args, 1);
         }
@@ -213,6 +216,7 @@ class Start
                     $this->infoFile = $result['file'];
                     $this->gameInfo['INFOFILE'] = "{$this->gameInfo['DIR']}/{$this->infoFile}";
                     $this->init();
+                    $this->wineConfig['WINEDEBUG'] = $winedebug;
                 }
             }
 
