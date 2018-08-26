@@ -386,7 +386,7 @@ class Start
     private function autoupdate($args)
     {
         if ($this->isScriptAutoupdate() && $this->isConnected()) {
-            $version = trim(file_get_contents("{$this->repo}/RELEASE"));
+            $version = trim(file_get_contents("{$this->repo}/RELEASE", " \t\n\r\x0B"));
             if ($version !== $this->version) {
                 $this->update([]);
             }
