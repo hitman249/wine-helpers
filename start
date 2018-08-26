@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.39';
+    private $version = '0.40';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -2876,24 +2876,14 @@ resolution = \"800x600\"
         $method = reset($args);
 
         if ($method === 'data') {
-            if (file_exists($this->gameInfo['DATA'])) {
-                $this->log("Unpack error. Exist \"data\" folder.\n");
-                return;
-            }
-
-            system("cp -rv \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DATA']}_tmp\"");
+            system("cp -rav \"{$this->gameInfo['DATA']}\" \"{$this->gameInfo['DATA']}_tmp\"");
 
             register_shutdown_function(function () {
                 exec("mv \"{$this->gameInfo['DATA']}_tmp\" \"{$this->gameInfo['DATA']}\"");
             });
 
         } elseif ($method === 'wine') {
-            if (file_exists("{$this->currentDir}/wine")) {
-                $this->log("Unpack error. Exist \"wine\" folder.\n");
-                return;
-            }
-
-            system("cp -rv \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine_tmp\"");
+            system("cp -rav \"{$this->currentDir}/wine\" \"{$this->currentDir}/wine_tmp\"");
 
             register_shutdown_function(function () {
                 exec("mv \"{$this->currentDir}/wine_tmp\" \"{$this->currentDir}/wine\"");
@@ -3010,26 +3000,26 @@ resolution = \"800x600\"
         }
 
         foreach (glob("{$this->currentDir}/*.png") as $path) {
-            $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
 
         if (file_exists("{$this->currentDir}/wine.squashfs")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         } elseif (file_exists("{$this->currentDir}/wine")) {
-            $this->runExternal("cp -r --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/{$gameDir}/static/wine\"");
+            $this->runExternal("cp -ra --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/{$gameDir}/static/wine\"");
         }
 
         if (file_exists("{$this->currentDir}/README.md")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/php")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/php\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$this->currentDir}/php\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/squashfuse")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$this->currentDir}/start")) {
-            $this->runExternal("cp --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+            $this->runExternal("cp -a --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
 
         foreach (glob("{$this->gameInfo['DIR']}/*") as $path) {
@@ -3040,16 +3030,16 @@ resolution = \"800x600\"
             }
 
             if (is_dir($path)) {
-                $this->runExternal("cp -r --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/{$file}\"");
+                $this->runExternal("cp -ra --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/{$file}\"");
             } else {
-                $this->runExternal("cp --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/\"");
+                $this->runExternal("cp -a --link \"{$path}\" \"{$this->currentDir}/build/{$gameDir}/static/game_info/\"");
             }
         }
 
         if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
-            $this->runExternal("cp --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/{$gameDir}/game_info/\"");
+            $this->runExternal("cp -a --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists($this->gameInfo['DATA'])) {
-            system("cp -rv --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/{$gameDir}/static/data\"");
+            system("cp -rav --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/{$gameDir}/static/data\"");
         }
 
         system("tar -cvzf \"{$this->currentDir}/build/{$gameDir}/static.tar.gz\" -C \"{$this->currentDir}/build/{$gameDir}/static\" .");
@@ -3112,7 +3102,7 @@ chmod +x ./start"
                     continue;
                 }
 
-                exec("cp -r \"{$item}\" \"{$symlinksPath}\"");
+                exec("cp -ra \"{$item}\" \"{$symlinksPath}\"");
                 exec("rm -rf \"{$item}\"");
                 exec("ln -sfr \"{$symlinksPath}\" \"{$item}\"");
 
@@ -3128,7 +3118,7 @@ chmod +x ./start"
                     }
                 }
 
-                exec("cp -r \"{$item}\" \"{$symlinks}/{$path}\"");
+                exec("cp -ra \"{$item}\" \"{$symlinks}/{$path}\"");
                 exec("rm -rf \"{$item}\"");
                 exec("ln -sfr \"{$symlinks}/{$path}\" \"{$item}\"");
 
