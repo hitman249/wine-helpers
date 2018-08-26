@@ -95,7 +95,11 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 
 Автоматически это можно сделать командой 
 
-* `./start link "путь_внутри_папки_data"` 
+* `./start link "путь_внутри_папки_data" "путь2_внутри_папки_data"` 
+
+Также можно преобразовать НЕ пустую папку в RW режим, с помощью конвертирования всего содержимого в симлинки.
+
+* `./start rwdirlink "путь_внутри_папки_data"`
 
 Когда всё будет готово можно сделать сборку игры командой:
 
@@ -121,7 +125,8 @@ Help:
 ./start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.
 ./start unpack data               - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.
 ./start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.
-./start symlink (link)            - Replace the folder with a symbolic link from the "data" folder.
+./start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.
+./start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.
 ./start build                     - Build game to "./build" folder.
 
 ./start debug                     - Enable debug mode, work analog "diff".
