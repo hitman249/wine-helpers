@@ -372,7 +372,7 @@ class Start
                     file_put_contents($log, implode("\n", $winetricks));
                 }
 
-                $newVersion = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'));
+                $newVersion = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE', " \t\n\r"));
                 $oldVersion = trim(file_get_contents("{$this->wineConfig['DRIVE_C']}/dxvk"));
 
                 if ($newVersion !== $oldVersion) {
@@ -386,7 +386,7 @@ class Start
     private function autoupdate($args)
     {
         if ($this->isScriptAutoupdate() && $this->isConnected()) {
-            $version = trim(file_get_contents("{$this->repo}/RELEASE", " \t\n\r\x0B"));
+            $version = trim(file_get_contents("{$this->repo}/RELEASE", " \t\n\r"));
             if ($version !== $this->version) {
                 $this->update([]);
             }
@@ -1982,7 +1982,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
          */
         if ($this->wineConfig['DXVK']) {
             $this->winetricks(['dxvk']);
-            $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'));
+            $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
             file_put_contents($dxvk, $version);
 
             if (!file_exists($this->gameInfo['DXVK'])) {
