@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.41';
+    private $version = '0.42';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -51,6 +51,7 @@ class Start
     private $repo = 'https://raw.githubusercontent.com/hitman249/wine-helpers/master';
     private $length = 80;
     private $table = false;
+    private $contextOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
 
 
     /**
@@ -345,7 +346,7 @@ class Start
     private function update($args)
     {
         $cmd = $this->quoteArgs($args);
-        $newStart = file_get_contents("{$this->repo}/start");
+        $newStart = file_get_contents("{$this->repo}/start", false, stream_context_create($this->contextOptions));
 
         if ($newStart) {
             file_put_contents("{$this->currentDir}/start", $newStart);
@@ -372,7 +373,7 @@ class Start
                     file_put_contents($log, implode("\n", $winetricks));
                 }
 
-                $newVersion = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE', " \t\n\r"));
+                $newVersion = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE', false, stream_context_create($this->contextOptions)), " \t\n\r");
                 $oldVersion = trim(file_get_contents("{$this->wineConfig['DRIVE_C']}/dxvk"));
 
                 if ($newVersion !== $oldVersion) {
@@ -386,7 +387,7 @@ class Start
     private function autoupdate($args)
     {
         if ($this->isScriptAutoupdate() && $this->isConnected()) {
-            $version = trim(file_get_contents("{$this->repo}/RELEASE", " \t\n\r"));
+            $version = trim(file_get_contents("{$this->repo}/RELEASE", false, stream_context_create($this->contextOptions)), " \t\n\r");
             if ($version !== $this->version) {
                 $this->update([]);
             }
@@ -1130,7 +1131,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         if (!file_exists($filePath)) {
             $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
-            $winetricks = file_get_contents($url);
+            $winetricks = file_get_contents($url, false, stream_context_create($this->contextOptions));
             file_put_contents($filePath, $winetricks);
             $this->runExternal("chmod +x \"{$filePath}\"");
             $this->log("Success downloaded winetricks.\n");
@@ -1144,7 +1145,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         $filePath = "{$this->currentDir}/squashfuse";
 
         if (!file_exists($filePath)) {
-            $squashfuse = file_get_contents("{$this->repo}/squashfuse");
+            $squashfuse = file_get_contents("{$this->repo}/squashfuse", false, stream_context_create($this->contextOptions));
             file_put_contents($filePath, $squashfuse);
             $this->runExternal("chmod +x \"{$filePath}\"");
             $this->log("Success downloaded squashfuse.\n");
@@ -1156,7 +1157,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         $filePath = "{$this->currentDir}/hw-probe";
 
         if (!file_exists($filePath)) {
-            $hwprobe = file_get_contents("{$this->repo}/hw-probe");
+            $hwprobe = file_get_contents("{$this->repo}/hw-probe", false, stream_context_create($this->contextOptions));
             file_put_contents($filePath, $hwprobe);
             $this->runExternal("chmod +x \"{$filePath}\"");
             $this->log("Success downloaded hw-probe.\n");
@@ -1995,7 +1996,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
          */
         if ($this->wineConfig['DXVK']) {
             $this->winetricks(['dxvk']);
-            $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
+            $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE', false, stream_context_create($this->contextOptions)), " \t\n\r");
             file_put_contents($dxvk, $version);
 
             if (!file_exists($this->gameInfo['DXVK'])) {
@@ -2812,7 +2813,7 @@ resolution = \"800x600\"
 
         if ($this->isConnected()) {
 
-            $readme = file_get_contents("{$this->repo}/README.md");
+            $readme = file_get_contents("{$this->repo}/README.md", false, stream_context_create($this->contextOptions));
 
             if ($readme) {
                 /**
