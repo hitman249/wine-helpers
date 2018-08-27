@@ -1263,7 +1263,10 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         $version = trim($this->runExternal("vulkaninfo --json"));
         $version = json_decode($version, true);
-        $this->log("Vulkan API version: {$version['comments']['vulkanApiVersion']}\n");
+
+        if ($version && !empty($version['comments']['vulkanApiVersion'])) {
+            $this->log("Vulkan API version: {$version['comments']['vulkanApiVersion']}\n");
+        }
     }
 
     private function gameVersion()
