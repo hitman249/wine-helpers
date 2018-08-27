@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.40';
+    private $version = '0.41';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -595,6 +595,7 @@ Categories=Game";
             '',
             './start monitor(s)                - Monitors info.',
             './start sysinfo                   - System info.',
+            './start probe                     - Full system info.',
             './start version',
             './start help',
             '',
@@ -1147,6 +1148,18 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             file_put_contents($filePath, $squashfuse);
             $this->runExternal("chmod +x \"{$filePath}\"");
             $this->log("Success downloaded squashfuse.\n");
+        }
+    }
+
+    private function downloadHwprobe()
+    {
+        $filePath = "{$this->currentDir}/hw-probe";
+
+        if (!file_exists($filePath)) {
+            $hwprobe = file_get_contents("{$this->repo}/hw-probe");
+            file_put_contents($filePath, $hwprobe);
+            $this->runExternal("chmod +x \"{$filePath}\"");
+            $this->log("Success downloaded hw-probe.\n");
         }
     }
 
@@ -3211,6 +3224,13 @@ chmod +x ./start"
 
             $this->log("Moved \"{$path}\" to \"game_info/additional/symlinks/{$path}\"");
         }
+    }
+
+    private function probe($args)
+    {
+        $this->downloadHwprobe();
+
+        system("sudo {$this->currentDir}/hw-probe -all -upload");
     }
 }
 

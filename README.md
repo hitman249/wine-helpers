@@ -140,6 +140,7 @@ Help:
 
 ./start monitor(s)                - Monitors info.
 ./start sysinfo                   - System info.
+./start probe                     - Full system info.
 ./start version
 ./start help
 
