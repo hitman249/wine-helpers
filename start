@@ -4,7 +4,7 @@ RUN_FROM="./php"
 
 if [[ ! -f "$RUN_FROM" ]]; then
 
-    wget -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
+    wget --no-check-certificate -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
 
     if [[ ! -f "$RUN_FROM" ]]; then
         RUN_FROM="php"
