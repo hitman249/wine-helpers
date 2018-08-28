@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.44';
+    private $version = '0.45';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -551,8 +551,9 @@ Categories=Game";
 
         $this->logStart();
         $this->log("This script version {$this->version}");
-        $this->log('');
-        $this->log("https://github.com/hitman249/wine-helpers");
+        $this->log('', 'hr', $this->length);
+        $this->log('Help:   ./start help');
+        $this->log("Source: https://github.com/hitman249/wine-helpers");
         $this->logStop();
     }
 
@@ -3011,7 +3012,7 @@ resolution = \"800x600\"
 
             exec("\"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/wine.squashfs\" \"{$this->currentDir}/wine\"");
 
-            $this->log("Mount wine.\n");
+            $this->log("Mount wine.");
 
             register_shutdown_function(function () {
 
@@ -3027,7 +3028,7 @@ resolution = \"800x600\"
                     }
                 }
 
-                $this->log("Unmount wine.\n");
+                $this->log("Unmount wine.");
             });
         }
     }
