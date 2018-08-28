@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cd -P -- "$(dirname -- "$0")"
 

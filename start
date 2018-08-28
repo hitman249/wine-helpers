@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 RUN_FROM="./php"
 
-if [[ ! -f "$RUN_FROM" ]]; then
+if [ ! -f "$RUN_FROM" ]; then
 
     wget --no-check-certificate -O php https://raw.githubusercontent.com/hitman249/wine-helpers/master/php
 
-    if [[ ! -f "$RUN_FROM" ]]; then
+    if [ ! -f "$RUN_FROM" ]; then
         RUN_FROM="php"
     else
         chmod +x "$RUN_FROM"
@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.43';
+    private $version = '0.44';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -968,7 +968,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/after.sh",
-                '#' ."!/bin/bash\necho \"After!\""
+                '#' ."!/bin/sh\necho \"After!\""
             );
 
 
@@ -977,7 +977,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/before.sh",
-                '#' ."!/bin/bash\necho \"Before!\""
+                '#' ."!/bin/sh\necho \"Before!\""
             );
 
 
@@ -986,7 +986,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/create.sh",
-                '#' ."!/bin/bash\necho \"Create prefix!\""
+                '#' ."!/bin/sh\necho \"Create prefix!\""
             );
 
 
@@ -995,7 +995,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/settings.sh",
-                '#' ."!/bin/bash\necho \"Here change game settings!\"\necho \"Run './start settings' exec this file!\""
+                '#' ."!/bin/sh\necho \"Here change game settings!\"\necho \"Run './start settings' exec this file!\""
             );
 
 
@@ -1010,7 +1010,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/gpu/amd.sh",
-                '#' ."!/bin/bash\necho \"AMD GPU hook!\""
+                '#' ."!/bin/sh\necho \"AMD GPU hook!\""
             );
 
 
@@ -1019,7 +1019,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/gpu/nvidia.sh",
-                '#' ."!/bin/bash\necho \"NVIDIA GPU hook!\""
+                '#' ."!/bin/sh\necho \"NVIDIA GPU hook!\""
             );
 
 
@@ -1028,7 +1028,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
              */
             file_put_contents(
                 "{$this->gameInfo['HOOKS']}/gpu/intel.sh",
-                '#' ."!/bin/bash\necho \"Intel GPU hook!\""
+                '#' ."!/bin/sh\necho \"Intel GPU hook!\""
             );
         }
 
@@ -3134,7 +3134,7 @@ resolution = \"800x600\"
          * build/extract.sh
          */
         file_put_contents("{$this->currentDir}/build/{$gameDir}/extract.sh",
-            "#!/bin/bash
+            "#!/bin/sh
 
 cd -P -- \"$(dirname -- \"$0\")\"
 

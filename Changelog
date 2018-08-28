@@ -1,3 +1,7 @@
+0.44
+
+* Change bash to sh
+
 0.43
 
 * Add check dependencies before create prefix.
