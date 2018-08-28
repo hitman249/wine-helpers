@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.45';
+    private $version = '0.46';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -52,6 +52,7 @@ class Start
     private $length = 80;
     private $table = false;
     private $contextOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
+    private $fastMode = false;
 
 
     /**
@@ -117,8 +118,20 @@ class Start
 
         ];
 
-        $this->mountWine();
-        $this->mountData();
+        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe'];
+        $args     = array_filter(
+            array_map('trim', $this->args?:[]),
+            function ($item) use ($fastArgs) { return in_array($item, $fastArgs, true); }
+        );
+
+        if ($args) {
+            $this->fastMode = true;
+        }
+
+        if (!$this->fastMode) {
+            $this->mountWine();
+            $this->mountData();
+        }
 
         $this->init();
 
@@ -679,6 +692,10 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
 
     private function createPrefix()
     {
+        if ($this->fastMode) {
+            return;
+        }
+
         if (!file_exists($this->wineConfig['WINEPREFIX'])) {
             $this->runExternal("\"{$this->wineConfig['WINEBOOT']}\" && \"{$this->wineConfig['WINESERVER']}\" -w");
 
@@ -817,48 +834,49 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             }
         }
 
-        if (!file_exists($this->wineConfig['WINE']) || version_compare($this->getGlibcVersion(), '2.19', '<')) {
-            if (!$this->isPrints('syswine')) {
-                $this->log("Use system Wine!\n");
-            }
-
-            $this->wineConfig['WINE']       = 'wine';
-            $this->wineConfig['REGEDIT']    = 'regedit';
-            $this->wineConfig['WINEBOOT']   = 'wineboot';
-            $this->wineConfig['WINEFILE']   = 'winefile';
-            $this->wineConfig['WINECFG']    = 'winecfg';
-            $this->wineConfig['WINESERVER'] = 'wineserver';
-        }
-
         $this->userName = $this->getUserName();
 
         $this->gpu = $this->getTypeGPU();
 
-        if (!file_exists($this->gameInfo['DIR'])) {
+        if (!$this->fastMode) {
+            if (!file_exists($this->wineConfig['WINE']) || version_compare($this->getGlibcVersion(), '2.19', '<')) {
+                if (!$this->isPrints('syswine')) {
+                    $this->log("Use system Wine!\n");
+                }
 
-            if (file_exists("{$this->currentDir}/wine/bin")) {
-                $this->runExternal("chmod +x -R \"{$this->currentDir}/wine/bin/\"");
+                $this->wineConfig['WINE']       = 'wine';
+                $this->wineConfig['REGEDIT']    = 'regedit';
+                $this->wineConfig['WINEBOOT']   = 'wineboot';
+                $this->wineConfig['WINEFILE']   = 'winefile';
+                $this->wineConfig['WINECFG']    = 'winecfg';
+                $this->wineConfig['WINESERVER'] = 'wineserver';
             }
 
-            foreach ($this->gameInfo as $key => $path) {
-                if ($key === 'INFOFILE' || $key === 'DXVK') {
-                    continue;
+            if (!file_exists($this->gameInfo['DIR'])) {
+
+                if (file_exists("{$this->currentDir}/wine/bin")) {
+                    $this->runExternal("chmod +x -R \"{$this->currentDir}/wine/bin/\"");
                 }
-                if (!mkdir($path, 0775, true) && !is_dir($path)) {
-                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+
+                foreach ($this->gameInfo as $key => $path) {
+                    if ($key === 'INFOFILE' || $key === 'DXVK') {
+                        continue;
+                    }
+                    if (!mkdir($path, 0775, true) && !is_dir($path)) {
+                        throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+                    }
                 }
-            }
 
 
-            $readme = 'readme.txt';
+                $readme = 'readme.txt';
 
 
-            /**
-             * game_info/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['DIR']}/{$readme}",
-                "Эта директория необходима для работы скрипта.
+                /**
+                 * game_info/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['DIR']}/{$readme}",
+                    "Эта директория необходима для работы скрипта.
 
 Описание директорий/файлов:
 
@@ -869,59 +887,59 @@ dlls64 - дополнительные dll файлы (необязательна
 additional - специфичные для игры настройки (необязательная директория)
 hooks - скрипты которые выполняются в зависимости от каких либо событий (необязательная директория)
 regs - файлы реестра windows (необязательная директория)"
-            );
+                );
 
 
-            /**
-             * game_info/game_info.ini
-             */
-            file_put_contents($this->gameInfo['INFOFILE'], $this->getDefaultConfig());
+                /**
+                 * game_info/game_info.ini
+                 */
+                file_put_contents($this->gameInfo['INFOFILE'], $this->getDefaultConfig());
 
 
-            /**
-             * game_info/data/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['DATA']}/{$readme}",
-                "Здесь должна находиться игра."
-            );
+                /**
+                 * game_info/data/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['DATA']}/{$readme}",
+                    "Здесь должна находиться игра."
+                );
 
 
-            /**
-             * game_info/dlls/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['DLL32']}/{$readme}",
-                "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
+                /**
+                 * game_info/dlls/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['DLL32']}/{$readme}",
+                    "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
 директорию можно удалить."
-            );
+                );
 
 
-            /**
-             * game_info/dlls64/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['DLL64']}/{$readme}",
-                "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
+                /**
+                 * game_info/dlls64/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['DLL64']}/{$readme}",
+                    "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
 директорию можно удалить."
-            );
+                );
 
 
-            /**
-             * game_info/regs/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['REGS']}/{$readme}",
-                "Здесь должны находиться .reg файлы."
-            );
+                /**
+                 * game_info/regs/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['REGS']}/{$readme}",
+                    "Здесь должны находиться .reg файлы."
+                );
 
 
-            /**
-             * game_info/additional/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['ADDITIONAL']}/{$readme}",
-                "Специфичные для игры настройки. Класть в директории dir_1, dir_2, dir_3
+                /**
+                 * game_info/additional/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['ADDITIONAL']}/{$readme}",
+                    "Специфичные для игры настройки. Класть в директории dir_1, dir_2, dir_3
 и т.д. Путь для копирования (относительно drive_c) нужно указывать
 в файле path.txt. Первая строчка для dir_1, вторая - для dir_2 и т.д.
 Всю директорию additional можно удалить, если к игре не нужно заранее
@@ -929,110 +947,110 @@ regs - файлы реестра windows (необязательная дире�
 
 --REPLACE_WITH_USERNAME-- в файле path.txt заменяется на имя пользователя
 автоматически."
-            );
+                );
 
 
-            /**
-             * game_info/additional/path.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['ADDITIONAL']}/path.txt",
-                "users/--REPLACE_WITH_USERNAME--/Мои документы
+                /**
+                 * game_info/additional/path.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['ADDITIONAL']}/path.txt",
+                    "users/--REPLACE_WITH_USERNAME--/Мои документы
 users/--REPLACE_WITH_USERNAME--/Documents"
-            );
+                );
 
-            if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_1", 0775, true) && !is_dir($path)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
-            }
-            if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_2", 0775, true) && !is_dir($path)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
-            }
-
-
-            /**
-             * game_info/additional/dir_1/readme.txt
-             */
-            file_put_contents(
-                "{$this->gameInfo['ADDITIONAL']}/dir_1/{$readme}",
-                "Здесь должно находиться содержимое директории dir_1."
-            );
-
-
-            /**
-             * README.md
-             */
-            $this->updateReadme(true);
-
-
-            /**
-             * game_info/hooks/after.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/after.sh",
-                '#' ."!/bin/sh\necho \"After!\""
-            );
-
-
-            /**
-             * game_info/hooks/before.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/before.sh",
-                '#' ."!/bin/sh\necho \"Before!\""
-            );
-
-
-            /**
-             * game_info/hooks/create.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/create.sh",
-                '#' ."!/bin/sh\necho \"Create prefix!\""
-            );
-
-
-            /**
-             * game_info/hooks/settings.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/settings.sh",
-                '#' ."!/bin/sh\necho \"Here change game settings!\"\necho \"Run './start settings' exec this file!\""
-            );
-
-
-            if (!file_exists("{$this->gameInfo['HOOKS']}/gpu")) {
-                if (!mkdir("{$this->gameInfo['HOOKS']}/gpu", 0775, true) && !is_dir("{$this->gameInfo['HOOKS']}/gpu")) {
-                    throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->gameInfo['HOOKS']}/gpu"));
+                if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_1", 0775, true) && !is_dir($path)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
                 }
+                if (!mkdir("{$this->gameInfo['ADDITIONAL']}/dir_2", 0775, true) && !is_dir($path)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+                }
+
+
+                /**
+                 * game_info/additional/dir_1/readme.txt
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['ADDITIONAL']}/dir_1/{$readme}",
+                    "Здесь должно находиться содержимое директории dir_1."
+                );
+
+
+                /**
+                 * README.md
+                 */
+                $this->updateReadme(true);
+
+
+                /**
+                 * game_info/hooks/after.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/after.sh",
+                    '#' ."!/bin/sh\necho \"After!\""
+                );
+
+
+                /**
+                 * game_info/hooks/before.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/before.sh",
+                    '#' ."!/bin/sh\necho \"Before!\""
+                );
+
+
+                /**
+                 * game_info/hooks/create.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/create.sh",
+                    '#' ."!/bin/sh\necho \"Create prefix!\""
+                );
+
+
+                /**
+                 * game_info/hooks/settings.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/settings.sh",
+                    '#' ."!/bin/sh\necho \"Here change game settings!\"\necho \"Run './start settings' exec this file!\""
+                );
+
+
+                if (!file_exists("{$this->gameInfo['HOOKS']}/gpu")) {
+                    if (!mkdir("{$this->gameInfo['HOOKS']}/gpu", 0775, true) && !is_dir("{$this->gameInfo['HOOKS']}/gpu")) {
+                        throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$this->gameInfo['HOOKS']}/gpu"));
+                    }
+                }
+
+                /**
+                 * game_info/hooks/gpu/amd.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/gpu/amd.sh",
+                    '#' ."!/bin/sh\necho \"AMD GPU hook!\""
+                );
+
+
+                /**
+                 * game_info/hooks/gpu/nvidia.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/gpu/nvidia.sh",
+                    '#' ."!/bin/sh\necho \"NVIDIA GPU hook!\""
+                );
+
+
+                /**
+                 * game_info/hooks/gpu/intel.sh
+                 */
+                file_put_contents(
+                    "{$this->gameInfo['HOOKS']}/gpu/intel.sh",
+                    '#' ."!/bin/sh\necho \"Intel GPU hook!\""
+                );
             }
-
-            /**
-             * game_info/hooks/gpu/amd.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/gpu/amd.sh",
-                '#' ."!/bin/sh\necho \"AMD GPU hook!\""
-            );
-
-
-            /**
-             * game_info/hooks/gpu/nvidia.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/gpu/nvidia.sh",
-                '#' ."!/bin/sh\necho \"NVIDIA GPU hook!\""
-            );
-
-
-            /**
-             * game_info/hooks/gpu/intel.sh
-             */
-            file_put_contents(
-                "{$this->gameInfo['HOOKS']}/gpu/intel.sh",
-                '#' ."!/bin/sh\necho \"Intel GPU hook!\""
-            );
         }
-
 
         /**
          * Convert game_info.txt to game_info.ini
@@ -1091,18 +1109,31 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             exit(0);
         }
 
+
+        /**
+         * Autoupdate script
+         */
+        $this->autoupdate([]);
+
+        if ($this->useXrandr) {
+            $this->xrandr = (bool)trim($this->runExternal("which xrandr"));
+        }
+
+
+        $this->vulkan = (bool)trim($this->runExternal("which vulkaninfo"));
+
+
+        if ($this->fastMode) {
+            return;
+        }
+
+
         $isWine = trim($this->runExternal("which \"{$this->wineConfig['WINE']}\""));
 
         if (!$isWine) {
             $this->log('There is no Wine available in your system!');
             exit(0);
         }
-
-
-        /**
-         * Autoupdate script
-         */
-        $this->autoupdate([]);
 
 
         /**
@@ -1152,13 +1183,6 @@ users/--REPLACE_WITH_USERNAME--/Documents"
          */
         $this->updateReadme();
 
-
-        if ($this->useXrandr) {
-            $this->xrandr = (bool)trim($this->runExternal("which xrandr"));
-        }
-
-
-        $this->vulkan = (bool)trim($this->runExternal("which vulkaninfo"));
 
         if (!empty($this->config['script']['dxvk']) || !empty($this->config['export']['WINEESYNC'])) {
 
