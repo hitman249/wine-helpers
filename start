@@ -2882,16 +2882,17 @@ resolution = \"800x600\"
         }
 
         if ($this->isConnected()) {
+            if (file_exists($this->wineConfig['DRIVE_C'])) {
+                $readme = file_get_contents("{$this->repo}/README.md", false, stream_context_create($this->contextOptions));
 
-            $readme = file_get_contents("{$this->repo}/README.md", false, stream_context_create($this->contextOptions));
+                if ($readme) {
+                    /**
+                     * README.md
+                     */
+                    file_put_contents("{$this->currentDir}/README.md", $readme);
 
-            if ($readme) {
-                /**
-                 * README.md
-                 */
-                file_put_contents("{$this->currentDir}/README.md", $readme);
-
-                $this->log("Update README.md file!\n");
+                    $this->log("Update README.md file!\n");
+                }
             }
         }
 
