@@ -1,3 +1,7 @@
+0.43
+
+* Add check dependencies before create prefix.
+
 0.42
 
 * Fix Warning: file_get_contents()
