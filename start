@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.50';
+    private $version = '0.51';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -39,7 +39,7 @@ class Start
     private $args;
     private $diff;
     private $monitors;
-    private $xrandr;
+    private $xrandr = false;
     private $vulkan;
     private $useXrandr = true;
     private $infoFile = 'game_info.ini';
@@ -68,6 +68,11 @@ class Start
         $this->args = array_splice($arguments, 1);
 
         $this->currentDir = __DIR__;
+
+        if (trim(reset($this->args)) === 'unlock') {
+            $this->unlock();
+            exit(1);
+        }
 
         if (!$this->lockExec()) {
             $this->logStart();
@@ -126,6 +131,10 @@ class Start
             $this->fastMode = true;
         }
 
+        if ($this->isUnlock()) {
+            $this->print = false;
+        }
+
         if (!$this->fastMode) {
             $this->mountWine();
             $this->mountData();
@@ -133,21 +142,30 @@ class Start
 
         $this->init();
 
-        register_shutdown_function(function () {
-            $resolution = "{$this->currentDir}/resolutions.json";
-            if (file_exists($resolution)) {
-                @unlink($resolution);
-            }
-        });
+        if (!$this->isUnlock()) {
+            register_shutdown_function(function () {
+                $resolution = "{$this->currentDir}/resolutions.json";
+                if (file_exists($resolution)) {
+                    @unlink($resolution);
+                }
+            });
 
-        pcntl_signal(SIGINT, function ($signal) {
-            switch($signal) {
-                case SIGINT:
-                case SIGKILL:
-                case SIGQUIT:
-                case SIGTERM:
-                case SIGSTOP:
-                    exit(1);
+            pcntl_signal(SIGINT, function ($signal) {
+                switch($signal) {
+                    case SIGINT:
+                    case SIGKILL:
+                    case SIGQUIT:
+                    case SIGTERM:
+                    case SIGSTOP:
+                        exit(1);
+                }
+            });
+        }
+
+        register_shutdown_function(function () {
+            $unlock = "{$this->currentDir}/unlock";
+            if (file_exists($unlock)) {
+                @unlink($unlock);
             }
         });
     }
@@ -593,6 +611,7 @@ Categories=Game";
             'ps'         => false,
             'lspci'      => false,
             'fusermount' => false,
+            'mount'      => false,
         ];
 
         foreach ($apps as $app => $_) {
@@ -717,6 +736,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             '',
             './start diff                      - Enable change files analyze from system32, syswow64 folders.',
             './start wine                      - Get Wine Instance.',
+            './start unlock                    - Unlock for one next command.',
             './start update                    - Update this script.',
             '',
             './start monitor(s)                - Monitors info.',
@@ -729,6 +749,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start diff fm',
             './start diff winetricks d3dx9',
             './start symlink "configs"',
+            './start unlock && ./start winetricks d3dx9',
         ];
 
         $this->log(implode("\n", $help));
@@ -1049,7 +1070,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                  */
                 file_put_contents(
                     "{$this->gameInfo['HOOKS']}/create.sh",
-                    '#' ."!/bin/sh\necho \"Create prefix!\""
+                    '#' ."!/bin/sh\necho \"Create prefix!\"\ncd ../../\n./start unlock\n./start winetricks wmp9"
                 );
 
 
@@ -1159,7 +1180,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
          */
         $this->autoupdate([]);
 
-        if ($this->useXrandr) {
+        if ($this->useXrandr && !$this->isUnlock()) {
             $this->xrandr = (bool)trim($this->runExternal("which xrandr"));
         }
 
@@ -1734,6 +1755,10 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
     private function isCrashed()
     {
+        if ($this->isUnlock()) {
+            return false;
+        }
+
         if (file_exists("{$this->currentDir}/resolutions.json")) {
             $this->monitors = json_decode(file_get_contents("{$this->currentDir}/resolutions.json"), true);
             $this->restoreResolutions();
@@ -3096,20 +3121,22 @@ resolution = \"800x600\"
 
     private function isMounted($file)
     {
-        static $mounted = [];
+        static $mounted = ['wine' => null, 'data' => null];
 
-        if (isset($mounted[$file])) {
-            return true;
+        if ($file === 'wine' && $mounted[$file] === null) {
+            $mounted[$file] = (bool)trim($this->runExternal("mount | grep \"{$this->currentDir}/wine\""));
         }
 
-        $mounted[$file] = true;
+        if ($file === 'data' && $mounted[$file] === null) {
+            $mounted[$file] = (bool)trim($this->runExternal("mount | grep \"{$this->gameInfo['DATA']}\""));
+        }
 
-        return false;
+        return $mounted[$file];
     }
 
     private function mountWine()
     {
-        if ($this->isMounted('wine')) {
+        if ($this->isMounted('wine') && $this->isUnlock()) {
             return;
         }
 
@@ -3152,7 +3179,7 @@ resolution = \"800x600\"
 
     private function mountData()
     {
-        if ($this->isMounted('data')) {
+        if ($this->isMounted('data') && $this->isUnlock()) {
             return;
         }
 
@@ -3332,6 +3359,10 @@ chmod +x ./start"
 
     private function lockExec()
     {
+        if ($this->isUnlock()) {
+            return true;
+        }
+
         $lock = "{$this->currentDir}/run.pid";
 
         if (file_exists($lock)) {
@@ -3421,6 +3452,26 @@ chmod +x ./start"
         $this->downloadHwprobe();
 
         system("sudo {$this->currentDir}/hw-probe -all -upload");
+    }
+
+    private function unlock()
+    {
+        $unlock = "{$this->currentDir}/unlock";
+
+        if (!file_exists($unlock)) {
+            file_put_contents($unlock, '');
+        }
+    }
+
+    private function isUnlock()
+    {
+        static $isUnlock = null;
+
+        if ($isUnlock === null) {
+            $isUnlock = file_exists("{$this->currentDir}/unlock");
+        }
+
+        return $isUnlock;
     }
 }
 

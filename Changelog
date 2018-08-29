@@ -1,3 +1,7 @@
+0.51
+
+* Add unlock functional. Uses on hooks.
+
 0.50
 
 * New method for get vulkan version

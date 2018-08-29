@@ -136,6 +136,7 @@ Help:
 
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
 ./start wine                      - Get Wine Instance.
+./start unlock                    - Unlock for one next command.
 ./start update                    - Update this script.
 
 ./start monitor(s)                - Monitors info.
@@ -148,6 +149,7 @@ Examples:
 ./start diff fm
 ./start diff winetricks d3dx9
 ./start symlink "configs"
+./start unlock && ./start winetricks d3dx9
 ```
 
 ## Возможности
