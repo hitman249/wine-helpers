@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.46';
+    private $version = '0.47';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -118,7 +118,7 @@ class Start
 
         ];
 
-        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe'];
+        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check'];
         $args     = array_filter(
             array_map('trim', $this->args?:[]),
             function ($item) use ($fastArgs) { return in_array($item, $fastArgs, true); }
@@ -597,6 +597,10 @@ Categories=Game";
             }
         }
 
+        $isVulkan = (bool)$this->runExternal('ldconfig -p | grep libvulkan.so');
+
+        $this->log('- libvulkan: ' . ($isVulkan ? 'ok' : 'fail'));
+
         $this->logStop();
 
         if ($apps['wine'] === false) {
@@ -640,6 +644,19 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
 
             $this->log('');
             $this->log("sudo apt-get install x11-xserver-utils\n");
+        }
+
+        if (!$isVulkan) {
+            if (!empty($this->config['script']['dxvk'])) {
+                $isOk = false;
+            }
+
+            $this->logStart();
+            $this->log('Install libvulkan1.');
+            $this->logStop();
+
+            $this->log('');
+            $this->log("sudo apt-get install libvulkan1\n");
         }
 
         return $isOk;
