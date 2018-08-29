@@ -587,6 +587,7 @@ Categories=Game";
             'glxinfo'    => false,
             'grep'       => false,
             'tar'        => false,
+            'wget'       => false,
             'ldconfig'   => false,
             'mksquashfs' => false,
             'ldd'        => false,
