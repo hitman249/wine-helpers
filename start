@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.48';
+    private $version = '0.49';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -118,7 +118,7 @@ class Start
 
         ];
 
-        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check'];
+        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update'];
         $args     = array_filter(
             array_map('trim', $this->args?:[]),
             function ($item) use ($fastArgs) { return in_array($item, $fastArgs, true); }
@@ -873,7 +873,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             if ($item === 'version') {
                 $this->isPrints('ulimit');
             }
-            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo', 'pack', 'rwdirlink', 'symlink', 'link'], true)) {
+            if (in_array($item, ['info', 'help', 'monitor', 'monitors', 'check', 'sysinfo', 'pack', 'rwdirlink', 'symlink', 'link', 'update'], true)) {
                 $this->print = false;
                 break;
             }
