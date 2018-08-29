@@ -118,13 +118,11 @@ class Start
 
         ];
 
-        $fastArgs = ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update'];
-        $args     = array_filter(
-            array_map('trim', $this->args?:[]),
-            function ($item) use ($fastArgs) { return in_array($item, $fastArgs, true); }
-        );
-
-        if ($args) {
+        if (in_array(
+            trim(reset($this->args)),
+            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update'],
+            true
+        )) {
             $this->fastMode = true;
         }
 
