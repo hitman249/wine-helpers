@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.47';
+    private $version = '0.48';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -572,6 +572,8 @@ Categories=Game";
 
     public function check()
     {
+        $length = 25;
+
         $this->logStart();
         $this->log('Check script dependencies.');
         $this->log('', 'hr', $this->length);
@@ -583,23 +585,34 @@ Categories=Game";
             'vulkaninfo' => false,
             'pulseaudio' => false,
             'glxinfo'    => false,
-            'grep'       => false
+            'grep'       => false,
+            'tar'        => false,
+            'ldconfig'   => false,
+            'mksquashfs' => false,
+            'ldd'        => false,
+            'ps'         => false,
+            'lspci'      => false,
+            'fusermount' => false,
         ];
 
         foreach ($apps as $app => $_) {
             $is = trim($this->runExternal("which {$app}"));
             if ($is) {
                 $apps[$app] = true;
-                $this->log("- {$app}: ok");
+                $this->log($this->log("- {$app} ", ['start' => '', 'space' => '.', 'end' => ' ok'], $length, true));
             } else {
                 $apps[$app] = false;
-                $this->log("- {$app}: fail");
+                $this->log($this->log("- {$app} ", ['start' => '', 'space' => '.', 'end' => ' fail'], $length, true));
             }
         }
 
         $isVulkan = (bool)$this->runExternal('ldconfig -p | grep libvulkan.so');
 
-        $this->log('- libvulkan: ' . ($isVulkan ? 'ok' : 'fail'));
+        $this->log($this->log('- libvulkan ', ['start' => '', 'space' => '.', 'end' => $isVulkan ? ' ok' : ' fail'], $length, true));
+
+        $isFuse = (bool)$this->runExternal('ldconfig -p | grep libfuse.so');
+
+        $this->log($this->log('- libfuse ', ['start' => '', 'space' => '.', 'end' => $isFuse ? ' ok' : ' fail'], $length, true));
 
         $this->logStop();
 
@@ -657,6 +670,20 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
 
             $this->log('');
             $this->log("sudo apt-get install libvulkan1\n");
+        }
+
+        if (!$isFuse) {
+            if (file_exists("{$this->currentDir}/wine.squashfs")
+                || file_exists("{$this->currentDir}/game_info/data.squashfs")) {
+                $isOk = false;
+            }
+
+            $this->logStart();
+            $this->log('Install libfuse.');
+            $this->logStop();
+
+            $this->log('');
+            $this->log("sudo apt-get install libfuse2\n");
         }
 
         return $isOk;
@@ -1508,7 +1535,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         $this->table = false;
     }
 
-    private function log($text='', $symbols = [], $lenght = 0)
+    private function log($text='', $symbols = [], $lenght = 0, $return = false)
     {
         if (!$symbols && $this->table === true) {
             $symbols = 'line';
@@ -1560,6 +1587,10 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             } else {
                 $text = "{$text}{$symbols['space']}{$symbols['end']}";
             }
+        }
+
+        if ($return) {
+            return $text;
         }
 
         print "{$text}\n";
