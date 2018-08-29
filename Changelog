@@ -1,6 +1,7 @@
 0.50
 
 * New method for get vulkan version
+* Optimized PHP interpreter size
 
 0.49
 
