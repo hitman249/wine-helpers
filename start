@@ -1345,7 +1345,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $result = implode(
                 "\n",
                 array_merge([
-                    "Wine missing libs",
+                    "\nWine missing libs",
                     "(Not all libraries are required)",
                     "--------------------"
                 ], $result)
