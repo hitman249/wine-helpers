@@ -130,6 +130,7 @@ Help:
 ./start build                     - Build game to "./build" folder.
 
 ./start debug                     - Enable debug mode, work analog "diff".
+./start fps                       - Show game fps.
 ./start settings                  - Settings game.
 ./start winetricks d3dx9          - Winetricks install d3dx9.
 ./start config game_info1.ini     - Use other config.

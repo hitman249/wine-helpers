@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.51';
+    private $version = '0.52';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -53,6 +53,7 @@ class Start
     private $table = false;
     private $contextOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
     private $fastMode = false;
+    private $fps = false;
 
 
     /**
@@ -138,6 +139,11 @@ class Start
         if (!$this->fastMode) {
             $this->mountWine();
             $this->mountData();
+        }
+
+        if (trim(reset($this->args)) === 'fps') {
+            $this->fps  = true;
+            $this->args = array_splice($this->args, 1);
         }
 
         $this->init();
@@ -287,7 +293,65 @@ class Start
         $cmd = $this->quoteArgs($args);
         $desktop = $this->wineConfig['VIRTUAL_DESKTOP_ENABLE'] ? $this->wineConfig['VIRTUAL_DESKTOP'] : '';
         $path = implode('/', array_filter([$this->gameInfo['GAME_PATH'], $this->gameInfo['PATH']]));
+
+        if ($this->fps) {
+            if (empty($this->config['export'])) {
+                $this->config['export'] = [];
+            }
+            if (empty($this->config['script']['dxvk'])) {
+                $this->downloadOsd();
+                $font = $this->getFont();
+                $font = $font ? "--font=\"{$font}\"" : '';
+                $add = [
+                    ' 2>&1',
+                    'tee /dev/stderr',
+                    'sed -u -n -e \'/trace/ s/.*approx //p\'',
+                    "\"{$this->currentDir}/osd\" --lines=1 {$font} --color=yellow",
+                ];
+                $cmd .= implode(' | ', $add);
+                $this->config['export']['WINEDEBUG'] = '-all,fps';
+            } else {
+                if (empty($this->config['export']['DXVK_HUD'])) {
+                    $this->config['export']['DXVK_HUD'] = 'fps,devinfo,memory';
+                }
+            }
+        }
+
         $this->runExternal("cd \"{$path}/\" && \"{$this->wineConfig['WINE']}\" {$desktop} \"{$this->gameInfo['GAME_EXE']}\" {$this->gameInfo['ARGS']} {$cmd}", true);
+    }
+
+    private function getFont()
+    {
+        $fonts = array_map('trim', explode("\n", trim($this->runExternal("xlsfonts"))));
+
+        $find = ['-misc-fixed-bold-r-normal--0-0-100-100-c-0-iso8859-1', '9x15bold', '10x20', 'lucidasanstypewriter-bold-18', 'lucidasans-bold-18'];
+
+        foreach ($find as $font) {
+            if (in_array($font, $fonts, true)) {
+                return $font;
+            }
+        }
+
+        foreach ($fonts as $font) {
+            $font = trim($font);
+
+            if (strpos($font, ' ') === false
+                && strpos($font,'&') === false
+                && strpos($font,'.') === false
+                && strpos($font, 'bold') !== false
+                && (
+                    strpos($font, '100') !== false
+                    || strpos($font, '110') !== false
+                    || strpos($font, '120') !== false
+                    || strpos($font, '130') !== false
+                    || strpos($font, '140') !== false
+                )
+            ) {
+                return $font;
+            }
+        }
+
+        return '';
     }
 
     private function info($args)
@@ -612,7 +676,12 @@ Categories=Game";
             'lspci'      => false,
             'fusermount' => false,
             'mount'      => false,
+            'tee'        => false,
+            'sed'        => false,
+            'xlsfonts'   => false,
         ];
+
+        ksort($apps);
 
         foreach ($apps as $app => $_) {
             $is = trim($this->runExternal("which {$app}"));
@@ -730,6 +799,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start build                     - Build game to "./build" folder.',
             '',
             './start debug                     - Enable debug mode, work analog "diff".',
+            './start fps                       - Show game fps.',
             './start settings                  - Settings game.',
             './start winetricks d3dx9          - Winetricks install d3dx9.',
             './start config game_info1.ini     - Use other config.',
@@ -1289,9 +1359,13 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         if (!file_exists($filePath)) {
             $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
             $winetricks = file_get_contents($url, false, stream_context_create($this->contextOptions));
-            file_put_contents($filePath, $winetricks);
-            $this->runExternal("chmod +x \"{$filePath}\"");
-            $this->log("Success downloaded winetricks.\n");
+            if ($winetricks) {
+                file_put_contents($filePath, $winetricks);
+                $this->runExternal("chmod +x \"{$filePath}\"");
+                $this->log("Success downloaded winetricks.\n");
+            } else {
+                $this->log("Error download winetricks.\n");
+            }
         }
 
         $this->winetricksVersion();
@@ -1303,9 +1377,13 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         if (!file_exists($filePath)) {
             $squashfuse = file_get_contents("{$this->repo}/squashfuse", false, stream_context_create($this->contextOptions));
-            file_put_contents($filePath, $squashfuse);
-            $this->runExternal("chmod +x \"{$filePath}\"");
-            $this->log("Success downloaded squashfuse.\n");
+            if ($squashfuse) {
+                file_put_contents($filePath, $squashfuse);
+                $this->runExternal("chmod +x \"{$filePath}\"");
+                $this->log("Success downloaded squashfuse.\n");
+            } else {
+                $this->log("Error download squashfuse.\n");
+            }
         }
     }
 
@@ -1315,9 +1393,29 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         if (!file_exists($filePath)) {
             $hwprobe = file_get_contents("{$this->repo}/hw-probe", false, stream_context_create($this->contextOptions));
-            file_put_contents($filePath, $hwprobe);
-            $this->runExternal("chmod +x \"{$filePath}\"");
-            $this->log("Success downloaded hw-probe.\n");
+            if ($hwprobe) {
+                file_put_contents($filePath, $hwprobe);
+                $this->runExternal("chmod +x \"{$filePath}\"");
+                $this->log("Success downloaded hw-probe.\n");
+            } else {
+                $this->log("Error download hw-probe.\n");
+            }
+        }
+    }
+
+    private function downloadOsd()
+    {
+        $filePath = "{$this->currentDir}/osd";
+
+        if (!file_exists($filePath)) {
+            $osd = file_get_contents("{$this->repo}/osd", false, stream_context_create($this->contextOptions));
+            if ($osd) {
+                file_put_contents($filePath, $osd);
+                $this->runExternal("chmod +x \"{$filePath}\"");
+                $this->log("Success downloaded osd_cat.\n");
+            } else {
+                $this->log("Error download osd_cat.\n");
+            }
         }
     }
 
