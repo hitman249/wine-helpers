@@ -1,3 +1,7 @@
+0.53
+
+* Add build with prefix folder command.
+
 0.52
 
 * Add fps show functional. Use: ./start fps

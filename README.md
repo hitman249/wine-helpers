@@ -128,6 +128,7 @@ Help:
 ./start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.
 ./start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.
 ./start build                     - Build game to "./build" folder.
+./start build prefix              - Build game to "./build" folder with "prefix" folder.
 
 ./start debug                     - Enable debug mode, work analog "diff".
 ./start fps                       - Show game fps.

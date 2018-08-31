@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.52';
+    private $version = '0.53';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -679,6 +679,7 @@ Categories=Game";
             'tee'        => false,
             'sed'        => false,
             'xlsfonts'   => false,
+            'id'         => false,
         ];
 
         ksort($apps);
@@ -797,6 +798,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.',
             './start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.',
             './start build                     - Build game to "./build" folder.',
+            './start build prefix              - Build game to "./build" folder with "prefix" folder.',
             '',
             './start debug                     - Enable debug mode, work analog "diff".',
             './start fps                       - Show game fps.',
@@ -3314,7 +3316,9 @@ resolution = \"800x600\"
 
     private function build($args)
     {
-        $gameDir = basename($this->currentDir);
+        $isPrefix = trim(reset($args)) === 'prefix';
+        $gameDir  = basename($this->currentDir);
+        $userName = $this->getUserName();
 
         if (file_exists("{$this->currentDir}/build")) {
             $this->runExternal("rm -rf \"{$this->currentDir}/build\"");
@@ -3348,6 +3352,15 @@ resolution = \"800x600\"
         }
         if (file_exists("{$this->currentDir}/start")) {
             $this->runExternal("cp -a --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+        }
+        if ($isPrefix && file_exists("{$this->currentDir}/prefix")) {
+            $this->runExternal("cp -ra --link \"{$this->currentDir}/prefix\" \"{$this->currentDir}/build/{$gameDir}/static/prefix\"");
+            if ($userName) {
+                $userFolder = "{$this->currentDir}/build/{$gameDir}/static/prefix/drive_c/users/{$userName}";
+                if (file_exists($userFolder)) {
+                    $this->runExternal("rm -rf \"{$userFolder}\"");
+                }
+            }
         }
 
         foreach (glob("{$this->gameInfo['DIR']}/*") as $path) {
