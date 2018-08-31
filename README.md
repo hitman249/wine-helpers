@@ -285,7 +285,7 @@ resolution = "800x600"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
-; GALLIUM_HUD=fps
+; GALLIUM_HUD=simple,fps
 ; WINEESYNC=1
 ; PBA_DISABLE=1
 ;

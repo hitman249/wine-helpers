@@ -298,18 +298,25 @@ class Start
             if (empty($this->config['export'])) {
                 $this->config['export'] = [];
             }
+
             if (empty($this->config['script']['dxvk'])) {
-                $this->downloadOsd();
-                $font = $this->getFont();
-                $font = $font ? "--font=\"{$font}\"" : '';
-                $add = [
-                    ' 2>&1',
-                    'tee /dev/stderr',
-                    'sed -u -n -e \'/trace/ s/.*approx //p\'',
-                    "\"{$this->currentDir}/osd\" --lines=1 {$font} --color=yellow",
-                ];
-                $cmd .= implode(' | ', $add);
-                $this->config['export']['WINEDEBUG'] = '-all,fps';
+                $mesa = $this->getMesaVersion();
+
+                if ($mesa) {
+                    $this->config['export']['GALLIUM_HUD'] = 'simple,fps';
+                } else {
+                    $this->downloadOsd();
+                    $font = $this->getFont();
+                    $font = $font ? "--font=\"{$font}\"" : '';
+                    $add = [
+                        ' 2>&1',
+                        'tee /dev/stderr',
+                        'sed -u -n -e \'/trace/ s/.*approx //p\'',
+                        "\"{$this->currentDir}/osd\" --lines=1 {$font} --color=yellow",
+                    ];
+                    $cmd .= implode(' | ', $add);
+                    $this->config['export']['WINEDEBUG'] = '-all,fps';
+                }
             } else {
                 if (empty($this->config['export']['DXVK_HUD'])) {
                     $this->config['export']['DXVK_HUD'] = 'fps,devinfo,memory';
@@ -2460,7 +2467,7 @@ resolution = \"800x600\"
 ; DXVK_HUD=fps,devinfo,memory
 ; DXVK_HUD=fps,devinfo,frametimes,memory
 ; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
-; GALLIUM_HUD=fps
+; GALLIUM_HUD=simple,fps
 ; WINEESYNC=1
 ; PBA_DISABLE=1
 ;
