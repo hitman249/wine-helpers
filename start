@@ -1385,13 +1385,14 @@ users/--REPLACE_WITH_USERNAME--/Documents"
     private function downloadWinetricks()
     {
         $filePath = "{$this->currentDir}/winetricks";
+        $isDelete = false;
 
         if (file_exists($filePath)) {
             $createAt  = filectime($filePath);
             $currentAt = time();
 
             if (($currentAt - $createAt) > 86400) {
-                unlink($filePath);
+                $isDelete = true;
             }
         }
 
@@ -1399,6 +1400,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks';
             $winetricks = file_get_contents($url, false, stream_context_create($this->contextOptions));
             if ($winetricks) {
+                if ($isDelete) {
+                    unlink($filePath);
+                }
                 file_put_contents($filePath, $winetricks);
                 $this->runExternal("chmod +x \"{$filePath}\"");
                 $this->log("Success downloaded winetricks.\n");
