@@ -687,12 +687,26 @@ Categories=Game";
             'sed'        => false,
             'xlsfonts'   => false,
             'id'         => false,
+            'cabextract' => false,
+            'p7zip'      => false,
+            'unrar'      => false,
+            'unzip'      => false,
+            'binutils'   => false,
         ];
 
         ksort($apps);
 
         foreach ($apps as $app => $_) {
+            if ($app === 'binutils') {
+                $app = 'ld';
+            }
+
             $is = trim($this->runExternal("which {$app}"));
+
+            if ($app === 'ld') {
+                $app = 'binutils';
+            }
+
             if ($is) {
                 $apps[$app] = true;
                 $this->log($this->log("- {$app} ", ['start' => '', 'space' => '.', 'end' => ' ok'], $length, true));
