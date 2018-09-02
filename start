@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.53';
+    private $version = '0.54';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -845,7 +845,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
 
 
             /**
-             * Apply replace {WIDTH}, {HEIGHT} from files
+             * Apply replace {WIDTH}, {HEIGHT}, {USER} from files
              */
             $this->updateReplaces();
 
@@ -854,10 +854,26 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
              * Apply reg files
              */
             if (file_exists($this->gameInfo['REGS'])) {
-                $regs = array_map('file_get_contents', glob("{$this->gameInfo['REGS']}/*.reg"));
-                file_put_contents("{$this->gameInfo['REGS']}/tmp.reg", implode("\n", $regs));
-                $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->gameInfo['REGS']}/tmp.reg\"");
-                unlink("{$this->gameInfo['REGS']}/tmp.reg");
+                $regs  = ['Windows Registry Editor Version 5.00', ''];
+                $files = array_map('file_get_contents', glob("{$this->gameInfo['REGS']}/*.reg"));
+
+                foreach ($files as $file) {
+                    $file = $this->normalizeText($file);
+                    $file = trim($file);
+                    $file = explode("\n", $file);
+                    if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
+                        unset($file[0]);
+                    }
+                    foreach ($file as $line) {
+                        if ($line !== null) {
+                            $regs[] = $line;
+                        }
+                    }
+                }
+
+                file_put_contents("{$this->wineConfig['DRIVE_C']}/tmp.reg", implode("\n", $regs));
+                $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->gameInfo['DRIVE_C']}/tmp.reg\"");
+                unset($regs);
                 $this->log("Apply reg files\n");
             }
 
@@ -2185,6 +2201,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $this->monitors = $this->resolutions();
         }
 
+        $userName = $this->getUserName();
+
         $width  = '';
         $height = '';
 
@@ -2207,9 +2225,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             if (file_exists("{$this->currentDir}/{$file}")) {
                 $data = file_get_contents("{$this->currentDir}/{$file}");
-                $data = str_replace(['{WIDTH}', '{HEIGHT}'], [$width, $height], $data);
+                $data = str_replace(['{WIDTH}', '{HEIGHT}', '{USER}'], [$width, $height, $userName], $data);
                 @file_put_contents("{$this->currentDir}/{$file}", $data);
-                $this->log("Replace {WIDTH}x{HEIGHT} -> {$width}x{$height} from file \"{$file}\"");
+                $this->log("Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" from file \"{$file}\"");
             }
         }
 
@@ -2481,6 +2499,7 @@ resolution = \"800x600\"
 ;
 ; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
 ; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
+; {USER} - имя пользователя
 ;
 
 ; file[] = \"game_info/data/example.conf\"";
@@ -3591,6 +3610,28 @@ chmod +x ./start"
         }
 
         return $isUnlock;
+    }
+
+    private function isUtf16($text)
+    {
+        preg_match_all('/\x00/', $text, $count);
+
+        if (count($count[0]) / strlen($text) > 0.4) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function normalizeText($text)
+    {
+        if ($this->isUtf16($text)) {
+            $text = mb_convert_encoding($text, 'UTF-8', 'UTF-16');
+        } elseif (md5(@iconv('Windows-1251', 'Windows-1251', $text)) !== md5(@iconv('UTF-8', 'UTF-8', $text))) {
+            $text = mb_convert_encoding($text, 'UTF-8', 'Windows-1251');
+        }
+
+        return $text;
     }
 }
 

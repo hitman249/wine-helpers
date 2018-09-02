@@ -1,3 +1,7 @@
+0.54
+
+* Add replaces {USER}. Fixed detect code page from reg files.
+
 0.53
 
 * Add build with prefix folder command.
