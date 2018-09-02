@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.54';
+    private $version = '0.55';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -2538,18 +2538,6 @@ resolution = \"800x600\"
 # dxgi.deferSurfaceCreation = False
 
 
-# Return S_OK from IDXGIDevice::CheckInterfaceSupport when querying
-# support for a Direct3D 10 COM interface. Some games require this
-# in order to start up, others may break when this option is set.
-# 
-# Supported values: True, False
-# 
-# Enabled by default for:
-# - World of Warcraft
-
-# dxgi.fakeDx10Support = False
-
-
 # Enforce a stricter maximum frame latency. Overrides the application
 # setting specified by calling IDXGIDevice::SetMaximumFrameLatency.
 # Setting this to 0 will have no effect.
@@ -2566,6 +2554,20 @@ resolution = \"800x600\"
 
 # dxgi.customDeviceId = 0000
 # dxgi.customVendorId = 0000
+
+
+# Override maximum amount of device memory and shared system memory
+# reported to the application. This may fix texture streaming issues
+# in games that do not support cards with large amounts of VRAM.
+#
+# Supported values: Any number in Megabytes.
+#
+# Enabled by default for:
+# - Life is Feudal MMO: 4095
+
+# dxgi.maxDeviceMemory = 0
+# dxgi.maxSharedMemory = 0
+
 
 
 # Handle D3D11_MAP_FLAG_DO_NOT_WAIT correctly when D3D11DeviceContext::Map()

@@ -1,3 +1,7 @@
+0.55
+
+* Update dxvk config.
+
 0.54
 
 * Add replaces {USER}. Fixed detect code page from reg files.
