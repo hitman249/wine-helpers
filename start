@@ -3480,6 +3480,9 @@ resolution = \"800x600\"
         if (file_exists("{$this->currentDir}/squashfuse")) {
             $this->runExternal("cp -a --link \"{$this->currentDir}/squashfuse\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
+        if (file_exists("{$this->currentDir}/fuse-zip")) {
+            $this->runExternal("cp -a --link \"{$this->currentDir}/fuse-zip\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
+        }
         if (file_exists("{$this->currentDir}/start")) {
             $this->runExternal("cp -a --link \"{$this->currentDir}/start\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
