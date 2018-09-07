@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.55';
+    private $version = '0.56';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -691,6 +691,7 @@ Categories=Game";
             'p7zip'      => false,
             'unrar'      => false,
             'unzip'      => false,
+            'zip'        => false,
             'binutils'   => false,
         ];
 
@@ -813,8 +814,9 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start regedit (reg)             - Windows Registry Editor.',
             '',
             './start pack data                 - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.',
+            './start pack zip data             - Packing "./game_info/data" folder to "./game_info/data.zip" file (support write).',
             './start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.',
-            './start unpack data               - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.',
+            './start unpack data               - Unpacking "./game_info/data.squashfs" or "./game_info/data.zip" file to "./game_info/data" folder.',
             './start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.',
             './start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.',
             './start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.',
@@ -1426,6 +1428,22 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->log("Success downloaded squashfuse.\n");
             } else {
                 $this->log("Error download squashfuse.\n");
+            }
+        }
+    }
+
+    private function downloadFusezip()
+    {
+        $filePath = "{$this->currentDir}/fuse-zip";
+
+        if (!file_exists($filePath)) {
+            $fusezip = file_get_contents("{$this->repo}/fuse-zip", false, stream_context_create($this->contextOptions));
+            if ($fusezip) {
+                file_put_contents($filePath, $fusezip);
+                $this->runExternal("chmod +x \"{$filePath}\"");
+                $this->log("Success downloaded fuse-zip.\n");
+            } else {
+                $this->log("Error download fuse-zip.\n");
             }
         }
     }
@@ -3193,6 +3211,47 @@ resolution = \"800x600\"
     {
         $method = reset($args);
 
+        if ($method === 'zip') {
+
+            $method = reset($method = array_splice($args, 1));
+
+            $isZip = trim($this->runExternal('which zip'));
+
+            if (!$isZip) {
+                $this->log("Error, not found \"zip\"\n");
+                exit(0);
+            }
+
+            if ($method === 'data') {
+
+                if (!file_exists($this->gameInfo['DATA'])) {
+                    $this->log("Error, not found \"game_info/data/\" folder.\n");
+                    exit(0);
+                }
+
+                if (file_exists("{$this->gameInfo['DIR']}/data.zip")) {
+                    unlink("{$this->gameInfo['DIR']}/data.zip");
+                }
+
+                $result = exec("cd \"{$this->gameInfo['DATA']}\" && zip -r \"{$this->gameInfo['DATA']}/data.zip\" \"./\"");
+
+                if ($result) {
+                    $this->log("Success pack to data.zip\n");
+                } else {
+                    $this->log("Error packing data!\n");
+                }
+
+                exit(1);
+
+            } elseif ($method === 'wine') {
+                $this->log("Pack \"wine/\" folder to zip archive not support.\n");
+                exit(1);
+            }
+
+            $this->log("Error, try it \"./start pack zip data\"\n");
+            exit(1);
+        }
+
         $isSquashfs = trim($this->runExternal('which mksquashfs'));
 
         if (!$isSquashfs) {
@@ -3242,7 +3301,7 @@ resolution = \"800x600\"
             exit(1);
         }
 
-        $this->log("Set \"./start pack data\" OR \"./start pack wine\"\n");
+        $this->log("Error, try it \"./start pack data\" OR \"./start pack wine\"\n");
         exit(1);
     }
 
@@ -3332,7 +3391,7 @@ resolution = \"800x600\"
 
         $this->runExternal("fusermount -u \"{$this->gameInfo['DATA']}\"");
 
-        if (file_exists($this->gameInfo['DATA']) && file_exists("{$this->gameInfo['DATA']}.squashfs")) {
+        if (file_exists($this->gameInfo['DATA']) && (file_exists("{$this->gameInfo['DATA']}.squashfs") || file_exists("{$this->gameInfo['DATA']}.zip"))) {
             @rmdir($this->gameInfo['DATA']);
         }
 
@@ -3345,6 +3404,30 @@ resolution = \"800x600\"
             }
 
             exec("\"{$this->currentDir}/squashfuse\" \"{$this->gameInfo['DATA']}.squashfs\" \"{$this->gameInfo['DATA']}\"");
+
+            $this->log("Mount data.\n");
+
+            register_shutdown_function(function () {
+
+                $this->runExternal("fusermount -u \"{$this->gameInfo['DATA']}\"");
+
+                $this->log("Unmount data.\n");
+
+                if (file_exists($this->gameInfo['DATA'])) {
+                    @rmdir($this->gameInfo['DATA']);
+                }
+            });
+        }
+
+        if (file_exists("{$this->gameInfo['DATA']}.zip") && !file_exists($this->gameInfo['DATA'])) {
+
+            $this->downloadFusezip();
+
+            if (!mkdir($this->gameInfo['DATA'], 0775) && !is_dir($this->gameInfo['DATA'])) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $this->gameInfo['DATA']));
+            }
+
+            exec("\"{$this->currentDir}/fuse-zip\" \"{$this->gameInfo['DATA']}.zip\" \"{$this->gameInfo['DATA']}\"");
 
             $this->log("Mount data.\n");
 
@@ -3426,6 +3509,8 @@ resolution = \"800x600\"
 
         if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
             $this->runExternal("cp -a --link \"{$this->gameInfo['DIR']}/data.squashfs\" \"{$this->currentDir}/build/{$gameDir}/game_info/\"");
+        } elseif (file_exists("{$this->gameInfo['DIR']}/data.zip")) {
+            $this->runExternal("cp -a --link \"{$this->gameInfo['DIR']}/data.zip\" \"{$this->currentDir}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists($this->gameInfo['DATA'])) {
             system("cp -rav --link \"{$this->gameInfo['DATA']}\" \"{$this->currentDir}/build/{$gameDir}/static/data\"");
         }

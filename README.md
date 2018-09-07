@@ -122,8 +122,9 @@ Help:
 ./start regedit (reg)             - Windows Registry Editor.
 
 ./start pack data                 - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.
+./start pack zip data             - Packing "./game_info/data" folder to "./game_info/data.zip" file (support write).
 ./start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.
-./start unpack data               - Unpacking "./game_info/data.squashfs" file to "./game_info/data" folder.
+./start unpack data               - Unpacking "./game_info/data.squashfs" or "./game_info/data.zip" file to "./game_info/data" folder.
 ./start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.
 ./start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.
 ./start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.
