@@ -3233,7 +3233,7 @@ resolution = \"800x600\"
                     unlink("{$this->gameInfo['DIR']}/data.zip");
                 }
 
-                $result = exec("cd \"{$this->gameInfo['DATA']}\" && zip -r \"{$this->gameInfo['DATA']}/data.zip\" \"./\"");
+                $result = exec("cd \"{$this->gameInfo['DATA']}\" && zip -r \"{$this->gameInfo['DIR']}/data.zip\" \"./\"");
 
                 if ($result) {
                     $this->log("Success pack to data.zip\n");
