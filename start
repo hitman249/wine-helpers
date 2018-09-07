@@ -3496,10 +3496,24 @@ resolution = \"800x600\"
             }
         }
 
+        $skip = [
+            'data',
+            'data1',
+            'data2',
+            'data3',
+            'data4',
+            'data.squashfs',
+            'data1.squashfs',
+            'data2.squashfs',
+            'data.zip',
+            'data1.zip',
+            'data2.zip',
+        ];
+
         foreach (glob("{$this->gameInfo['DIR']}/*") as $path) {
             $file = basename($path);
 
-            if (in_array($file, ['data', 'data1', 'data2', 'data3', 'data4', 'data.squashfs', 'data1.squashfs', 'data2.squashfs'])) {
+            if (in_array($file, $skip, true)) {
                 continue;
             }
 
