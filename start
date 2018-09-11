@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.56';
+    private $version = '0.57';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -832,6 +832,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start diff                      - Enable change files analyze from system32, syswow64 folders.',
             './start wine                      - Get Wine Instance.',
             './start unlock                    - Unlock for one next command.',
+            './start autofix                   - Auto find *.so missing libs by other version and created symlinks',
             './start update                    - Update this script.',
             '',
             './start monitor(s)                - Monitors info.',
@@ -1492,16 +1493,12 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         }
     }
 
-    private function checkLibs()
+    private function getMissingLibs()
     {
-        if ($this->isPrints('checkLibs')) {
-            return;
-        }
-
         $help = $this->runExternal("\"{$this->wineConfig['WINE']}\" --help");
 
         if (strpos($help, '--check-libs') === false) {
-            return;
+            return [];
         }
 
         $result = $this->runExternal("\"{$this->wineConfig['WINE']}\" --check-libs");
@@ -1520,6 +1517,17 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 return strpos($right, '.') === false;
             }
         );
+
+        return $result;
+    }
+
+    private function checkLibs()
+    {
+        if ($this->isPrints('checkLibs')) {
+            return;
+        }
+
+        $result = $this->getMissingLibs();
 
         if ($result) {
             $result = implode(
@@ -1653,8 +1661,81 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         }
     }
 
+    private function createLibsDirectory()
+    {
+        $libs = "{$this->currentDir}/libs";
+
+        if (!file_exists($libs)) {
+            if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
+            }
+            if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
+            }
+            if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
+            }
+
+            file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
+        }
+    }
+
+    private function autofix()
+    {
+        $this->createLibsDirectory();
+
+        $result = array_map(
+            function ($n) {
+                list($lib, $_) = explode(':', $n);
+                return $lib;
+            },
+            $this->getMissingLibs()
+        );
+
+        if ($result) {
+            foreach ($result as $lib) {
+                list($name, $ext) = explode('.so', $lib);
+                $lib32 = '';
+                $lib64 = '';
+
+                $libs = explode("\n", trim($this->runExternal("ldconfig -p | grep {$name}.so")));
+
+                foreach ($libs as $line) {
+                    if (strpos($line, 'x86-64') !== false) {
+                        if (!$lib64) {
+                            list($left, $right) = explode('=>', $line);
+                            $lib64 = trim($right);
+                        }
+                    } elseif (!$lib32) {
+                        list($left, $right) = explode('=>', $line);
+                        $lib32 = trim($right);
+                    }
+                }
+
+                if ($lib32) {
+                    $out = "{$this->currentDir}/libs/i386/{$lib}";
+                    if (!file_exists($out)) {
+                        $this->runExternal("ln -s \"{$lib32}\" \"$out\"");
+                    }
+                }
+
+                if ($lib64) {
+                    $out = "{$this->currentDir}/libs/x86-64/{$lib}";
+                    if (!file_exists($out)) {
+                        $this->runExternal("ln -s \"{$lib64}\" \"$out\"");
+                    }
+                }
+            }
+        }
+    }
+
     private function runExternal($cmd, $outputConsole=false)
     {
+        $this->createLibsDirectory();
+
+        $additionalWineLibs =
+            "{$this->currentDir}/wine/lib:{$this->currentDir}/wine/lib64:{$this->currentDir}/libs/i386:{$this->currentDir}/libs/x86-64";
+
         $exported = [
             'export WINE'             => $this->wineConfig['WINE'],
             'export WINEPREFIX'       => $this->wineConfig['WINEPREFIX'],
@@ -1666,7 +1747,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             'export WINEARCH'         => $this->wineConfig['WINEARCH'],
             'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
             'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
-            'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$this->currentDir}/wine/lib:{$this->currentDir}/wine/lib64",
+            'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$additionalWineLibs}",
             'export DXVK_CONFIG_FILE' => $this->gameInfo['DXVK'],
         ];
 
@@ -2674,7 +2755,9 @@ resolution = \"800x600\"
 #
 # Supported values: True, False
 
-# dxvk.useAsyncPipeCompiler = False";
+# dxvk.useAsyncPipeCompiler = False
+or > 0.71
+# dxvk.asyncPipeCompiler = False";
     }
 
     private function writeIniFile($file, $array = [])

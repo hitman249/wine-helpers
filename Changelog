@@ -1,3 +1,7 @@
+0.57
+
+* Add auto find *.so missing libs by other version and created symlinks.
+
 0.56
 
 * Add support packing "data" folder to zip archive.

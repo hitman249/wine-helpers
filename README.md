@@ -140,6 +140,7 @@ Help:
 ./start diff                      - Enable change files analyze from system32, syswow64 folders.
 ./start wine                      - Get Wine Instance.
 ./start unlock                    - Unlock for one next command.
+./start autofix                   - Auto find *.so missing libs by other version and created symlinks
 ./start update                    - Update this script.
 
 ./start monitor(s)                - Monitors info.
@@ -343,6 +344,11 @@ d3dcompiler_33.dll
   картинки, в папках `./`, `./game_info`, `./game_info/data`, если таковых несколько предлагает выбрать конкретную.
   
 * В ini файлах можно пробросить дополнительные переменные для ENV окружения, секция `[export]`.
+
+* Команда `./start autofix` пытается создать симлинки на отсутствующие библиотеки при условии, что в системе установлены 
+библиотеки другой версии. Использовать на свой страх, с таким костылём возможна **нестабильная** работа wine.  
+Создаёт симлинки в папку `./libs/i386`, `./libs/x86-64`.  
+Рекомендуется самостоятельно найти эти библиотеки **нужной** версии и закинуть в означенные выше папки.
  
 * Если не использовать php интерпретатор который идёт из коробки.
  
