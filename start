@@ -2587,6 +2587,23 @@ resolution = \"800x600\"
 # dxgi.maxSharedMemory = 0
 
 
+# Override back buffer count for the Vulkan swap chain.
+# Setting this to 0 or less will have no effect.
+#
+# Supported values: Any number greater than or equal to 2.
+
+# dxgi.numBackBuffers = 0
+
+
+# Overrides synchronization interval (Vsync) for presentation.
+# Setting this to 0 disables vertical synchronization entirely.
+# A positive value 'n' will enable Vsync and repeat the same
+# image n times, and a negative value will have no effect.
+#
+# Supported values: Any non-negative number
+
+# dxgi.syncInterval = -1
+
 
 # Handle D3D11_MAP_FLAG_DO_NOT_WAIT correctly when D3D11DeviceContext::Map()
 # is called. Enabling this can potentially improve performance, but breaks
@@ -2626,6 +2643,23 @@ resolution = \"800x600\"
 # d3d11.maxFeatureLevel = 11_0
 
 
+# Overrides the maximum allowed tessellation factor. This can be used to
+# improve performance in titles which overuse tessellation.
+# 
+# Supported values: Any number between 8 and 64
+
+# d3d11.maxTessFactor = 0
+
+
+# Overrides anisotropic filtering for all samplers. Set this to a positive
+# value to enable AF for all samplers in the game, or to 0 in order to
+# disable AF entirely. Negative values will have no effect.
+# 
+# Supported values: Any number between 0 and 16
+
+# d3d11.samplerAnisotropy = -1
+
+
 # Allow allocating more device memory from a Vulkan heap than the heap
 # provides. May in some cases improve performance in low-memory conditions.
 #
@@ -2634,9 +2668,9 @@ resolution = \"800x600\"
 # dxvk.allowMemoryOvercommit = False
 
 
-# Use asynchronous pipeline compilation with DISABLE_OPTIMIZATION_BIT.
-# This may reduce shader compiler stutter. Currently only supported on
-# RADV. May cause issues.
+# Compile pipelines asynchronously if possible. This may reduce stuttering
+# in some games, but may also introduce rendering issues that might become
+# apparent over time. Do not report bugs with this option enabled.
 #
 # Supported values: True, False
 
