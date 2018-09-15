@@ -1,3 +1,7 @@
+0.58
+
+* Update dxvk.conf
+
 0.57
 
 * Add auto find *.so missing libs by other version and created symlinks.

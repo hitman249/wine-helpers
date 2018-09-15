@@ -31,7 +31,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.57';
+    private $version = '0.58';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -2605,6 +2605,8 @@ resolution = \"800x600\"
 ; GALLIUM_HUD=simple,fps
 ; WINEESYNC=1
 ; PBA_DISABLE=1
+; MESA_GLTHREAD=true
+; __GL_THREADED_OPTIMIZATIONS=1
 ;
 ; Если в игре хрипит звук можно попробовать
 ; PULSE_LATENCY_MSEC=60
@@ -2746,18 +2748,7 @@ resolution = \"800x600\"
 #
 # Supported values: True, False
 
-# dxvk.allowMemoryOvercommit = False
-
-
-# Compile pipelines asynchronously if possible. This may reduce stuttering
-# in some games, but may also introduce rendering issues that might become
-# apparent over time. Do not report bugs with this option enabled.
-#
-# Supported values: True, False
-
-# dxvk.useAsyncPipeCompiler = False
-or > 0.71
-# dxvk.asyncPipeCompiler = False";
+# dxvk.allowMemoryOvercommit = False";
     }
 
     private function writeIniFile($file, $array = [])
