@@ -1366,7 +1366,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         if (!empty($this->config['script']['dxvk']) || !empty($this->config['export']['WINEESYNC'])) {
 
             $currentUlimit = (int)trim($this->runExternal('ulimit -Hn'));
-            $newUlimit     = 100000;
+            $newUlimit     = 200000;
 
             if ($currentUlimit < $newUlimit) {
                 if (!$this->isPrints('ulimit')) {
