@@ -3581,6 +3581,9 @@ resolution = \"800x600\"
             $this->runExternal("cp -ra --link \"{$this->currentDir}/wine\" \"{$this->currentDir}/build/{$gameDir}/static/wine\"");
         }
 
+        if (file_exists("{$this->currentDir}/libs")) {
+            $this->runExternal("cp -ra --link \"{$this->currentDir}/libs\" \"{$this->currentDir}/build/{$gameDir}/static/libs\"");
+        }
         if (file_exists("{$this->currentDir}/README.md")) {
             $this->runExternal("cp -a --link \"{$this->currentDir}/README.md\" \"{$this->currentDir}/build/{$gameDir}/static/\"");
         }
