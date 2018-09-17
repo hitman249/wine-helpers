@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.59';
+    private $version = '0.60';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1018,7 +1018,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
         $this->gpu = $this->getTypeGPU();
 
         if (!$this->fastMode) {
-            if (!file_exists($this->wineConfig['WINE']) || version_compare($this->getGlibcVersion(), '2.19', '<')) {
+            if (!file_exists($this->wineConfig['WINE']) || version_compare($this->getGlibcVersion(), '2.23', '<')) {
                 if (!$this->isPrints('syswine')) {
                     $this->log("Use system Wine!\n");
                 }
@@ -1752,6 +1752,16 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$additionalWineLibs}",
             'export DXVK_CONFIG_FILE' => $this->gameInfo['DXVK'],
         ];
+
+        if ($this->wineConfig['DXVK']) {
+            if (strpos($exported['export WINEDLLOVERRIDES'], 'nvapi') === false) {
+
+                $overrides   = explode(';', $exported['export WINEDLLOVERRIDES']);
+                $overrides[] = 'nvapi64,nvapi=';
+
+                $exported['export WINEDLLOVERRIDES'] = implode(';', $overrides);
+            }
+        }
 
         if (!empty($this->config['export'])) {
             foreach ((array)$this->config['export'] as $key => $value) {
