@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.60';
+    private $version = '0.61';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1276,6 +1276,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->wineConfig['VIRTUAL_DESKTOP_ENABLE'] = (bool)$this->config['window']['enable'];
                 $this->wineConfig['VIRTUAL_DESKTOP']        = "explorer \"/desktop={$this->config['window']['title']},{$this->config['window']['resolution']}\"";
 
+                $this->config['export']['WINEESYNC']   = isset($this->config['export']['WINEESYNC']) && (int)$this->config['export']['WINEESYNC'] === 1 && $this->isEsync() ? 1 : 0;
+                $this->config['export']['PBA_DISABLE'] = isset($this->config['export']['PBA_DISABLE']) && (int)$this->config['export']['PBA_DISABLE'] === 0 && $this->isPba() ? 0 : 1;
+
                 $gameInfoInit = true;
             } else {
                 $this->log('Please configure game_info.ini file!');
@@ -1552,15 +1555,25 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         }
 
         $version = trim($this->runExternal("\"{$this->wineConfig['WINE']}\" --version"));
-        $csmt = $this->wineConfig['CSMT'] ? 'with CSMT enabled' : '';
-
-        $this->log("Using {$version} ({$this->wineConfig['WINEARCH']}) {$csmt}");
+        $debug = !$this->wineConfig['WINEDEBUG'] ? '(debug mode)' : '';
+        $fps   = $this->fps ? '(fps mode)' : '';
+        $this->log("Using {$version} ({$this->wineConfig['WINEARCH']}) {$debug}{$fps}");
 
         if ($this->table) {
             $this->log('', 'hr', $this->length);
         } else {
             $this->log('');
         }
+
+        $csmt = $this->wineConfig['CSMT'] ? 'enabled' : 'disabled';
+        $esync = isset($this->config['export']['WINEESYNC']) && (int)$this->config['export']['WINEESYNC'] === 1 && $this->isEsync()
+            ? 'enabled' : 'disabled';
+        $pba = isset($this->config['export']['PBA_DISABLE']) && (int)$this->config['export']['PBA_DISABLE'] === 0 && $this->isPba()
+            ? 'enabled' : 'disabled';
+
+        $this->log("CSMT:  {$csmt}");
+        $this->log("ESYNC: {$esync}");
+        $this->log("PBA:   {$pba}\n");
     }
 
     private function xrandrVersion()
@@ -2622,6 +2635,9 @@ resolution = \"800x600\"
 ;
 ; Если в игре хрипит звук можно попробовать
 ; PULSE_LATENCY_MSEC=60
+
+WINEESYNC=1
+PBA_DISABLE=1
 [replaces]
 ;
 ; При создании префикса ищет и заменяет в указанных файлах теги.
@@ -3894,6 +3910,36 @@ chmod +x ./start"
         }
 
         return $text;
+    }
+
+    private function isPba()
+    {
+        static $pba = null;
+
+        if ($pba === null) {
+            if (file_exists("{$this->currentDir}/wine")) {
+                $pba = (bool)trim($this->runExternal("grep PBA \"{$this->currentDir}/wine/lib/wine/wined3d.dll.so\" || grep PBA \"{$this->currentDir}/wine/lib64/wine/wined3d.dll.so\""));
+            } else {
+                $pba = false;
+            }
+        }
+
+        return $pba;
+    }
+
+    private function isEsync()
+    {
+        static $esync = null;
+
+        if ($esync === null) {
+            if (file_exists("{$this->currentDir}/wine")) {
+                $esync = (bool)trim($this->runExternal("grep ESYNC \"{$this->currentDir}/wine/lib/wine/ntdll.dll.so\" || grep ESYNC \"{$this->currentDir}/wine/lib64/wine/ntdll.dll.so\""));
+            } else {
+                $esync = false;
+            }
+        }
+
+        return $esync;
     }
 }
 

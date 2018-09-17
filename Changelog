@@ -1,3 +1,7 @@
+0.61
+
+* Disable PBA default. Print status fps mode, debug mode, esync, pba.
+
 0.60
 
 * Disable nvapi64,nvapi from use dxvk. Up min glibc version to 2.23
