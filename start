@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.61';
+    private $version = '0.62';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1368,24 +1368,24 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         if (!empty($this->config['script']['dxvk']) || !empty($this->config['export']['WINEESYNC'])) {
 
-            $currentUlimit = (int)trim($this->runExternal('ulimit -Hn'));
+            $currentUlimit = (int)trim($this->runExternal('ulimit -Sn'));
+            $hardUlimit    = (int)trim($this->runExternal('ulimit -Hn'));
             $newUlimit     = 200000;
 
-            if ($currentUlimit < $newUlimit) {
-                if (!$this->isPrints('ulimit')) {
+            if ($currentUlimit < $newUlimit && $newUlimit <= $hardUlimit) {
+                $this->runExternal("ulimit -n {$newUlimit}");
+                $currentUlimit = (int)trim($this->runExternal('ulimit -Sn'));
+            }
 
-                    $this->logStart();
-                    $this->log("Error. Current ulimit: {$currentUlimit}, Required ulimit: {$newUlimit}");
-                    $this->log('', 'hr', $this->length);
-                    $this->log("Please run from terminal to current user: \"ulimit -n {$newUlimit}\".");
-                    $this->log("To check the current value, run \"ulimit -Hn\".");
-                    $this->log("If it does not work, restart the system and try again.");
-                    $this->log("Or add to \"/etc/security/limits.conf\" file:");
-                    $this->log("* soft nofile {$newUlimit}");
-                    $this->log("* hard nofile {$newUlimit}");
-                    $this->logStop();
-
-                }
+            if ($currentUlimit < $newUlimit && !$this->isPrints('ulimit')) {
+                $this->logStart();
+                $this->log("Error. Current ulimit: {$currentUlimit}, Required ulimit: {$newUlimit}");
+                $this->log('', 'hr', $this->length);
+                $this->log("To check the current value, run \"ulimit -Sn\".");
+                $this->log("Add to \"/etc/security/limits.conf\" file:");
+                $this->log("* soft nofile {$newUlimit}");
+                $this->log("* hard nofile {$newUlimit}");
+                $this->logStop();
             }
         }
     }
