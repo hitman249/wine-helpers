@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.62';
+    private $version = '0.63';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -104,10 +104,12 @@ class Start
         $this->wineConfig = [
 
             'WINE'       => "{$this->currentDir}/wine/bin/wine",
-            'REGEDIT'    => "{$this->currentDir}/wine/bin/regedit",
-            'WINEBOOT'   => "{$this->currentDir}/wine/bin/wineboot",
-            'WINEFILE'   => "{$this->currentDir}/wine/bin/winefile",
-            'WINECFG'    => "{$this->currentDir}/wine/bin/winecfg",
+            'WINE64'     => "{$this->currentDir}/wine/bin/wine64",
+            'REGEDIT'    => "{$this->currentDir}/wine/bin/wine\" \"regedit",
+            'REGEDIT64'  => "{$this->currentDir}/wine/bin/wine64\" \"regedit",
+            'WINEBOOT'   => "{$this->currentDir}/wine/bin/wine\" \"wineboot",
+            'WINEFILE'   => "{$this->currentDir}/wine/bin/wine\" \"winefile",
+            'WINECFG'    => "{$this->currentDir}/wine/bin/wine\" \"winecfg",
             'WINESERVER' => "{$this->currentDir}/wine/bin/wineserver",
 
             'WINEPREFIX'             => $winePrefix,
@@ -446,10 +448,34 @@ class Start
         $this->regedit($args);
     }
 
-    private function regedit($args)
+    private function regedit($args, $showLog = true)
     {
         $cmd = $this->quoteArgs($args);
-        $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" {$cmd}", true);
+        $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" {$cmd}", $showLog);
+
+        if ($this->wineConfig['WINEARCH'] === 'win64') {
+            $this->runExternal("\"{$this->wineConfig['REGEDIT64']}\" {$cmd}", $showLog);
+        }
+    }
+
+    private function runRegedit($cmd)
+    {
+        $this->regedit($cmd, false);
+    }
+
+    private function runRegsvr32($args)
+    {
+        $this->runWine(array_merge(['regsvr32'], $args));
+    }
+
+    private function runWine($args)
+    {
+        $cmd = $this->quoteArgs($args);
+        $this->runExternal("\"{$this->wineConfig['WINE']}\" {$cmd}");
+
+        if ($this->wineConfig['WINEARCH'] === 'win64') {
+            $this->runExternal("\"{$this->wineConfig['WINE64']}\" {$cmd}");
+        }
     }
 
     private function update($args)
@@ -890,10 +916,12 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                     }
                 }
 
-                file_put_contents("{$this->wineConfig['DRIVE_C']}/tmp.reg", implode("\n", $regs));
-                $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->gameInfo['DRIVE_C']}/tmp.reg\"");
-                unset($regs);
-                $this->log("Apply reg files\n");
+                if (count($regs) > 2) {
+                    file_put_contents("{$this->wineConfig['DRIVE_C']}/tmp.reg", implode("\n", $regs));
+                    $this->runRegedit(["{$this->gameInfo['DRIVE_C']}/tmp.reg"]);
+                    unset($regs);
+                    $this->log("Apply reg files\n");
+                }
             }
 
 
@@ -917,8 +945,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                         }
                     }
                 }
-
-                $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" /d 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}'");
+                $this->runRegedit(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
                 file_put_contents("{$this->wineConfig['WINEPREFIX']}/.update-timestamp", 'disable');
             }
 
@@ -1024,7 +1051,9 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                 }
 
                 $this->wineConfig['WINE']       = 'wine';
-                $this->wineConfig['REGEDIT']    = 'regedit';
+                $this->wineConfig['WINE64']     = 'wine64';
+                $this->wineConfig['REGEDIT']    = 'wine" "regedit';
+                $this->wineConfig['REGEDIT64']  = 'wine64" "regedit';
                 $this->wineConfig['WINEBOOT']   = 'wineboot';
                 $this->wineConfig['WINEFILE']   = 'winefile';
                 $this->wineConfig['WINECFG']    = 'winecfg';
@@ -1753,12 +1782,14 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
         $exported = [
             'export WINE'             => $this->wineConfig['WINE'],
+            'export WINE64'           => $this->wineConfig['WINE64'],
             'export WINEPREFIX'       => $this->wineConfig['WINEPREFIX'],
             'export WINEBOOT'         => $this->wineConfig['WINEBOOT'],
             'export WINEFILE'         => $this->wineConfig['WINEFILE'],
             'export WINECFG'          => $this->wineConfig['WINECFG'],
             'export WINESERVER'       => $this->wineConfig['WINESERVER'],
             'export REGEDIT'          => $this->wineConfig['REGEDIT'],
+            'export REGEDIT64'        => $this->wineConfig['REGEDIT64'],
             'export WINEARCH'         => $this->wineConfig['WINEARCH'],
             'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
             'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
@@ -2240,17 +2271,19 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 foreach ($dlls as $dll => $typeOverride) {
                     if ($this->config && !empty($this->config['dlls']) && !empty($this->config['dlls']['dll']) && !empty($this->config['dlls']['dll'][$dll])) {
                         if ($this->config['dlls']['dll'][$dll] === 'nooverride') {
+                            $this->log("Register skip {$dll}");
                             continue;
                         }
                         if ($this->config['dlls']['dll'][$dll] === 'register') {
-                            $this->runExternal("\"{$this->wineConfig['WINE']}\" regsvr32 \"{$dll}\"");
+                            $this->runRegsvr32([$dll]);
+                            $this->log("Register regsvr32 {$dll}");
                             continue;
                         }
 
                         $typeOverride = $this->config['dlls']['dll'][$dll];
                     }
 
-                    $this->runExternal("\"{$this->wineConfig['WINE']}\" reg add \"HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides\" /v \"{$dll}\" /d \"{$typeOverride}\" /f");
+                    $this->runWine(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $dll, '/d', $typeOverride, '/f']);
                     $this->log("Register {$dll}");
                 }
 
@@ -2273,13 +2306,13 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         if ($this->wineConfig['CSMT'] && !file_exists("{$this->wineConfig['DRIVE_C']}/csmt.reg")) {
             $reg[] = "\"csmt\"=-\n";
             file_put_contents("{$this->wineConfig['DRIVE_C']}/csmt.reg", implode("\n", $reg));
-            $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['DRIVE_C']}/csmt.reg\"");
+            $this->runRegedit(["{$this->wineConfig['DRIVE_C']}/csmt.reg"]);
 
             $this->log("Set enable CSMT.\n");
         } elseif ($this->wineConfig['CSMT'] === false && file_exists("{$this->wineConfig['DRIVE_C']}/csmt.reg")) {
             $reg[] = "\"csmt\"=dword:0\n";
             file_put_contents("{$this->wineConfig['DRIVE_C']}/csmt.reg", implode("\n", $reg));
-            $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['DRIVE_C']}/csmt.reg\"");
+            $this->runRegedit(["{$this->wineConfig['DRIVE_C']}/csmt.reg"]);
             unlink("{$this->wineConfig['DRIVE_C']}/csmt.reg");
 
             $this->log("Set disable CSMT.\n");
@@ -2307,7 +2340,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             $reg[] = "\"Audio\"=\"pulse\"\n";
             file_put_contents("{$this->wineConfig['DRIVE_C']}/usepulse.reg", implode("\n", $reg));
-            $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['DRIVE_C']}/usepulse.reg\"");
+            $this->runRegedit(["{$this->wineConfig['DRIVE_C']}/usepulse.reg"]);
 
             if (file_exists("{$this->wineConfig['DRIVE_C']}/usealsa.reg")) {
                 unlink("{$this->wineConfig['DRIVE_C']}/usealsa.reg");
@@ -2319,7 +2352,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             $reg[] = "\"Audio\"=\"alsa\"\n";
             file_put_contents("{$this->wineConfig['DRIVE_C']}/usealsa.reg", implode("\n", $reg));
-            $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['DRIVE_C']}/usealsa.reg\"");
+            $this->runRegedit(["{$this->wineConfig['DRIVE_C']}/usealsa.reg"]);
 
             if (file_exists("{$this->wineConfig['DRIVE_C']}/usepulse.reg")) {
                 unlink("{$this->wineConfig['DRIVE_C']}/usepulse.reg");
@@ -2430,7 +2463,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             case 'win7':
             default:
-                $this->runExternal("\"{$this->wineConfig['WINE']}\" reg add \"HKLM\\System\\CurrentControlSet\\Control\\ProductOptions\" /v ProductType /d \"WinNT\" /f");
+                $this->runWine(['reg', 'add', 'HKLM\\System\\CurrentControlSet\\Control\\ProductOptions', '/v', 'ProductType', '/d', 'WinNT', '/f']);
                 $defaultWinver = 'win7';
                 $default = [
                     'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' => [
@@ -2454,7 +2487,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         file_put_contents($lastwin, $defaultWinver);
         file_put_contents("{$this->wineConfig['DRIVE_C']}/setwinver.reg", implode('', $reg));
 
-        $this->runExternal("\"{$this->wineConfig['REGEDIT']}\" \"{$this->wineConfig['DRIVE_C']}/setwinver.reg\"");
+        $this->runRegedit(["{$this->wineConfig['DRIVE_C']}/setwinver.reg"]);
 
         $this->log("Set Windows version: {$defaultWinver}.\n");
     }
