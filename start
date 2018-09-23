@@ -721,6 +721,7 @@ Categories=Game";
             'unzip'      => false,
             'zip'        => false,
             'binutils'   => false,
+            'ffmpeg'     => false,
         ];
 
         ksort($apps);
