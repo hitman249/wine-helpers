@@ -3964,7 +3964,7 @@ chmod +x ./start"
                 $basename = pathinfo($path);
                 $_out     = "{$symlinks}/" . $this->relativePath($path, "{$this->gameInfo['DATA']}/_symlinks");
 
-                if (in_array($basename['extension'], $exts, true)) {
+                if (in_array(strtolower($basename['extension']), $exts, true)) {
                     exec("cp \"{$path}\" \"{$_out}\"");
                 } else {
                     exec("ln -sfr \"{$path}\" \"{$_out}\"");
