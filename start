@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.65';
+    private $version = '0.66';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -1966,9 +1966,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         print "{$text}\n";
     }
 
-    private function relativePath($absPath)
+    private function relativePath($absPath, $path = null)
     {
-        return trim(str_replace($this->currentDir, '', $absPath), " \t\n\r\0\x0B/");
+        return trim(str_replace($path === null ? $this->currentDir : $path, '', $absPath), " \t\n\r\0\x0B/");
     }
 
     private function resolutions()
@@ -3921,14 +3921,55 @@ chmod +x ./start"
 
             $this->runExternal("mv \"{$dataPath}\" \"{$dataSymlinksPath}\"");
 
-            foreach (glob("$dataSymlinksPath/*") as $path2) {
-                $fileName = basename($path2);
-                exec("ln -sfr \"{$path2}\" \"{$symlinksPath}/{$fileName}\"");
-            }
+            $this->cloneDirToSymlinks($this->relativePath($dataSymlinksPath, $this->gameInfo['DATA']));
 
             exec("ln -sfr \"{$symlinksPath}\" \"{$dataPath}\"");
 
             $this->log("Moved \"{$path}\" to \"game_info/additional/symlinks/{$path}\"");
+        }
+    }
+
+    private function cloneDirToSymlinks($_in)
+    {
+        $_in      = trim($_in, " \t\n\r\0\x0B/");
+        $symlinks = "{$this->gameInfo['ADDITIONAL']}/symlinks";
+
+        if (!file_exists($symlinks)) {
+            if (!mkdir($symlinks, 0775, true) && !is_dir($symlinks)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $symlinks));
+            }
+        }
+
+        $in = "{$this->gameInfo['DATA']}/{$_in}";
+
+        if (!file_exists($in) || !is_dir($in)) {
+            $this->log("Error, path is not dir: {$in}");
+            exit();
+        }
+
+        $out = "{$symlinks}/".$this->relativePath($in, "{$this->gameInfo['DATA']}/_symlinks");
+
+        if (!file_exists($out)) {
+            if (!mkdir($out, 0775, true) && !is_dir($out)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $out));
+            }
+        }
+
+        static $exts = ['cfg', 'conf', 'ini', 'log', 'sav', 'save', 'config'];
+
+        foreach (glob("{$in}/*") as $path) {
+            if (is_dir($path)) {
+                $this->cloneDirToSymlinks($this->relativePath($path, $this->gameInfo['DATA']));
+            } else {
+                $basename = pathinfo($path);
+                $_out     = "{$symlinks}/" . $this->relativePath($path, "{$this->gameInfo['DATA']}/_symlinks");
+
+                if (in_array($basename['extension'], $exts, true)) {
+                    exec("cp \"{$path}\" \"{$_out}\"");
+                } else {
+                    exec("ln -sfr \"{$path}\" \"{$_out}\"");
+                }
+            }
         }
     }
 
