@@ -3955,7 +3955,7 @@ chmod +x ./start"
             }
         }
 
-        static $exts = ['cfg', 'conf', 'ini', 'log', 'sav', 'save', 'config'];
+        static $exts = ['cfg', 'conf', 'ini', 'log', 'sav', 'save', 'config', 'con'];
 
         foreach (glob("{$in}/*") as $path) {
             if (is_dir($path)) {
