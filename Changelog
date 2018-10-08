@@ -1,3 +1,7 @@
+0.67
+
+* Add auto migrate dxvk.conf file.
+
 0.66
 
 * Refactoring rwdirlink method to recursive symlinks.

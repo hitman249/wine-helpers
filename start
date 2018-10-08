@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.66';
+    private $version = '0.67';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -2506,6 +2506,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             return;
         }
 
+        $this->updateDxvkConfig();
+
         $dxvk = "{$this->wineConfig['DRIVE_C']}/dxvk";
 
         if ($this->wineConfig['DXVK'] && file_exists($dxvk)) {
@@ -2519,10 +2521,6 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $this->winetricks(['dxvk']);
             $version = trim(file_get_contents('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE', false, stream_context_create($this->contextOptions)), " \t\n\r");
             file_put_contents($dxvk, $version);
-
-            if (!file_exists($this->gameInfo['DXVK'])) {
-                file_put_contents($this->gameInfo['DXVK'], $this->getDefaultDXVKConfig());
-            }
         }
     }
 
@@ -3373,6 +3371,67 @@ PBA_DISABLE=1
 
         if (md5($currentText) !== md5($newConfig)) {
             file_put_contents($this->gameInfo['INFOFILE'], $newConfig);
+        }
+    }
+
+    private function updateDxvkConfig()
+    {
+        if (!$this->wineConfig['DXVK']) {
+            return;
+        }
+
+        if (!file_exists($this->gameInfo['DXVK'])) {
+            file_put_contents($this->gameInfo['DXVK'], $this->getDefaultDXVKConfig());
+        }
+
+        if (!file_exists($this->gameInfo['DXVK'])) {
+            return;
+        }
+
+        $currentConfig = trim(file_get_contents($this->gameInfo['DXVK']));
+        $defaultConfig = explode("\n", $this->getDefaultDXVKConfig());
+        $newConfig     = [];
+        $params        = [];
+
+        foreach (explode("\n", $currentConfig) as $line) {
+            $line = trim($line);
+            if (!$this->startsWith($line, '#')) {
+                $item = explode('=', $line);
+                $name = trim(reset($item));
+                $params[$name] = $line;
+            }
+        }
+
+        foreach ($defaultConfig as $line) {
+            $newConfig[] = $line;
+
+            if (count($params) > 0) {
+                $line = trim($line, " \t\n\r\0\x0B#");
+                $item = explode('=', $line);
+                $name = trim(reset($item));
+
+                if (isset($params[$name]) && $params[$name] !== null) {
+                    $newConfig[] = '';
+                    $newConfig[] = $params[$name];
+                    unset($params[$name]);
+                }
+            }
+        }
+
+        if (count($params) > 0) {
+            $newConfig[] = '';
+            $newConfig[] = '';
+            $newConfig[] = '# Deprecated values.';
+            $newConfig[] = '';
+            foreach ($params as $line) {
+                $newConfig[] = $line;
+            }
+        }
+
+        $config = trim(implode("\n", $newConfig));
+
+        if (md5($config) !== md5($currentConfig)) {
+            file_put_contents($this->gameInfo['DXVK'], $config);
         }
     }
 
