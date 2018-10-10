@@ -143,6 +143,12 @@ Help:
 ./start autofix                   - Auto find *.so missing libs by other version and created symlinks
 ./start update                    - Update this script.
 
+./start cpu                       - Get CPU info.
+./start cpu performance           - Set CPU mode to "performance".
+./start cpu ondemand              - Set CPU mode to "ondemand".
+./start cpu conservative          - Set CPU mode to "conservative".
+./start cpu powersave             - Set CPU mode to "powersave".
+
 ./start monitor(s)                - Monitors info.
 ./start sysinfo                   - System info.
 ./start probe                     - Full system info.
@@ -368,3 +374,4 @@ d3dcompiler_33.dll
  * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
  * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
  * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
+ * [Управление тактовой частотой процессора под Linux](http://www.michurin.net/tools/cpu-frequency.html)

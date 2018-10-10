@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.67';
+    private $version = '0.68';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -130,10 +130,14 @@ class Start
 
         if (in_array(
             trim(reset($this->args)),
-            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update'],
+            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update', 'cpu'],
             true
         )) {
             $this->fastMode = true;
+
+            if (trim(reset($this->args)) === 'cpu') {
+                $this->print = false;
+            }
         }
 
         if ($this->isUnlock()) {
@@ -230,6 +234,7 @@ class Start
         }
 
         if ($this->print) {
+            $this->printCpuFreq();
             $this->logStart();
         }
 
@@ -863,6 +868,12 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start unlock                    - Unlock for one next command.',
             './start autofix                   - Auto find *.so missing libs by other version and created symlinks',
             './start update                    - Update this script.',
+            '',
+            './start cpu                       - Get CPU info.',
+            './start cpu performance           - Set CPU mode to "performance".',
+            './start cpu ondemand              - Set CPU mode to "ondemand".',
+            './start cpu conservative          - Set CPU mode to "conservative".',
+            './start cpu powersave             - Set CPU mode to "powersave".',
             '',
             './start monitor(s)                - Monitors info.',
             './start sysinfo                   - System info.',
@@ -4125,6 +4136,92 @@ chmod +x ./start"
         }
 
         return $esync;
+    }
+
+    private function getCpuFreq()
+    {
+        $cpu = trim($this->runExternal('cat /proc/cpuinfo'));
+        $result = [];
+
+        $cpuId = null;
+        $name  = null;
+
+        foreach (explode("\n", $cpu) as $line) {
+            if (stripos($line, 'processor') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'processor') {
+                    $cpuId = (int)trim(end($exLine));
+                }
+            }
+
+            if (stripos($line, 'model name') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'model name') {
+                    $name = trim(end($exLine = explode(':', $line)));
+                }
+            }
+
+            if (stripos($line, 'cpu MHz') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'cpu MHz') {
+                    $result[] = [
+                        'id'   => $cpuId,
+                        'name' => $name,
+                        'freq' => trim(end($exLine = explode(':', $line))),
+                        'mode' => file_exists("/sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor") ?
+                            trim($this->runExternal("cat /sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor")) : '',
+                    ];
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function printCpuFreq()
+    {
+        $this->logStart();
+
+        $title       = false;
+        $performance = false;
+
+        foreach ($this->getCpuFreq() as $item) {
+            if ($title === false) {
+                $title = true;
+                $this->log($item['name']);
+                $this->log('', 'hr', $this->length);
+            }
+
+            if ($performance === false && $item['mode'] === 'performance') {
+                $performance = true;
+            }
+
+            $this->log("CPU {$item['id']}: {$item['freq']} ({$item['mode']})");
+        }
+
+        if ($performance === false) {
+            $this->log('', 'hr', $this->length);
+            $this->log('Recommended change CPU mode to "performance".');
+            $this->log('Run: ./start cpu performance');
+        }
+
+        $this->logStop();
+    }
+
+    private function cpu($args)
+    {
+        if (!$args) {
+            $this->printCpuFreq();
+            return;
+        }
+
+        $mode = reset($args);
+
+        if (in_array($mode, ['performance', 'ondemand', 'conservative', 'powersave'], true)) {
+            system("sudo sh -c '$(for CPUFREQ in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f \$CPUFREQ ] || continue; echo -n {$mode} > \$CPUFREQ; done)'");
+            $this->printCpuFreq();
+            return;
+        }
     }
 }
 
