@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.68';
+    private $version = '0.69';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -727,6 +727,7 @@ Categories=Game";
             'zip'        => false,
             'binutils'   => false,
             'ffmpeg'     => false,
+            'sudo'       => false,
         ];
 
         ksort($apps);
@@ -1796,17 +1797,12 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             'export WINE'             => $this->wineConfig['WINE'],
             'export WINE64'           => $this->wineConfig['WINE64'],
             'export WINEPREFIX'       => $this->wineConfig['WINEPREFIX'],
-            'export WINEBOOT'         => $this->wineConfig['WINEBOOT'],
-            'export WINEFILE'         => $this->wineConfig['WINEFILE'],
-            'export WINECFG'          => $this->wineConfig['WINECFG'],
             'export WINESERVER'       => $this->wineConfig['WINESERVER'],
-            'export REGEDIT'          => $this->wineConfig['REGEDIT'],
-            'export REGEDIT64'        => $this->wineConfig['REGEDIT64'],
             'export WINEARCH'         => $this->wineConfig['WINEARCH'],
             'export WINEDEBUG'        => $this->wineConfig['WINEDEBUG'],
             'export WINEDLLOVERRIDES' => $this->wineConfig['WINEDLLOVERRIDES'],
             'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$additionalWineLibs}",
-            'export DXVK_CONFIG_FILE' => $this->gameInfo['DXVK'],
+            'export DXVK_CONFIG_FILE' => $this->getDxvkConfigFile(),
         ];
 
         if ($this->wineConfig['DXVK']) {
@@ -2847,7 +2843,14 @@ PBA_DISABLE=1
 
     private function getDxvkCacheDir()
     {
-        $dir = "{$this->gameInfo['DIR']}/cache";
+        $dir    = "{$this->gameInfo['DIR']}/cache";
+        $driveC = "{$this->wineConfig['DRIVE_C']}/cache";
+
+        static $run = false;
+
+        if ($run) {
+            return $driveC;
+        }
 
         if (!file_exists($dir)) {
             if (!mkdir($dir, 0775) && !is_dir($dir)) {
@@ -2855,12 +2858,25 @@ PBA_DISABLE=1
             }
         }
 
-        return $dir;
+        if (!file_exists($driveC)) {
+            $run = true;
+            $this->runExternal("ln -sfr \"{$dir}\" \"{$driveC}\"");
+            $run = false;
+        }
+
+        return $driveC;
     }
 
     private function getDxvkLogsDir()
     {
-        $dir = "{$this->gameInfo['DIR']}/logs";
+        $dir    = "{$this->gameInfo['DIR']}/logs";
+        $driveC = "{$this->wineConfig['DRIVE_C']}/logs";
+
+        static $run = false;
+
+        if ($run) {
+            return $driveC;
+        }
 
         if (!file_exists($dir)) {
             if (!mkdir($dir, 0775) && !is_dir($dir)) {
@@ -2868,7 +2884,33 @@ PBA_DISABLE=1
             }
         }
 
-        return $dir;
+        if (!file_exists($driveC)) {
+            $run = true;
+            $this->runExternal("ln -sfr \"{$dir}\" \"{$driveC}\"");
+            $run = false;
+        }
+
+        return $driveC;
+    }
+
+    private function getDxvkConfigFile()
+    {
+        $file   = $this->gameInfo['DXVK'];
+        $driveC = "{$this->wineConfig['DRIVE_C']}/dxvk.conf";
+
+        static $run = false;
+
+        if ($run) {
+            return $driveC;
+        }
+
+        if (file_exists($file) && !file_exists($driveC)) {
+            $run = true;
+            $this->runExternal("ln -sfr \"{$file}\" \"{$driveC}\"");
+            $run = false;
+        }
+
+        return $driveC;
     }
 
     private function writeIniFile($file, $array = [])

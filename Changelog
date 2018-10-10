@@ -1,3 +1,7 @@
+0.69
+
+* Bugfixes: Not apply dxvk.conf, cache, logs. Refactoring.
+
 0.68
 
 * Set CPU perform modes.
