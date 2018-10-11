@@ -375,4 +375,4 @@ d3dcompiler_33.dll
  * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
  * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
  * [Управление тактовой частотой процессора под Linux](http://www.michurin.net/tools/cpu-frequency.html)
- * [Ночные сборки dxvk](https://haagch.frickel.club/files/dxvk/)
+ * [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
