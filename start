@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.69';
+    private $version = '0.70';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -333,7 +333,9 @@ class Start
             }
         }
 
-        $this->runExternal("cd \"{$path}/\" && \"{$this->wineConfig['WINE']}\" {$desktop} \"{$this->gameInfo['GAME_EXE']}\" {$this->gameInfo['ARGS']} {$cmd}", true);
+        if ($this->checkFreeRam()) {
+            $this->runExternal("cd \"{$path}/\" && \"{$this->wineConfig['WINE']}\" {$desktop} \"{$this->gameInfo['GAME_EXE']}\" {$this->gameInfo['ARGS']} {$cmd}", true);
+        }
     }
 
     private function getFont()
@@ -3198,6 +3200,77 @@ PBA_DISABLE=1
         }
 
         return '';
+    }
+
+    private function getFreeRAM()
+    {
+        $meminfo = explode("\n", trim($this->runExternal('cat /proc/meminfo')));
+
+        foreach ($meminfo as $line) {
+            if (strpos($line, 'MemAvailable') !== false) {
+                $line = explode(':', $line);
+                $line = array_filter(explode(' ', end($line)));
+                $line = trim(reset($line));
+                $line = round($line / 1024);
+
+                return $line;
+            }
+        }
+
+        return '';
+    }
+
+    private function getDirectorySize($path)
+    {
+        $bytes = 0;
+        $path  = realpath($path);
+
+        if ($path !== false && $path != '' && file_exists($path)) {
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS)) as $object) {
+                $bytes += $object->getSize();
+            }
+        }
+
+        return $bytes;
+    }
+
+    private function checkFreeRam()
+    {
+        $ram     = (int)$this->getRAM();
+        $freeRam = (int)$this->getFreeRAM();
+
+        if (!$ram || !$freeRam) {
+            return true;
+        }
+
+        $gameSize = 0;
+
+        if (file_exists("{$this->gameInfo['DIR']}/data.squashfs")) {
+            $gameSize = filesize("{$this->gameInfo['DIR']}/data.squashfs");
+        } elseif (file_exists($this->gameInfo['DATA'])) {
+            $gameSize = $this->getDirectorySize($this->gameInfo['DATA']);
+        }
+
+        if ($gameSize > 0) {
+            $gameSize /= pow(1024, 3); // GB
+        }
+
+        if ($gameSize < 10) {
+            return true;
+        }
+
+        $percent = round($freeRam / $ram * 100);
+
+        if ($percent <= 50 && $freeRam <= 6000) {
+            $returnVar = null;
+            $output    = null;
+            exec("LD_LIBRARY_PATH=\"\" zenity --question --width=300 --title=\"Low amount of free memory\" --text \"Free memory less than {$percent}% ({$freeRam} Mb)\nContinue ?\"", $output, $returnVar);
+            if ($returnVar) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function getLinuxVersion()

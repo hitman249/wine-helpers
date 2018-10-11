@@ -1,3 +1,7 @@
+0.70
+
+* Add before run game check free RAM.
+
 0.69
 
 * Bugfixes: Not apply dxvk.conf, cache, logs. Refactoring.
