@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.70';
+    private $version = '0.71';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -72,16 +72,15 @@ class Start
 
         $this->currentDir = __DIR__;
 
-        if (trim(reset($this->args)) === 'unlock') {
-            $this->unlock();
-            exit(1);
-        }
+        $method = trim(reset($this->args));
 
-        if (!$this->lockExec()) {
-            $this->logStart();
-            $this->log('Application is already running.');
-            $this->logStop();
-            exit(1);
+        if (in_array($method, ['kill', 'unlock'], true)) {
+
+            $this->unlock();
+
+            if ($method !== 'kill') {
+                exit(1);
+            }
         }
 
         $gameInfo         = "{$this->currentDir}/game_info";
@@ -128,16 +127,25 @@ class Start
 
         ];
 
-        if (in_array(
-            trim(reset($this->args)),
-            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update', 'cpu'],
-            true
-        )) {
+        if (in_array($method,
+            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update', 'cpu'],true)) {
             $this->fastMode = true;
 
-            if (trim(reset($this->args)) === 'cpu') {
+            if ($method === 'cpu') {
                 $this->print = false;
             }
+        }
+
+        if (!$this->lockExec()) {
+            $this->logStart();
+            $this->log('Application is already running.');
+            $this->logStop();
+
+            if ($this->isDialogs()) {
+                exec("LD_LIBRARY_PATH=\"\" zenity --warning --width=300 --title=\"\" --text \"Application is already running.\"");
+            }
+
+            exit(1);
         }
 
         if ($this->isUnlock()) {
@@ -192,6 +200,10 @@ class Start
             $this->log('The script found that the application crashed.');
             $this->logStop();
             $this->log('');
+
+            if ($this->isDialogs()) {
+                exec("LD_LIBRARY_PATH=\"\" zenity --warning --width=300 --title=\"\" --text \"Restore resolutions and Exit.\nThe script found that the application crashed.\"");
+            }
 
             return;
         }
@@ -3236,6 +3248,10 @@ PBA_DISABLE=1
 
     private function checkFreeRam()
     {
+        if (!$this->wineConfig['DIALOGS']) {
+            return true;
+        }
+
         $ram     = (int)$this->getRAM();
         $freeRam = (int)$this->getFreeRAM();
 
@@ -4337,6 +4353,21 @@ chmod +x ./start"
             $this->printCpuFreq();
             return;
         }
+    }
+
+    private function isDialogs()
+    {
+        if (!$this->config) {
+            if (file_exists($this->gameInfo['INFOFILE'])) {
+                $this->config = parse_ini_file($this->gameInfo['INFOFILE'], true);
+            }
+        }
+
+        if ($this->config) {
+            return isset($this->config['script']['dialogs']) && $this->config['script']['dialogs'] == '1';
+        }
+
+        return false;
     }
 }
 
