@@ -142,6 +142,7 @@ Help:
 ./start unlock                    - Unlock for one next command.
 ./start autofix                   - Auto find *.so missing libs by other version and created symlinks
 ./start update                    - Update this script.
+./start reset                     - Full reset files the game.
 
 ./start cpu                       - Get CPU info.
 ./start cpu performance           - Set CPU mode to "performance".

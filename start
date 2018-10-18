@@ -33,7 +33,7 @@ exit;
  */
 class Start
 {
-    private $version = '0.71';
+    private $version = '0.72';
     private $currentDir;
     private $gameInfo;
     private $wineConfig;
@@ -128,10 +128,10 @@ class Start
         ];
 
         if (in_array($method,
-            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update', 'cpu'],true)) {
+            ['version', 'help', 'sysinfo', 'monitor', 'monitors', 'probe', 'check', 'update', 'cpu', 'reset'],true)) {
             $this->fastMode = true;
 
-            if ($method === 'cpu') {
+            if (in_array($method, ['cpu', 'reset'], true)) {
                 $this->print = false;
             }
         }
@@ -707,6 +707,10 @@ Categories=Game";
 
     public function check()
     {
+        if (!$this->print) {
+            return true;
+        }
+
         $length = 25;
 
         $this->logStart();
@@ -883,6 +887,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             './start unlock                    - Unlock for one next command.',
             './start autofix                   - Auto find *.so missing libs by other version and created symlinks',
             './start update                    - Update this script.',
+            './start reset                     - Full reset files the game.',
             '',
             './start cpu                       - Get CPU info.',
             './start cpu performance           - Set CPU mode to "performance".',
@@ -4368,6 +4373,55 @@ chmod +x ./start"
         }
 
         return false;
+    }
+
+    private function reset($args)
+    {
+        if (!file_exists("{$this->gameInfo['DIR']}/data.squashfs")
+            || !file_exists("{$this->currentDir}/static.tar.gz")
+            || !file_exists("{$this->currentDir}/extract.sh")) {
+
+            $this->logStart();
+            $this->log('This game does not support "reset".');
+            $this->logStop();
+            return;
+        }
+
+        $this->logStart();
+        $this->log('This operation will remove saves from game!');
+        $this->log('Make a copy of the save files before you continue.');
+        $this->logStop();
+
+        $this->log('Continue? (Y/N):');
+
+        $answer = strtolower(trim(fgets( STDIN )));
+
+        if (!in_array($answer, ['y', 'yes', 'да', '1'], true)) {
+            $this->log('Cancel.');
+            return;
+        }
+
+        foreach (glob("{$this->gameInfo['DIR']}/*") as $item) {
+            $name = basename($item);
+            if ($name !== 'data.squashfs') {
+                $this->runExternal("rm -rf \"{$item}\"");
+            }
+        }
+
+        foreach (glob("{$this->currentDir}/*") as $item) {
+            $name = basename($item);
+            if (!in_array($name, ['game_info', 'extract.sh', 'static.tar.gz'], true)) {
+                $this->runExternal("rm -rf \"{$item}\"");
+            }
+        }
+
+        if (file_exists("{$this->currentDir}/libs")) {
+            $this->runExternal("rm -rf \"{$this->currentDir}/libs\"");
+        }
+
+        $this->log('Success.');
+
+        exit();
     }
 }
 
