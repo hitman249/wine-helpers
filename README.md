@@ -377,3 +377,4 @@ d3dcompiler_33.dll
  * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
  * [Управление тактовой частотой процессора под Linux](http://www.michurin.net/tools/cpu-frequency.html)
  * [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
+ * [Performance Tweaks](https://github.com/lutris/lutris/wiki/Performance-Tweaks)
