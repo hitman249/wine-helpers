@@ -208,8 +208,8 @@ Examples:
 
 ```ini
 [game]
-path = "Program Files/The Super Game"
-additional_path = "bin"
+path = "Games"
+additional_path = "The Super Game/bin"
 exe = "Game.exe"
 cmd = "-language=russian"
 name = "The Super Game: Deluxe Edition"
