@@ -778,6 +778,10 @@ Categories=Game";
 
         $this->log($this->log('- libfuse ', ['start' => '', 'space' => '.', 'end' => $isFuse ? ' ok' : ' fail'], $length, true));
 
+        $isOpenAL = (bool)$this->runExternal('ldconfig -p | grep libopenal.so');
+
+        $this->log($this->log('- libopenal ', ['start' => '', 'space' => '.', 'end' => $isOpenAL ? ' ok' : ' fail'], $length, true));
+
         $this->logStop();
 
         if ($apps['wine'] === false) {
