@@ -96,7 +96,7 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 
   - `./start rwdirlink "Folder"`
     
-    > При условии что игра лежит в папке `C:/Games/Folder`
+    > При условии что игра лежит в папке `C:/Games/Folder` == `./game_info/data/Folder` 
     
 * Для проверки, что игра работает корректно, её следует упаковать, а папку `./game_info/data` на это время переименовать 
   в `./game_info/data1`. Если игра вылетает нужно определить в какие файлы она пишет, после чего заменить их вместо 
