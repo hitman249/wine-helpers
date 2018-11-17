@@ -782,6 +782,10 @@ Categories=Game";
 
         $this->log($this->log('- libopenal ', ['start' => '', 'space' => '.', 'end' => $isOpenAL ? ' ok' : ' fail'], $length, true));
 
+        $isXinerama= (bool)$this->runExternal('ldconfig -p | grep libXinerama.so');
+
+        $this->log($this->log('- libxinerama1 ', ['start' => '', 'space' => '.', 'end' => $isXinerama ? ' ok' : ' fail'], $length, true));
+
         $this->logStop();
 
         if ($apps['wine'] === false) {
