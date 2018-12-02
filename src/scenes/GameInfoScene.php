@@ -1,6 +1,6 @@
 <?php
 
-class PrefixScene extends AbstractScene
+class GameInfoScene extends AbstractScene
 {
     private $updateTextCallable;
     /** @var PrintWidget */
@@ -34,11 +34,11 @@ class PrefixScene extends AbstractScene
 
     public function render()
     {
-        $log = '~/game_info/logs/prefix.log';
+        $log = '~/game_info/logs/game_info.log';
 
         $this->window
             ->border()
-            ->title('Create prefix')
+            ->title('Create "game_info" folder')
             ->status($log)
             ->refresh();
 

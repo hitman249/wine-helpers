@@ -4,6 +4,8 @@ class GameInfo {
 
     private $command;
     private $config;
+    private $log;
+    private $buffer;
 
     /**
      * GameInfo constructor.
@@ -21,11 +23,35 @@ class GameInfo {
         $this->config  = $config;
     }
 
+    public function log($text)
+    {
+        $logPath = $this->config->getLogsDir() . '/game_info.log';
+
+        if (null === $this->log) {
+            $this->log = app('start')->getLog();
+        }
+
+        if (null === $this->buffer) {
+            $this->buffer = app('start')->getBuffer();
+            $this->buffer->clear();
+            if (file_exists($logPath)) {
+                @unlink($logPath);
+            }
+        }
+
+        $this->log->insertLogFile($text, $logPath);
+        $this->buffer->add($text);
+    }
+
     public function create()
     {
         if (!file_exists($this->config->getGameInfoDir())) {
 
+            app()->showGameInfo();
+
             $folders = [
+                $this->config->getLogsDir(),
+                $this->config->getCacheDir(),
                 $this->config->getGameInfoDir(),
                 $this->config->getAdditionalDir(),
                 $this->config->getDataDir(),
@@ -37,9 +63,11 @@ class GameInfo {
             ];
 
             foreach ($folders as $path) {
-                if (!mkdir($path, 0775, true) && !is_dir($path)) {
+                if (!file_exists($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
                 }
+
+                $this->log("Create folder \"{$path}\"");
             }
 
             $readme = 'readme.txt';
@@ -62,13 +90,13 @@ additional - специфичные для игры настройки (необ
 hooks - скрипты которые выполняются в зависимости от каких либо событий (необязательная директория)
 regs - файлы реестра windows (необязательная директория)"
             );
-
+            $this->log('Create file   "' . $this->config->getGameInfoDir() . "/{$readme}" . '"');
 
             /**
              * game_info/game_info.ini
              */
             file_put_contents($this->config->getConfigFile(), $this->config->getDefaultConfig());
-
+            $this->log('Create file   "' . $this->config->getConfigFile() . '"');
 
             /**
              * game_info/data/readme.txt
@@ -77,6 +105,7 @@ regs - файлы реестра windows (необязательная дире�
                 $this->config->getDataDir() . "/{$readme}",
                 "Здесь должна находиться игра."
             );
+            $this->log('Create file   "' . $this->config->getDataDir() . "/{$readme}" . '"');
 
 
             /**
@@ -87,6 +116,7 @@ regs - файлы реестра windows (необязательная дире�
                 "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
 директорию можно удалить."
             );
+            $this->log('Create file   "' . $this->config->getDllsDir() . "/{$readme}" . '"');
 
 
             /**
@@ -97,6 +127,7 @@ regs - файлы реестра windows (необязательная дире�
                 "В эту директорию нужно класть необходимые игре DLL файлы. Если таких нет
 директорию можно удалить."
             );
+            $this->log('Create file   "' . $this->config->getDlls64Dir() . "/{$readme}" . '"');
 
 
             /**
@@ -106,6 +137,7 @@ regs - файлы реестра windows (необязательная дире�
                 $this->config->getRegsDir() . "/{$readme}",
                 "Здесь должны находиться .reg файлы."
             );
+            $this->log('Create file   "' . $this->config->getRegsDir() . "/{$readme}" . '"');
 
 
             /**
@@ -122,6 +154,7 @@ regs - файлы реестра windows (необязательная дире�
 --REPLACE_WITH_USERNAME-- в файле path.txt заменяется на имя пользователя
 автоматически."
             );
+            $this->log('Create file   "' . $this->config->getAdditionalDir() . "/{$readme}" . '"');
 
 
             /**
@@ -132,6 +165,7 @@ regs - файлы реестра windows (необязательная дире�
                 "users/--REPLACE_WITH_USERNAME--/Мои документы
 users/--REPLACE_WITH_USERNAME--/Documents"
             );
+            $this->log('Create file   "' . $this->config->getAdditionalDir() . '/path.txt' . '"');
 
             if (!mkdir($this->config->getAdditionalDir() . '/dir_1', 0775, true) && !is_dir($path)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
@@ -139,6 +173,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             if (!mkdir($this->config->getAdditionalDir() . '/dir_2', 0775, true) && !is_dir($path)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
             }
+            $this->log('Create folder "' . $this->config->getAdditionalDir() . '/dir_1' . '"');
+            $this->log('Create folder "' . $this->config->getAdditionalDir() . '/dir_2' . '"');
 
 
             /**
@@ -148,12 +184,16 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getAdditionalDir() . "/dir_1/{$readme}",
                 "Здесь должно находиться содержимое директории dir_1."
             );
+            $this->log('Create file   "' . $this->config->getAdditionalDir() . "/dir_1/{$readme}" . '"');
 
+            app()->getCurrentScene()->setProgress(5);
 
             /**
              * README.md
              */
-            (new Update($this->config, $this->command))->updateReadme(true);
+            if ((new Update($this->config, $this->command))->updateReadme(true)) {
+                $this->log('Create file   "' . $this->config->getRootDir() . '/README.md' . '"');
+            }
 
 
             /**
@@ -163,6 +203,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksDir() . '/after.sh',
                 '#' ."!/bin/sh\necho \"After!\""
             );
+            $this->log('Create file   "' . $this->config->getHooksDir() . '/after.sh' . '"');
 
 
             /**
@@ -172,6 +213,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksDir() . '/before.sh',
                 '#' ."!/bin/sh\necho \"Before!\""
             );
+            $this->log('Create file   "' . $this->config->getHooksDir() . '/before.sh' . '"');
 
 
             /**
@@ -181,6 +223,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksDir() . '/create.sh',
                 '#' ."!/bin/sh\necho \"Create prefix!\"\ncd ../../\n./start unlock\n./start winetricks wmp9"
             );
+            $this->log('Create file   "' . $this->config->getHooksDir() . '/create.sh' . '"');
 
 
             if (!file_exists($this->config->getHooksGpuDir())) {
@@ -188,6 +231,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $this->config->getHooksGpuDir()));
                 }
             }
+            $this->log('Create folder "' . $this->config->getHooksGpuDir() . '"');
 
             /**
              * game_info/hooks/gpu/amd.sh
@@ -196,6 +240,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksGpuDir() . '/amd.sh',
                 '#' ."!/bin/sh\necho \"AMD GPU hook!\""
             );
+            $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/amd.sh' . '"');
 
 
             /**
@@ -205,6 +250,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksGpuDir() . '/nvidia.sh',
                 '#' ."!/bin/sh\necho \"NVIDIA GPU hook!\""
             );
+            $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/nvidia.sh' . '"');
 
 
             /**
@@ -214,6 +260,9 @@ users/--REPLACE_WITH_USERNAME--/Documents"
                 $this->config->getHooksGpuDir() . '/intel.sh',
                 '#' ."!/bin/sh\necho \"Intel GPU hook!\""
             );
+            $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/intel.sh' . '"');
+
+            app()->getCurrentScene()->setProgress(10);
         }
     }
 }

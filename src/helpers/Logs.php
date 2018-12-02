@@ -5,6 +5,11 @@ class Logs {
     private $table  = false;
     private $length = 80;
 
+    public function insertLogFile($text, $path)
+    {
+        file_put_contents($path, "{$text}\n", FILE_APPEND);
+    }
+
     public function log($text='', $symbols = [], $lenght = 0, $return = false)
     {
         if (!$symbols && $this->table === true) {

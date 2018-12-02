@@ -4,8 +4,6 @@ class InfoWidget extends AbstractWidget {
 
     /** @var SelectWidget */
     private $data;
-    /** @var \NcursesObjects\Window */
-    private $windowInfo;
     /** @var PrintWidget */
     private $windowPrint;
 
@@ -13,18 +11,18 @@ class InfoWidget extends AbstractWidget {
 
     public function init()
     {
-        if (null === $this->windowInfo) {
-            $windowWidth  = $this->window->getWidth();
-            $windowHeight = $this->window->getHeight();
+        if (null === $this->window) {
+            $windowWidth  = $this->getParentWindow()->getWidth();
+            $windowHeight = $this->getParentWindow()->getHeight();
 
             $menuWidth  = $this->data->getWidth();
             $menuHeight = $this->data->getHeight();
 
-            $this->windowInfo = new \NcursesObjects\Window($windowWidth - $menuWidth - 3, $windowHeight - 2, $menuWidth + 1, 1);
+            $this->window = new \NcursesObjects\Window($windowWidth - $menuWidth - 3, $windowHeight - 2, $menuWidth + 1, 1);
         }
 
         if (null === $this->windowPrint) {
-            $this->windowPrint = new PrintWidget($this->windowInfo);
+            $this->windowPrint = new PrintWidget($this->window);
         }
     }
 
@@ -43,7 +41,7 @@ class InfoWidget extends AbstractWidget {
     {
         $this->init();
 
-        $window = $this->windowInfo;
+        $window = $this->window;
 
         $callback = function ($item) use (&$window) {
             if ($item['id'] === 'start') {

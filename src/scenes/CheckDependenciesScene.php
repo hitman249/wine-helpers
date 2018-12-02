@@ -1,6 +1,6 @@
 <?php
 
-class PrefixScene extends AbstractScene
+class CheckDependenciesScene extends AbstractScene
 {
     private $updateTextCallable;
     /** @var PrintWidget */
@@ -34,11 +34,11 @@ class PrefixScene extends AbstractScene
 
     public function render()
     {
-        $log = '~/game_info/logs/prefix.log';
+        $log = '~/game_info/logs/dependencies.log';
 
         $this->window
             ->border()
-            ->title('Create prefix')
+            ->title('Check dependencies')
             ->status($log)
             ->refresh();
 

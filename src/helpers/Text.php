@@ -1,6 +1,7 @@
 <?php
 
-class Text {
+class Text
+{
     public static function isUtf16($text) {
         preg_match_all('/\x00/', $text, $count);
 

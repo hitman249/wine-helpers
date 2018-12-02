@@ -10,6 +10,7 @@ class Start
     private $log;
     private $update;
     private $monitor;
+    private $buffer;
 
     public function __construct()
     {
@@ -25,6 +26,7 @@ class Start
         $this->update     = new Update($this->config, $this->command);
         $this->monitor    = new Monitor($this->config, $this->command);
         $this->log        = new Logs();
+        $this->buffer     = new Buffer();
 
         $this->init();
     }
@@ -39,11 +41,12 @@ class Start
             exit(0);
         }
 
+        app($this);
         $this->gameInfo->create();
         $this->winePrefix->create();
         $this->update->init();
-
         app($this)->start();
+//        while (1) sleep(1);
     }
 
     /**
@@ -113,6 +116,14 @@ class Start
     public function getMonitor()
     {
         return $this->monitor;
+    }
+
+    /**
+     * @return Buffer
+     */
+    public function getBuffer()
+    {
+        return $this->buffer;
     }
 }
 

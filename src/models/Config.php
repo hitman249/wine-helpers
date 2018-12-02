@@ -178,7 +178,11 @@ class Config {
                 $this->configPath = $path;
             }
 
-            $this->config = (new FileINI($path))->get();
+            if (file_exists($this->configPath)) {
+                $this->config = (new FileINI($path))->get();
+            } else {
+                $this->config = parse_ini_string($this->getDefaultConfig(), true);
+            }
         }
     }
 
@@ -546,7 +550,16 @@ PBA_DISABLE=1
 #
 # Supported values: True, False
 
-# dxvk.allowMemoryOvercommit = False";
+# dxvk.allowMemoryOvercommit = False
+
+
+# Sets number of pipeline compiler threads.
+# 
+# Supported values:
+# - 0 to automatically determine the number of threads to use
+# - any positive number to enforce the thread count
+
+# dxvk.numCompilerThreads = 0";
     }
 
     public function isScriptAutoupdate()

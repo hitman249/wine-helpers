@@ -2,11 +2,7 @@
 
 class SelectWidget extends AbstractWidget
 {
-    /**
-     * @var \NcursesObjects\Window
-     */
-    private $selectWindow;
-    private $selectWindowBorder = false;
+    private $windowBorder = false;
     private $index = 0;
     private $items;
     private $width;
@@ -16,7 +12,7 @@ class SelectWidget extends AbstractWidget
 
     public function init()
     {
-        if (null === $this->selectWindow) {
+        if (null === $this->window) {
 
             $width = 0;
 
@@ -29,17 +25,17 @@ class SelectWidget extends AbstractWidget
             $width += 5;
             $width = ($width > 20 ? $width : 20);
 
-            $this->selectWindow = new \NcursesObjects\Window($width, count($this->items) + 2, $this->x, $this->y);
+            $this->window = new \NcursesObjects\Window($width, count($this->items) + 2, $this->x, $this->y);
         }
 
-        if ($this->selectWindowBorder) {
-            $this->selectWindow->border();
+        if ($this->windowBorder) {
+            $this->window->border();
         }
     }
 
     public function border($flag = true)
     {
-        $this->selectWindowBorder = $flag;
+        $this->windowBorder = $flag;
 
         return $this;
     }
@@ -54,14 +50,14 @@ class SelectWidget extends AbstractWidget
 
     public function getWidth()
     {
-        $this->selectWindow->getSize($width, $height);
-        return $this->selectWindowBorder ? $width + 2 : $width;
+        $this->window->getSize($width, $height);
+        return $this->windowBorder ? $width + 2 : $width;
     }
 
     public function getHeight()
     {
-        $this->selectWindow->getSize($width, $height);
-        return $this->selectWindowBorder ? $height + 2 : $height;
+        $this->window->getSize($width, $height);
+        return $this->windowBorder ? $height + 2 : $height;
     }
 
     public function offset($x, $y)
@@ -84,13 +80,13 @@ class SelectWidget extends AbstractWidget
 
         foreach ($this->items as $i => $item) {
             if ($this->index === $i) {
-                $this->selectWindow->moveCursor(2, 1 + $i)->drawStringHere($item['name'], NCURSES_A_REVERSE);
+                $this->window->moveCursor(2, 1 + $i)->drawStringHere($item['name'], NCURSES_A_REVERSE);
             } else {
-                $this->selectWindow->moveCursor(2, 1 + $i)->drawStringHere($item['name']);
+                $this->window->moveCursor(2, 1 + $i)->drawStringHere($item['name']);
             }
         }
 
-        $this->selectWindow->refresh();
+        $this->window->refresh();
     }
 
     public function selectAt($index)

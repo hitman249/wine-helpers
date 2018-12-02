@@ -16,7 +16,13 @@ class Command {
     }
 
 
-    public function run($cmd, $outputConsole = false)
+    /**
+     * @param string $cmd
+     * @param callable|null $fetch
+     * @param bool $outputConsole
+     * @return bool|string
+     */
+    public function run($cmd, $fetch = null, $outputConsole = false)
     {
         $cmd = $this->cast($cmd);
 

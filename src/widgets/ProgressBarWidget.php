@@ -2,8 +2,6 @@
 
 class ProgressBarWidget extends AbstractWidget {
 
-    /** @var \NcursesObjects\Window */
-    private $progressWindow;
     private $percent = 0;
     private $offset = 0;
     private $padding = 0;
@@ -12,9 +10,9 @@ class ProgressBarWidget extends AbstractWidget {
 
     public function init()
     {
-        if (null === $this->progressWindow) {
-            $this->window->getSize($columns, $row);
-            $this->progressWindow = new \NcursesObjects\Window($columns - ($this->offset + $this->padding * 2), 1, $this->offset + $this->padding, $row - 1);
+        if (null === $this->window) {
+            $this->getParentWindow()->getSize($columns, $row);
+            $this->window = new \NcursesObjects\Window($columns - ($this->offset + $this->padding * 2), 1, $this->offset + $this->padding, $row - 1);
         }
 
         return $this;
@@ -30,7 +28,7 @@ class ProgressBarWidget extends AbstractWidget {
 
     public function setProgress($percent)
     {
-        $this->percent = $percent;
+        $this->percent = $percent >= 0 && $percent <= 100 ? $percent : ($percent > 100 ? 100 : 0);
         return $this;
     }
 
@@ -38,10 +36,11 @@ class ProgressBarWidget extends AbstractWidget {
     {
         $this->init();
 
-        $this->progressWindow->getSize($columns, $row);
+        $this->window->getSize($columns, $row);
         $symbols = round($columns / 100 * $this->percent);
 
-        $this->progressWindow->drawStringHere(str_repeat('▓', $symbols) . str_repeat('░', $columns - $symbols));
-        $this->progressWindow->refresh();
+        $this->window->erase()->refresh();
+        $this->window->drawStringHere(str_repeat('▓', $symbols) . str_repeat('░', $columns - $symbols));
+        $this->window->refresh();
     }
 }

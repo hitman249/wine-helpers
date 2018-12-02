@@ -6,6 +6,9 @@ abstract class AbstractScene {
     protected $active = false;
     protected $visible = false;
     protected $widgets;
+    protected $history;
+
+    private $changeWidgetActive;
 
     /**
      * MainScene constructor.
@@ -13,7 +16,20 @@ abstract class AbstractScene {
     public function __construct()
     {
         $this->window  = new NcursesObjects\Window;
+        $this->history = new History();
         $this->widgets = [];
+
+        $onChangeWidgetActive = function ($status, $widget) {
+            if ($status) {
+                $this->history->add($widget);
+            } else {
+                $this->history->back();
+            }
+
+            $this->updateActiveWidget();
+        };
+
+        $this->changeWidgetActive = $onChangeWidgetActive;
     }
 
     public function show()
@@ -36,14 +52,27 @@ abstract class AbstractScene {
         return $this;
     }
 
+    /**
+     * @return \NcursesObjects\Window
+     */
+    public function getWindow()
+    {
+        return $this->window;
+    }
+
     public function addWidget($widget)
     {
+        /** @var PrintWidget|ProgressBarWidget|SelectWidget|InfoWidget|PopupYesNoWidget $widget */
         $this->widgets[] = $widget;
+        $widget->onChangeActiveEvent($this->changeWidgetActive);
+
         return $widget;
     }
 
     public function removeWidget($widget)
     {
+        /** @var AbstractWidget $widget */
+        $widget->offChangeActiveEvent($this->changeWidgetActive);
         $this->widgets = array_filter($this->widgets, function ($item) use (&$widget) {return $item !== $widget;});
     }
 
@@ -76,6 +105,31 @@ abstract class AbstractScene {
     {
         $this->visible = $flag;
         return $this;
+    }
+
+    private function updateActiveWidget()
+    {
+        $current = $this->history->current();
+
+        foreach ($this->widgets as $widget) {
+            /** @var AbstractWidget $widget */
+            $widget->offChangeActiveEvent($this->changeWidgetActive);
+        }
+
+        foreach ($this->getWidgets() as $widget) {
+            /** @var AbstractWidget $widget */
+
+            if ($widget === $current) {
+                $widget->setActive(true);
+            } else {
+                $widget->setActive(false);
+            }
+        }
+
+        foreach ($this->widgets as $widget) {
+            /** @var AbstractWidget $widget */
+            $widget->onChangeActiveEvent($this->changeWidgetActive);
+        }
     }
 
     abstract public function render();

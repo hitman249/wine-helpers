@@ -10,6 +10,8 @@ class WinePrefix {
     private $fs;
     private $update;
     private $event;
+    private $log;
+    private $buffer;
 
     /**
      * WinePrefix constructor.
@@ -28,6 +30,26 @@ class WinePrefix {
         $this->event   = new Event($this->config, $this->command);
     }
 
+    public function log($text)
+    {
+        $logPath = $this->config->getLogsDir() . '/prefix.log';
+
+        if (null === $this->log) {
+            $this->log = app('start')->getLog();
+        }
+
+        if (null === $this->buffer) {
+            $this->buffer = app('start')->getBuffer();
+            $this->buffer->clear();
+            if (file_exists($logPath)) {
+                @unlink($logPath);
+            }
+        }
+
+        $this->log->insertLogFile($text, $logPath);
+        $this->buffer->add($text);
+    }
+
     public function create()
     {
         if (file_exists($this->config->getRootDir() . '/wine/bin')) {
@@ -36,22 +58,37 @@ class WinePrefix {
 
         if (!file_exists($this->config->wine('WINEPREFIX'))) {
 
+            (new CheckDependencies($this->config, $this->command))->check();
 
+            app()->showPrefix();
+
+            $this->log('Create folder "' . $this->config->wine('WINEPREFIX') . '"');
+            app()->getCurrentScene()->setProgress(10);
+
+            $this->log('Initialize ' . $this->wine->version() . ' prefix.');
             $this->wine->boot();
-
+            app()->getCurrentScene()->setProgress(20);
 
             /**
              * Apply replace {WIDTH}, {HEIGHT}, {USER} from files
              */
-            $this->updateReplaces();
+            foreach ($this->updateReplaces() as $replace) {
+                $this->log($replace);
+            }
+            app()->getCurrentScene()->setProgress(25);
 
 
             /**
              * Apply reg files
              */
             if (file_exists($this->config->getRegsDir())) {
-                $regs  = ['Windows Registry Editor Version 5.00', ''];
-                $files = array_map('file_get_contents', glob($this->config->getRegsDir() . '/*.reg'));
+                $regs      = ['Windows Registry Editor Version 5.00', ''];
+                $filesPath = glob($this->config->getRegsDir() . '/*.reg');
+                $files     = array_map('file_get_contents', $filesPath);
+
+                foreach ($filesPath as $path) {
+                    $this->log('Apply reg file "' . $this->fs->relativePath($path) . '"');
+                }
 
                 foreach ($files as $file) {
                     $file = Text::normalize($file);
@@ -73,13 +110,14 @@ class WinePrefix {
                     unset($regs);
                 }
             }
+            app()->getCurrentScene()->setProgress(35);
 
 
             /**
              * Copy required dlls and override them
              */
             $this->updateDlls();
-
+            app()->getCurrentScene()->setProgress(60);
 
             /**
              * Sandbox the prefix; Borrowed from winetricks scripts
@@ -97,7 +135,9 @@ class WinePrefix {
                 }
                 $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
                 file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
+                $this->log('Set sandbox.');
             }
+            app()->getCurrentScene()->setProgress(62);
 
 
             /**
@@ -127,46 +167,57 @@ class WinePrefix {
                             $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
                             $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
                             $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
+                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
                         }
                     }
                 }
             }
+            app()->getCurrentScene()->setProgress(66);
 
             /**
              * Enable or disable CSMT
              */
             $this->updateCsmt();
+            app()->getCurrentScene()->setProgress(70);
 
 
             /**
              * Set sound driver to PulseAudio; Borrowed from winetricks
              */
             $this->updatePulse();
+            app()->getCurrentScene()->setProgress(75);
 
 
             /**
              * Create symlink to game directory
              */
             $this->createGameDirectory();
+            app()->getCurrentScene()->setProgress(80);
 
 
             /**
              * Set windows version; Borrowed from winetricks
              */
             $this->updateWinVersion();
+            app()->getCurrentScene()->setProgress(85);
 
 
             /**
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
             $this->update->updateDxvk();
+            app()->getCurrentScene()->setProgress(90);
 
 
             /**
              * Fired hooks
              */
             $this->event->createPrefix();
+            app()->getCurrentScene()->setProgress(95);
             $this->event->gpu();
+            app()->getCurrentScene()->setProgress(100);
+
+            $this->log('Success!');
         }
 
         $this->init();
@@ -298,6 +349,7 @@ class WinePrefix {
                 $dll32 = $this->fs->relativePath($this->config->getDllsDir());
                 $this->command->run("ln -sfr \"{$dll32}/{$fileName}\" " . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/system32'));
                 $result[] = "Add system32/{$fileName}";
+                $this->log("Add system32/{$fileName}");
             }
         }
 
@@ -331,6 +383,7 @@ class WinePrefix {
                 $dll64 = $this->fs->relativePath($this->config->getDlls64Dir());
                 $this->command->run("ln -sfr \"{$dll64}/{$fileName}\" \" " . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/syswow64'));
                 $result[] = "Add system64/{$fileName}";
+                $this->log("Add system64/{$fileName}");
             }
         }
 
@@ -344,11 +397,13 @@ class WinePrefix {
                     if (!empty($configDlls) && !empty($configDlls[$dll])) {
                         if ($configDlls[$dll] === 'nooverride') {
                             $result[] = "Register skip {$dll}";
+                            $this->log("Register skip {$dll}");
                             continue;
                         }
                         if ($configDlls[$dll] === 'register') {
                             $this->wine->regsvr32([$dll]);
                             $result[] = "Register regsvr32 {$dll}";
+                            $this->log("Register regsvr32 {$dll}");
                             continue;
                         }
 
@@ -357,9 +412,11 @@ class WinePrefix {
 
                     $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $dll, '/d', $typeOverride, '/f']);
                     $result[] = "Register {$dll}";
+                    $this->log("Register {$dll}");
                 }
 
                 $result[] = "Update dll overrides.";
+                $this->log("Update dll overrides.");
             }
         }
 
@@ -383,6 +440,7 @@ class WinePrefix {
             $reg[] = "\"csmt\"=-\n";
             file_put_contents($file, implode("\n", $reg));
             $this->wine->reg([$file]);
+            $this->log('CSMT enable.');
 
             return true;
         } elseif (!$this->config->isCsmt() && file_exists($file)) {
@@ -390,6 +448,7 @@ class WinePrefix {
             file_put_contents($file, implode("\n", $reg));
             $this->wine->reg([$file]);
             unlink($file);
+            $this->log('CSMT disable.');
 
             return false;
         }
@@ -427,6 +486,8 @@ class WinePrefix {
                 unlink($fileAlsa);
             }
 
+            $this->log('Set sound driver to PulseAudio.');
+
             return true;
 
         } elseif (!$this->config->isPulse() && !file_exists($fileAlsa)) {
@@ -438,6 +499,8 @@ class WinePrefix {
             if (file_exists($filePulsa)) {
                 unlink($filePulsa);
             }
+
+            $this->log('Set sound driver to Alsa.');
 
             return false;
         }
@@ -524,6 +587,7 @@ class WinePrefix {
         file_put_contents($this->config->wine('DRIVE_C') . '/setwinver.reg', implode('', $reg));
 
         $this->wine->reg([$this->config->wine('DRIVE_C') . '/setwinver.reg']);
+        $this->log("Set Windows {$defaultWinver} version.");
 
         return true;
     }
@@ -540,6 +604,7 @@ class WinePrefix {
             $this->command->run("mkdir -p \"{$game}\" && rm -r \"{$game}\" && ln -sfr \"{$data}\" \"{$game}\"");
 
             $gameFolder = trim(str_replace($this->config->wine('DRIVE_C'), '', $this->config->getPrefixGameFolder()), " \t\n\r\0\x0B/");
+            $this->log("Create game folder \"{$data}\" > " . Text::quoteArgs($this->fs->relativePath($this->config->getPrefixGameFolder())) . '.');
 
             return $gameFolder;
         }
@@ -555,12 +620,17 @@ class WinePrefix {
             if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
             }
+            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath($libs)) . '.');
+
             if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
             }
+            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/i386")) . '.');
+
             if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
             }
+            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/x86-64")) . '.');
 
             file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
         }

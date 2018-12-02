@@ -2,10 +2,14 @@
 
 abstract class AbstractWidget {
 
+    /** @var \NcursesObjects\Window  */
+    protected $parentWindow;
+    /** @var \NcursesObjects\Window  */
+    protected $window;
     protected $active = false;
     protected $visible = false;
-    protected $window;
     protected $change;
+    protected $changeActive;
     protected $enter;
 
     /**
@@ -14,9 +18,10 @@ abstract class AbstractWidget {
      */
     public function __construct($window)
     {
-        $this->window = $window;
-        $this->change = [];
-        $this->enter  = [];
+        $this->parentWindow = $window;
+        $this->change       = [];
+        $this->changeActive = [];
+        $this->enter        = [];
     }
 
     public function getWindow()
@@ -24,10 +29,15 @@ abstract class AbstractWidget {
         return $this->window;
     }
 
+    public function getParentWindow()
+    {
+        return $this->parentWindow;
+    }
+
     public function isActive()
     {
         if (!$this->isVisible()) {
-            $this->setActive(false);
+            $this->active = false;
         }
 
         return $this->active;
@@ -36,6 +46,8 @@ abstract class AbstractWidget {
     public function setActive($flag = true)
     {
         $this->active = $flag;
+        $this->doChangeActiveEvent($this->active, $this);
+
         return $this;
     }
 
@@ -61,8 +73,10 @@ abstract class AbstractWidget {
     public function hide()
     {
         if ($this->visible) {
-            $this->visible = false;
-            $this->window->erase()->refresh();
+            $this->setVisible(false);
+            $this->setActive(false);
+            $this->getWindow()->erase()->refresh();
+            $this->getParentWindow()->refresh();
         }
 
         return $this;
@@ -73,20 +87,9 @@ abstract class AbstractWidget {
         $this->change[] = $callback;
     }
 
-    public function onEnterEvent($callback)
-    {
-        $this->enter[] = $callback;
-    }
-
-    public function removeChangeEvent($callback)
+    public function offChangeEvent($callback)
     {
         $this->change = array_filter($this->change, function ($item) use (&$callback) {return $item !== $callback;});
-    }
-
-    public function removeEnterEvent($callback)
-    {
-        $this->enter = array_filter($this->enter, function ($item) use (&$callback) {return $item !== $callback;});
-
     }
 
     protected function doChangeEvent($v1, $v2 = null, $v3 = null)
@@ -96,10 +99,37 @@ abstract class AbstractWidget {
         }
     }
 
+    public function onEnterEvent($callback)
+    {
+        $this->enter[] = $callback;
+    }
+
+    public function offEnterEvent($callback)
+    {
+        $this->enter = array_filter($this->enter, function ($item) use (&$callback) {return $item !== $callback;});
+    }
+
     protected function doEnterEvent($v1, $v2 = null, $v3 = null)
     {
         foreach ($this->enter as $enter) {
             $enter($v1, $v2, $v3);
+        }
+    }
+
+    public function onChangeActiveEvent($callback)
+    {
+        $this->changeActive[] = $callback;
+    }
+
+    public function offChangeActiveEvent($callback)
+    {
+        $this->changeActive = array_filter($this->changeActive, function ($item) use (&$callback) {return $item !== $callback;});
+    }
+
+    protected function doChangeActiveEvent($v1, $v2 = null, $v3 = null)
+    {
+        foreach ($this->changeActive as $event) {
+            $event($v1, $v2, $v3);
         }
     }
 

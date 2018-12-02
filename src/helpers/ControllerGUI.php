@@ -23,8 +23,10 @@ class ControllerGUI {
         }
 
         $this->scenes = [];
-        $this->scenes['main']   = new MainScene();
+        $this->scenes['main'] = new MainScene();
         $this->scenes['prefix'] = new PrefixScene();
+        $this->scenes['gameInfo'] = new GameInfoScene();
+        $this->scenes['checkDependencies'] = new CheckDependenciesScene();
     }
 
     public function getNcurses()
@@ -54,6 +56,9 @@ class ControllerGUI {
     public function start()
     {
         $this->showMain();
+        app('start')->getBuffer()->setSize(
+            $this->getMainScene()->getWindow()->getHeight()
+        );
         $this->press();
     }
 
@@ -111,6 +116,36 @@ class ControllerGUI {
         return $this->getScenes('prefix');
     }
 
+    /**
+     * @return GameInfoScene
+     */
+    public function getGameInfoScene()
+    {
+        return $this->getScenes('gameInfo');
+    }
+
+    /**
+     * @return GameInfoScene
+     */
+    public function getCheckDependenciesScene()
+    {
+        return $this->getScenes('checkDependencies');
+    }
+
+    /**
+     * @return GameInfoScene|MainScene|PrefixScene
+     */
+    public function getCurrentScene()
+    {
+        foreach ($this->getScenes() as $scene) {
+            if ($scene->isVisible()) {
+                return $scene;
+            }
+        }
+
+        return $this->getMainScene();
+    }
+
     public function showMain()
     {
         $this->hideAll();
@@ -121,5 +156,17 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getPrefixScene()->show();
+    }
+
+    public function showGameInfo()
+    {
+        $this->hideAll();
+        $this->getGameInfoScene()->show();
+    }
+
+    public function showCheckDependencies()
+    {
+        $this->hideAll();
+        $this->getCheckDependenciesScene()->show();
     }
 }
