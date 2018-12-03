@@ -242,6 +242,16 @@ class Config {
         return $this->dataFile;
     }
 
+    public function getWineDir()
+    {
+        return $this->wineDir;
+    }
+
+    public function getWineFile()
+    {
+        return $this->wineFile;
+    }
+
     public function getAdditionalDir()
     {
         return $this->additionalDir;

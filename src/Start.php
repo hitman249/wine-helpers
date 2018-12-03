@@ -11,6 +11,8 @@ class Start
     private $update;
     private $monitor;
     private $buffer;
+    private $dataFolder;
+    private $wineFolder;
 
     public function __construct()
     {
@@ -27,6 +29,8 @@ class Start
         $this->monitor    = new Monitor($this->config, $this->command);
         $this->log        = new Logs();
         $this->buffer     = new Buffer();
+        $this->dataFolder = new Mount($this->config, $this->command, $this->config->getDataDir());
+        $this->wineFolder = new Mount($this->config, $this->command, $this->config->getWineDir());
 
         $this->init();
     }

@@ -135,4 +135,27 @@ class Command {
 
         return $cmd;
     }
+
+    public function squashfuse($folder)
+    {
+        (new Update($this->config, $this))->downloadSquashfuse();
+
+        $squashfuse = $this->config->getRootDir() . '/squashfuse';
+
+        return $this->run(Text::quoteArgs($squashfuse) . ' ' . Text::quoteArgs("{$folder}.squashfs") . ' ' . Text::quoteArgs($folder));
+    }
+
+    public function zipfuse($folder)
+    {
+        (new Update($this->config, $this))->downloadFusezip();
+
+        $zipfuse = $this->config->getRootDir() . '/fuse-zip';
+
+        return $this->run(Text::quoteArgs($zipfuse) . ' ' . Text::quoteArgs("{$folder}.zip") . ' ' . Text::quoteArgs($folder));
+    }
+
+    public function unmount($folder)
+    {
+        return $this->run('fusermount -u ' . Text::quoteArgs($folder));
+    }
 }

@@ -43,6 +43,7 @@ return [
         'widgets/ProgressBarWidget.php',
         'widgets/PrintWidget.php',
         'widgets/PopupYesNoWidget.php',
+        'widgets/PopupInfoWidget.php',
         'Start.php',
     ],
 ];

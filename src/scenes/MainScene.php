@@ -20,6 +20,11 @@ class MainScene extends AbstractScene {
         $info
             ->setData($menu)
             ->show();
+
+        $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+        $popup
+            ->setActive(true)
+            ->show();
     }
 
     public function renderMenu()
@@ -64,6 +69,13 @@ class MainScene extends AbstractScene {
                 app()->showPrefix();
             }
             if ($item['id'] === 'exit') {
+                $popup = $this->addWidget(new PopupInfoWidget($this->window));
+                $popup
+                    ->setTitle('Exit')
+                    ->setText('Wait umount...')
+                    ->setActive(true)
+                    ->show();
+
                 exit(0);
             }
         });
