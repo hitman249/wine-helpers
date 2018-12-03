@@ -5,6 +5,7 @@ class PopupInfoWidget extends AbstractWidget {
     private $status = true;
     private $title  = '';
     private $text   = '';
+    private $button = '';
 
     public function init()
     {
@@ -27,19 +28,40 @@ class PopupInfoWidget extends AbstractWidget {
         return $this;
     }
 
+    public function setButton($title = ' Ok ')
+    {
+        $this->button = $title;
+        return $this;
+    }
+
     public function render()
     {
         $this->init();
 
-        $this->window->border()->title($this->title);
+        $this->window->border();
 
-        $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+        if ($this->title) {
+            $this->window->title($this->title);
+        }
+
+        if ($this->text) {
+            $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+        }
+
+        if ($this->button) {
+            $buttonLen = mb_strlen($this->button);
+            $width     = $this->window->getWidth();
+            $position  = ($width / 2) - ($buttonLen / 2);
+            $this->window->moveCursor($position, 5)->drawStringHere($this->button, NCURSES_A_REVERSE);
+        }
 
         $this->window->refresh();
     }
 
     public function pressKey($key)
     {
-        $this->hide();
+        if (($this->button && \NcursesObjects\Keys::KEY_ENTER === $key) || !$this->button) {
+            $this->hide();
+        }
     }
 }

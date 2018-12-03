@@ -23,17 +23,6 @@ namespace NcursesObjects
         public function __construct(Window $window) {
             $this->window = $window;
             $this->panelResource = ncurses_new_panel($window->getWindow());
-            $this->_debug($this->window, $this->panelResource);
-        }
-
-        public static function _debug() {
-            $msg = '';
-
-            foreach(func_get_args() as $arg) {
-                $msg .= var_export($arg, true) . PHP_EOL;
-            }
-
-            file_put_contents('/tmp/ncurses.log', $msg);
         }
 
         /**

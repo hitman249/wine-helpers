@@ -62,7 +62,7 @@ abstract class AbstractScene {
 
     public function addWidget($widget)
     {
-        /** @var PrintWidget|ProgressBarWidget|SelectWidget|InfoWidget|PopupYesNoWidget $widget */
+        /** @var PrintWidget|ProgressBarWidget|SelectWidget|InfoWidget|PopupYesNoWidget|PopupInfoWidget|PopupSelectWidget $widget */
         $this->widgets[] = $widget;
         $widget->onChangeActiveEvent($this->changeWidgetActive);
 

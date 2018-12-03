@@ -19,7 +19,7 @@ class Mount
         $this->command = $command;
         $this->folder  = $folder;
 
-        $this->command->unmount($folder);
+        $this->command->umount($folder);
 
         if (file_exists($folder) && (file_exists("{$folder}.squashfs") || file_exists("{$folder}.zip"))) {
             @rmdir($folder);
@@ -50,7 +50,7 @@ class Mount
 
                     sleep(1);
 
-                    $this->command->unmount($this->folder);
+                    $this->command->umount($this->folder);
 
                     if (file_exists($this->folder)) {
                         @rmdir($this->folder);

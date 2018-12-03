@@ -11,7 +11,7 @@ class MainScene extends AbstractScene {
         $this->window
             ->border()
             ->title('version: ' . $update->version())
-            ->status('https://github.com/hitman249/wine-helpers')
+            ->status($update->getUrl())
             ->refresh();
 
         $menu = $this->renderMenu();
@@ -68,15 +68,11 @@ class MainScene extends AbstractScene {
             if ($item['id'] === 'wine') {
                 app()->showPrefix();
             }
+            if ($item['id'] === 'tools') {
+                app()->showTools();
+            }
             if ($item['id'] === 'exit') {
-                $popup = $this->addWidget(new PopupInfoWidget($this->window));
-                $popup
-                    ->setTitle('Exit')
-                    ->setText('Wait umount...')
-                    ->setActive(true)
-                    ->show();
-
-                exit(0);
+                app()->close();
             }
         });
 

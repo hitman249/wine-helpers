@@ -131,4 +131,23 @@ class Start
     }
 }
 
+pcntl_signal(SIGINT, function ($signal) {
+    switch($signal) {
+        case SIGINT:
+        case SIGKILL:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGSTOP:
+            $scene = app()->getCurrentScene();
+            $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+            $popup
+                ->setTitle('Exit')
+                ->setText('Wait umount...')
+                ->setActive(true)
+                ->show();
+
+            exit(0);
+    }
+}, false);
+
 new Start();

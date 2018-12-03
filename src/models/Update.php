@@ -26,6 +26,11 @@ class Update {
         return $this->version;
     }
 
+    public function getUrl()
+    {
+        return 'https://github.com/hitman249/wine-helpers';
+    }
+
     public function init()
     {
         /**
@@ -292,6 +297,7 @@ class Update {
 
     public function update()
     {
+        return false;
         $newStart = $this->network->get($this->config->getRepositoryUrl() . '/start');
 
         if ($newStart) {

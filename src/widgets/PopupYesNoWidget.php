@@ -46,9 +46,15 @@ class PopupYesNoWidget extends AbstractWidget {
     {
         $this->init();
 
-        $this->window->border()->title($this->title);
+        $this->window->border();
 
-        $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+        if ($this->title) {
+            $this->window->title($this->title);
+        }
+
+        if ($this->text) {
+            $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+        }
 
         $yesLen = mb_strlen($this->yes);
         $noLen  = mb_strlen($this->no);

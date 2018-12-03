@@ -219,21 +219,8 @@ namespace NcursesObjects
         }
 
         /**
-         * @todo Delete
-         */
-        public static function _debug() {
-            $msg = '';
-
-            foreach(func_get_args() as $arg) {
-                $msg .= var_export($arg, true) . PHP_EOL;
-            }
-
-            file_put_contents('/tmp/ncurses.log', $msg);
-        }
-
-        /**
          * Makes a panel associated with this window
-         * @return this
+         * @return $this
          */
         public function makePanel() {
             $this->panel = new Panel($this);

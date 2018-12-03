@@ -1,6 +1,6 @@
 <?php
 
-namespace NcursesObject
+namespace NcursesObjects
 {
     class MouseEvents
     {

@@ -27,6 +27,7 @@ class ControllerGUI {
         $this->scenes['prefix'] = new PrefixScene();
         $this->scenes['gameInfo'] = new GameInfoScene();
         $this->scenes['checkDependencies'] = new CheckDependenciesScene();
+        $this->scenes['tools'] = new ToolsScene();
     }
 
     public function getNcurses()
@@ -76,6 +77,8 @@ class ControllerGUI {
 
     public function pressKey($key)
     {
+        pcntl_signal_dispatch();
+
         foreach ($this->getScenes() as $name => $scene) {
             if (!$scene->isActive()) {
                 continue;
@@ -133,6 +136,14 @@ class ControllerGUI {
     }
 
     /**
+     * @return ToolsScene
+     */
+    public function getToolsScene()
+    {
+        return $this->getScenes('tools');
+    }
+
+    /**
      * @return GameInfoScene|MainScene|PrefixScene
      */
     public function getCurrentScene()
@@ -168,5 +179,17 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getCheckDependenciesScene()->show();
+    }
+
+    public function showTools()
+    {
+        $this->hideAll();
+        $this->getToolsScene()->show();
+    }
+
+    public function close()
+    {
+        posix_kill(posix_getpid(), SIGINT);
+        pcntl_signal_dispatch();
     }
 }

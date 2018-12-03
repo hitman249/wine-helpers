@@ -27,6 +27,17 @@ class System {
         return $userName;
     }
 
+    public function getDesktopPath()
+    {
+        $isXdg = (bool)trim($this->command->run('which xdg-user-dir'));
+
+        if ($isXdg) {
+            return trim($this->command->run('xdg-user-dir DESKTOP'));
+        }
+
+        return '';
+    }
+
     public function getCPU()
     {
         static $result;

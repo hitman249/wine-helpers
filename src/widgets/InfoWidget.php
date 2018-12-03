@@ -164,6 +164,30 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ($item['id'] === 'back') {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Return to main menu',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ($item['id'] === 'icon') {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Create or remove icon file',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             }
         };
 

@@ -154,7 +154,7 @@ class Command {
         return $this->run(Text::quoteArgs($zipfuse) . ' ' . Text::quoteArgs("{$folder}.zip") . ' ' . Text::quoteArgs($folder));
     }
 
-    public function unmount($folder)
+    public function umount($folder)
     {
         return $this->run('fusermount -u ' . Text::quoteArgs($folder));
     }
