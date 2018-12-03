@@ -37,6 +37,12 @@ class InfoWidget extends AbstractWidget {
         return $this->data;
     }
 
+    public function refresh()
+    {
+        parent::refresh();
+        $this->windowPrint->refresh();
+    }
+
     public function render()
     {
         $this->init();

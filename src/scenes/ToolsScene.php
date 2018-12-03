@@ -20,50 +20,143 @@ class ToolsScene extends AbstractScene {
         $info
             ->setData($menu)
             ->show();
-
-        $info = $this->addWidget(new PopupSelectWidget($this->window));
-        $info
-            ->setTitle('Select PNG file')
-            ->setEndMode()
-            ->setItems([
-                ['id' => 'back',   'name' => 'BackBackBackBackBackBackBackBackBackBackBackBack'],
-                ['id' => 'icon',   'name' => 'IconIconIconIconIconIconIconIconIconIconIcon'],
-                ['id' => 'pack',   'name' => 'PackPackPackPackPackPackPackPackPackPack'],
-                ['id' => 'unpack', 'name' => 'UnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPackUnPack'],
-                ['id' => 'build',  'name' => 'BuildBuildBuildBuildBuildBuildBuildBuildBuildBuildBuildBuild'],
-                ['id' => 'reset',  'name' => 'Reset'],
-                ['id' => 'back',   'name' => 'Back'],
-                ['id' => 'icon',   'name' => 'Icon'],
-                ['id' => 'pack',   'name' => 'Pack'],
-                ['id' => 'unpack', 'name' => 'UnPack'],
-                ['id' => 'build',  'name' => 'Build'],
-                ['id' => 'reset',  'name' => 'Reset'],
-            ])
-            ->setActive(true)
-            ->show();
     }
 
     public function renderMenu()
     {
-        $items = [
-            ['id' => 'back',   'name' => 'Back'],
-            ['id' => 'icon',   'name' => 'Icon'],
-            ['id' => 'pack',   'name' => 'Pack'],
-            ['id' => 'unpack', 'name' => 'UnPack'],
-            ['id' => 'build',  'name' => 'Build'],
-            ['id' => 'reset',  'name' => 'Reset'],
-        ];
+        $fs = app('start')->getFileSystem();
 
-        $select = $this->addWidget(new SelectWidget($this->window));
+        $items = [];
+        $items[] = ['id' => 'back',   'name' => 'Back'];
+
+        $pngs = array_map(
+            function ($n) use (&$fs) {
+                return ['name' => './' . $fs->relativePath($n), 'path' => $n];
+            },
+            app('start')->getIcon()->findPng()
+        );
+
+        if ($pngs) {
+            $items[] = ['id' => 'icon',   'name' => 'Icon'];
+        }
+
+        $items[] = ['id' => 'pack',   'name' => 'Pack'];
+        $items[] = ['id' => 'unpack', 'name' => 'UnPack'];
+        $items[] = ['id' => 'build',  'name' => 'Build'];
+        $items[] = ['id' => 'reset',  'name' => 'Reset'];
+
+        $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select
             ->setItems($items)
             ->border()
+            ->setFullMode()
+            ->maxSize(null, 16)
+            ->offset(2, 1)
             ->setActive(true)
             ->show();
 
-        $select->onEnterEvent(function ($item) {
+        $select->onEnterEvent(function ($item, $xy) use (&$pngs) {
             if ($item['id'] === 'back') {
                 app()->showMain();
+            }
+            if ($item['id'] === 'icon') {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'create', 'name' => 'Create'],
+                        ['id' => 'remove', 'name' => 'Remove'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+
+                $select->onEscEvent(function () use (&$select) {
+                    $select->hide();
+                    $this->removeWidget($select);
+                });
+
+                $select->onEnterEvent(function ($type) use (&$select, &$pngs) {
+                    $select->hide();
+                    $this->removeWidget($select);
+
+                    if ('create' === $type['id']) {
+                        $create = function ($icon) {
+                            $addMenu = $this->addWidget(new PopupYesNoWidget($this->window));
+                            $addMenu
+                                ->setTitle('Icon Wizard')
+                                ->setText('Add icon also to system menu?')
+                                ->setActive(true)
+                                ->show();
+
+                            $addMenu->onEscEvent(function () use (&$addMenu) {
+                                $addMenu->hide();
+                                $this->removeWidget($addMenu);
+                            });
+
+                            $addMenu->onEnterEvent(function ($flag) use ($icon, &$addMenu) {
+                                $addMenu->hide();
+                                $this->removeWidget($addMenu);
+
+                                $icons = app('start')->getIcon()->create($icon['path'], $flag);
+
+                                $width = 60;
+
+                                foreach ($icons as $icon) {
+                                    if ($width < mb_strlen($icon)) {
+                                        $width = mb_strlen($icon);
+                                    }
+                                }
+
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Success')
+                                    ->setText(array_merge(['Add icons:'], $icons))
+                                    ->size($width + 2, 9)
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+
+                                $popup->onEnterEvent(function () use (&$popup) {
+                                    $popup->hide();
+                                    $this->removeWidget($popup);
+                                });
+                            });
+                        };
+
+                        if (count($pngs) > 1) {
+                            $select = $this->addWidget(new PopupSelectWidget($this->window));
+                            $select
+                                ->setItems($pngs)
+                                ->setTitle('Select PNG file')
+                                ->setEndMode()
+                                ->backAccess()
+                                ->maxSize(40, 10)
+                                ->setActive(true)
+                                ->show();
+
+                            $select->onEscEvent(function () use (&$select) {
+                                $select->hide();
+                                $this->removeWidget($select);
+                            });
+
+                            $select->onEnterEvent(function ($item) use (&$create, &$select) {
+                                $select->hide();
+                                $this->removeWidget($select);
+                                $create($item);
+                            });
+                        } elseif (count($pngs) > 0) {
+                            $create(reset($pngs));
+                        }
+                    }
+
+                    if ('remove' === $type['id']) {
+
+                    }
+                });
             }
         });
 

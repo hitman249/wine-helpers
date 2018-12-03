@@ -53,7 +53,9 @@ class PopupYesNoWidget extends AbstractWidget {
         }
 
         if ($this->text) {
-            $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+            foreach ((array)$this->text as $i => $line) {
+                $this->window->moveCursor(2, $i + 2)->drawStringHere($line);
+            }
         }
 
         $yesLen = mb_strlen($this->yes);

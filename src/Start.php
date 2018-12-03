@@ -13,6 +13,8 @@ class Start
     private $buffer;
     private $dataFolder;
     private $wineFolder;
+    private $icon;
+    private $fs;
 
     public function __construct()
     {
@@ -25,10 +27,12 @@ class Start
         $this->gameInfo   = new GameInfo($this->config, $this->command);
         $this->winePrefix = new WinePrefix($this->config, $this->command);
         $this->system     = new System($this->config, $this->command);
+        $this->fs         = new FileSystem($this->config, $this->command);
         $this->update     = new Update($this->config, $this->command);
         $this->monitor    = new Monitor($this->config, $this->command);
         $this->log        = new Logs();
         $this->buffer     = new Buffer();
+        $this->icon       = new Icon($this->config, $this->command, $this->system);
         $this->dataFolder = new Mount($this->config, $this->command, $this->config->getDataDir());
         $this->wineFolder = new Mount($this->config, $this->command, $this->config->getWineDir());
 
@@ -128,6 +132,22 @@ class Start
     public function getBuffer()
     {
         return $this->buffer;
+    }
+
+    /**
+     * @return Icon
+     */
+    public function getIcon()
+    {
+        return $this->icon;
+    }
+
+    /**
+     * @return FileSystem
+     */
+    public function getFileSystem()
+    {
+        return $this->fs;
     }
 }
 

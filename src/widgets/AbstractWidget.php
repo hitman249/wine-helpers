@@ -11,6 +11,8 @@ abstract class AbstractWidget {
     protected $change;
     protected $changeActive;
     protected $enter;
+    protected $esc;
+    protected $back = false;
 
     /**
      * AbstractWidget constructor.
@@ -22,6 +24,7 @@ abstract class AbstractWidget {
         $this->change       = [];
         $this->changeActive = [];
         $this->enter        = [];
+        $this->esc          = [];
     }
 
     public function getWindow()
@@ -62,6 +65,18 @@ abstract class AbstractWidget {
         return $this;
     }
 
+    public function backAccess($flag = true)
+    {
+        $this->back = $flag;
+        return $this;
+    }
+
+    public function refresh()
+    {
+        $this->getWindow()->reload();
+        return $this;
+    }
+
     public function show()
     {
         $this->visible = true;
@@ -75,8 +90,13 @@ abstract class AbstractWidget {
         if ($this->visible) {
             $this->setVisible(false);
             $this->setActive(false);
-            $this->getWindow()->erase()->refresh();
-            $this->getParentWindow()->refresh();
+            $this->getParentWindow()->reload();
+            foreach (app()->getCurrentScene()->getWidgets() as $widget) {
+                /** @var AbstractWidget $widget */
+                if ($widget->isVisible()) {
+                    $widget->refresh();
+                }
+            }
         }
 
         return $this;
@@ -113,6 +133,23 @@ abstract class AbstractWidget {
     {
         foreach ($this->enter as $enter) {
             $enter($v1, $v2, $v3);
+        }
+    }
+
+    public function onEscEvent($callback)
+    {
+        $this->esc[] = $callback;
+    }
+
+    public function offEscEvent($callback)
+    {
+        $this->esc = array_filter($this->esc, function ($item) use (&$callback) {return $item !== $callback;});
+    }
+
+    protected function doEscEvent($v1 = null, $v2 = null, $v3 = null)
+    {
+        foreach ($this->esc as $esc) {
+            $esc($v1, $v2, $v3);
         }
     }
 

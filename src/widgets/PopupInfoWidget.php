@@ -6,12 +6,22 @@ class PopupInfoWidget extends AbstractWidget {
     private $title  = '';
     private $text   = '';
     private $button = '';
+    private $width  = 60;
+    private $height = 8;
 
     public function init()
     {
         if (null === $this->window) {
-            $this->window = \NcursesObjects\Window::createCenteredOf($this->getParentWindow(), 60, 8);
+            $this->window = \NcursesObjects\Window::createCenteredOf($this->getParentWindow(), $this->width, $this->height);
         }
+
+        return $this;
+    }
+
+    public function size($width, $height)
+    {
+        $this->width  = $width;
+        $this->height = $height;
 
         return $this;
     }
@@ -45,14 +55,16 @@ class PopupInfoWidget extends AbstractWidget {
         }
 
         if ($this->text) {
-            $this->window->moveCursor(2, 2)->drawStringHere($this->text);
+            foreach ((array)$this->text as $i => $line) {
+                $this->window->moveCursor(2, $i + 2)->drawStringHere($line);
+            }
         }
 
         if ($this->button) {
             $buttonLen = mb_strlen($this->button);
             $width     = $this->window->getWidth();
             $position  = ($width / 2) - ($buttonLen / 2);
-            $this->window->moveCursor($position, 5)->drawStringHere($this->button, NCURSES_A_REVERSE);
+            $this->window->moveCursor($position, $this->height - 3)->drawStringHere($this->button, NCURSES_A_REVERSE);
         }
 
         $this->window->refresh();

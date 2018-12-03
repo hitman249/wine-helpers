@@ -905,9 +905,15 @@ namespace NcursesObjects
         const KEY_DOWN = NCURSES_KEY_DOWN;
 
         /**
-         * Down key value
+         * Enter key value
          * @var int
          */
         const KEY_ENTER = 10;
+
+        /**
+         * Esc key value
+         * @var int
+         */
+        const KEY_ESC = 27;
     }
 }

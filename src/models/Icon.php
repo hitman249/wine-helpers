@@ -66,19 +66,25 @@ class Icon
     public function create($png, $isAddMenu = true)
     {
         $icon = $this->getTemplate($png);
+        $result = [];
 
         if ($isAddMenu) {
             file_put_contents("{$this->local}/{$this->title}.desktop", $icon);
+            $result[] = "{$this->local}/{$this->title}.desktop";
         }
 
         if ($desktop = $this->findDir()) {
             $fileName = "{$desktop}/{$this->title}";
             if (file_exists($fileName)) {
                 file_put_contents($fileName, $icon);
+                $result[] = $fileName;
             } else {
                 file_put_contents("{$fileName}.desktop", $icon);
+                $result[] = "{$fileName}.desktop";
             }
         }
+
+        return $result;
     }
 
     public function remove()
@@ -86,14 +92,14 @@ class Icon
         $icons = $this->findExistIcons();
 
         if (!$icons) {
-            return false;
+            return [];
         }
 
         foreach ($icons as $icon) {
             @unlink($icon);
         }
 
-        return true;
+        return $icons;
     }
 
     /**

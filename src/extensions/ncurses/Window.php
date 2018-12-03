@@ -39,6 +39,7 @@ namespace NcursesObjects
         protected $style;
         private $title = '';
         private $status = '';
+        private $frame;
 
         /**
          * Create a window
@@ -56,6 +57,10 @@ namespace NcursesObjects
                 $this->getSize($columns, $rows);
             $this->columns = $columns;
             $this->rows = $rows;
+            $this->frame = [
+                'draw' => [],
+                'border' => null,
+            ];
         }
 
         /**
@@ -120,6 +125,7 @@ namespace NcursesObjects
          */
         public function border($left = 0, $right = 0, $top = 0, $bottom = 0, $tl_corner = 0, $tr_corner = 0, $bl_corner = 0, $br_corner = 0) {
             ncurses_wborder($this->windowResource, $left, $right, $top, $bottom, $tl_corner, $tr_corner, $bl_corner, $br_corner);
+            $this->frame['border'] = true;
             return $this;
         }
 
@@ -187,6 +193,10 @@ namespace NcursesObjects
          * @return Window This object
          */
         public function erase() {
+            $this->frame = [
+                'draw' => [],
+                'border' => null,
+            ];
             ncurses_werase($this->windowResource);
             return $this;
         }
@@ -215,6 +225,7 @@ namespace NcursesObjects
             ncurses_wattron($this->windowResource, $attributes);
             ncurses_waddstr($this->windowResource, $string);
             ncurses_wattroff($this->windowResource, $attributes);
+            $this->frame['draw'][] = ['string' => $string, 'attributes' => $attributes, 'x' => $this->cursorX, 'y' => $this->cursorY];
             return $this;
         }
 
@@ -233,6 +244,23 @@ namespace NcursesObjects
          */
         public function getPanel() {
             return $this->panel;
+        }
+
+        public function reload()
+        {
+            $frame = $this->frame;
+
+            $this->erase();
+
+            if ($frame['border']) {
+                $this->border();
+            }
+
+            foreach ($frame['draw'] as $item) {
+                $this->moveCursor($item['x'], $item['y'])->drawStringHere($item['string'], $item['attributes']);
+            }
+
+            $this->refresh();
         }
 
         /**

@@ -21,10 +21,10 @@ class MainScene extends AbstractScene {
             ->setData($menu)
             ->show();
 
-        $popup = $this->addWidget(new PopupYesNoWidget($this->window));
-        $popup
-            ->setActive(true)
-            ->show();
+//        $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+//        $popup
+//            ->setActive(true)
+//            ->show();
     }
 
     public function renderMenu()
@@ -57,10 +57,13 @@ class MainScene extends AbstractScene {
             ]
         );
 
-        $select = $this->addWidget(new SelectWidget($this->window));
+        $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select
             ->setItems($items)
             ->border()
+            ->setFullMode()
+            ->maxSize(null, 16)
+            ->offset(2, 1)
             ->setActive(true)
             ->show();
 
