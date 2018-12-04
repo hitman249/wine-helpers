@@ -34,6 +34,7 @@ return [
         'models/Icon.php',
         'models/Pack.php',
         'models/Symlink.php',
+        'models/Build.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

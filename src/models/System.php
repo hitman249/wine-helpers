@@ -212,10 +212,28 @@ class System {
         static $result;
 
         if (null === $result) {
-            $text = explode("\n", trim($this->command->run('ldd --version')));
-            $text = explode(' ', trim(reset($text)));
 
-            $result = end($text);
+            $isGetConf = (bool)trim($this->command->run('which getconf'));
+
+            if ($isGetConf) {
+                $text = explode("\n", trim($this->command->run('getconf GNU_LIBC_VERSION')));
+
+                preg_match_all('/([0-9]{1,}.[0-9]{1,})/m', trim(reset($text)), $matches, PREG_SET_ORDER, 0);
+
+                if ($matches && $matches[0] && $matches[0][0]) {
+                    $result = $matches[0][0];
+                }
+            }
+
+            if (!$result) {
+                $text = explode("\n", trim($this->command->run('ldd --version')));
+
+                preg_match_all('/([0-9]{1,}.[0-9]{1,})/m', trim(reset($text)), $matches, PREG_SET_ORDER, 0);
+
+                if ($matches && $matches[0] && $matches[0][0]) {
+                    $result = $matches[0][0];
+                }
+            }
         }
 
         return $result;
@@ -306,5 +324,39 @@ class System {
     public function checkPhp()
     {
         return extension_loaded('ncurses');
+    }
+
+    public function getFont()
+    {
+        $fonts = array_map('trim', explode("\n", trim($this->command->run('xlsfonts'))));
+
+        $find = ['-misc-fixed-bold-r-normal--0-0-100-100-c-0-iso8859-1', '9x15bold', '10x20', 'lucidasanstypewriter-bold-18', 'lucidasans-bold-18'];
+
+        foreach ($find as $font) {
+            if (in_array($font, $fonts, true)) {
+                return $font;
+            }
+        }
+
+        foreach ($fonts as $font) {
+            $font = trim($font);
+
+            if (strpos($font, ' ') === false
+                && strpos($font,'&') === false
+                && strpos($font,'.') === false
+                && strpos($font, 'bold') !== false
+                && (
+                    strpos($font, '100') !== false
+                    || strpos($font, '110') !== false
+                    || strpos($font, '120') !== false
+                    || strpos($font, '130') !== false
+                    || strpos($font, '140') !== false
+                )
+            ) {
+                return $font;
+            }
+        }
+
+        return '';
     }
 }

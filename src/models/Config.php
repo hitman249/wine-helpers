@@ -68,8 +68,11 @@ class Config {
             'WINECFG'          => "{$this->rootDir}/wine/bin/wine\" \"winecfg",
             'WINESERVER'       => "{$this->rootDir}/wine/bin/wineserver",
         ];
+    }
 
-        if (!file_exists($this->wine['WINE']) || version_compare((new System($this, new Command($this)))->getGlibcVersion(), '2.23', '<')) {
+    public function updateWine()
+    {
+        if ((new Wine($this, new Command($this)))->isUsedSystemWine()) {
             $this->wine['WINE']       = 'wine';
             $this->wine['WINE64']     = 'wine64';
             $this->wine['REGEDIT']    = 'wine" "regedit';
@@ -291,11 +294,19 @@ class Config {
 
     public function getCacheDir()
     {
+        if (!file_exists($this->cacheDir) && !mkdir($this->cacheDir, 0775, true) && !is_dir($this->cacheDir)) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', $this->cacheDir));
+        }
+
         return $this->cacheDir;
     }
 
     public function getLogsDir()
     {
+        if (!file_exists($this->logsDir) && !mkdir($this->logsDir, 0775, true) && !is_dir($this->logsDir)) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', $this->logsDir));
+        }
+
         return $this->logsDir;
     }
 

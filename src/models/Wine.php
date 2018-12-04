@@ -108,6 +108,12 @@ class Wine {
         return $version;
     }
 
+    public function isUsedSystemWine()
+    {
+        return !file_exists($this->config->getRootDir() . '/wine/bin/wine')
+            || version_compare((new System($this->config, $this->command))->getGlibcVersion(), '2.23', '<');
+    }
+
     public function getMissingLibs()
     {
         static $result;

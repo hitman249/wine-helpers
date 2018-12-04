@@ -88,9 +88,21 @@ class InfoWidget extends AbstractWidget {
                 $items = [
                     'Utilities: Config, File Manager, Regedit, Kill',
                     '',
-                    'Version:   ' . $wine->version(),
-                    'Arch:      ' . $config->getWineArch(),
                 ];
+
+                $sysWine = $wine->isUsedSystemWine() ? 'Used system wine!' : null;
+
+                if ($sysWine) {
+                    $items = array_merge($items, [$sysWine, '']);
+                }
+
+                $items = array_merge(
+                    $items,
+                    [
+                        'Version:   ' . $wine->version(),
+                        'Arch:      ' . $config->getWineArch(),
+                    ]
+                );
 
                 if ($output = $monitor->getDefaultMonitor()) {
                     $items = array_merge($items, ["Monitor:   {$output['output']} ({$output['resolution']}) primary"]);
@@ -163,7 +175,7 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Close this application',
+                    'Close this application.',
                 ];
 
                 $window->refresh();
@@ -175,7 +187,7 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Return to main menu',
+                    'Return to main menu.',
                 ];
 
                 $window->refresh();
@@ -187,7 +199,7 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Create or remove icon file',
+                    'Create or remove icon file.',
                     '',
                     'Found icons dir:',
                     app('start')->getIcon()->findDir(),
@@ -222,7 +234,7 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Pack or UnPack "data" and "wine" folders',
+                    'Compressed "data" and "wine" folders.',
                 ];
 
                 if ($mountes = app('start')->getPack()->getMountes()) {
@@ -250,6 +262,36 @@ class InfoWidget extends AbstractWidget {
                     '',
                     'Skip extensions:',
                     '.' . implode(', .', app('start')->getSymlink()->getExtensions()),
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ($item['id'] === 'build') {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Build game to "./build" folder.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ($item['id'] === 'reset') {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Full reset files the game.',
+                    '',
+                    'Removes all everything except files:',
+                    '',
+                    './game_info/data.squashfs',
+                    './extract.sh',
+                    './static.tar.gz',
                 ];
 
                 $window->refresh();

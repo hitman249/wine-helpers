@@ -74,6 +74,7 @@ class PopupInfoWidget extends AbstractWidget {
     {
         if (($this->button && \NcursesObjects\Keys::KEY_ENTER === $key) || !$this->button) {
             $this->hide();
+            $this->doEnterEvent();
         }
     }
 }

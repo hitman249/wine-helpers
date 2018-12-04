@@ -7,7 +7,7 @@ class Logs {
 
     public function insertLogFile($text, $path)
     {
-        file_put_contents($path, "{$text}\n", FILE_APPEND);
+        @file_put_contents($path, "{$text}\n", FILE_APPEND);
     }
 
     public function log($text='', $symbols = [], $lenght = 0, $return = false)

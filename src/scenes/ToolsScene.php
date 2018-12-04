@@ -122,8 +122,7 @@ class ToolsScene extends AbstractScene {
                                     ->show();
 
                                 $popup->onEnterEvent(function () use (&$popup) {
-                                    $popup->hide();
-                                    $this->removeWidget($popup);
+                                    $this->removeWidget($popup->hide());
                                 });
                             });
                         };
@@ -175,12 +174,10 @@ class ToolsScene extends AbstractScene {
                                 ->setActive(true)
                                 ->show();
                             $popup->onEscEvent(function () use (&$popup) {
-                                $popup->hide();
-                                $this->removeWidget($popup);
+                                $this->removeWidget($popup->hide());
                             });
                             $popup->onEnterEvent(function ($flag) use (&$popup) {
-                                $popup->hide();
-                                $this->removeWidget($popup);
+                                $this->removeWidget($popup->hide());
                                 if ($flag) {
                                     app('start')->getIcon()->remove();
 
@@ -193,8 +190,7 @@ class ToolsScene extends AbstractScene {
                                         ->show();
 
                                     $popup->onEnterEvent(function () use (&$popup) {
-                                        $popup->hide();
-                                        $this->removeWidget($popup);
+                                        $this->removeWidget($popup->hide());
                                     });
                                 }
                             });
@@ -208,12 +204,10 @@ class ToolsScene extends AbstractScene {
                                 ->setActive(true)
                                 ->show();
                             $popup->onEscEvent(function () use (&$popup) {
-                                $popup->hide();
-                                $this->removeWidget($popup);
+                                $this->removeWidget($popup->hide());
                             });
                             $popup->onEnterEvent(function () use (&$popup) {
-                                $popup->hide();
-                                $this->removeWidget($popup);
+                                $this->removeWidget($popup->hide());
                             });
                         }
                     }
@@ -296,8 +290,7 @@ class ToolsScene extends AbstractScene {
                                 $status = app('start')->getPack()->unpack($path);
                             }
 
-                            $popup->hide();
-                            $this->removeWidget($popup);
+                            $this->removeWidget($popup->hide());
 
                             if ($status) {
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
@@ -308,8 +301,7 @@ class ToolsScene extends AbstractScene {
                                     ->setActive(true)
                                     ->show();
                                 $popup->onEnterEvent(function () use (&$popup) {
-                                    $popup->hide();
-                                    $this->removeWidget($popup);
+                                    $this->removeWidget($popup->hide());
                                 });
                             } else {
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
@@ -320,8 +312,7 @@ class ToolsScene extends AbstractScene {
                                     ->setActive(true)
                                     ->show();
                                 $popup->onEnterEvent(function () use (&$popup) {
-                                    $popup->hide();
-                                    $this->removeWidget($popup);
+                                    $this->removeWidget($popup->hide());
                                 });
                             }
                         }
@@ -341,8 +332,7 @@ class ToolsScene extends AbstractScene {
                         ->setActive(true)
                         ->show();
                     $popup->onEnterEvent(function () use (&$popup) {
-                        $popup->hide();
-                        $this->removeWidget($popup);
+                        $this->removeWidget($popup->hide());
                     });
                 } else {
                     $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -374,12 +364,10 @@ class ToolsScene extends AbstractScene {
                             ->setActive(true)
                             ->show();
                         $popup->onEscEvent(function () use (&$popup) {
-                            $popup->hide();
-                            $this->removeWidget($popup);
+                            $this->removeWidget($popup->hide());
                         });
                         $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
-                            $popup->hide();
-                            $this->removeWidget($popup);
+                            $this->removeWidget($popup->hide());
 
                             if ($flag) {
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
@@ -391,8 +379,7 @@ class ToolsScene extends AbstractScene {
 
                                 $result = app('start')->getSymlink()->replace($type['name']);
 
-                                $popup->hide();
-                                $this->removeWidget($popup);
+                                $this->removeWidget($popup->hide());
 
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
                                 $popup
@@ -402,11 +389,130 @@ class ToolsScene extends AbstractScene {
                                     ->setActive(true)
                                     ->show();
                                 $popup->onEnterEvent(function () use (&$popup) {
-                                    $popup->hide();
-                                    $this->removeWidget($popup);
+                                    $this->removeWidget($popup->hide());
                                 });
                             }
                         });
+                    });
+                }
+            }
+            if ('build' === $item['id']) {
+
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'standard', 'name' => 'Standard'],
+                        ['id' => 'prefix',   'name' => 'With "prefix" folder'],
+                    ])
+                    ->border()
+                    ->setTitle('Build')
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) {
+                    $select->hide();
+                    $this->removeWidget($select);
+                });
+                $select->onEnterEvent(function ($type) use (&$select) {
+                    $select->hide();
+                    $this->removeWidget($select);
+
+                    $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                    $popup
+                        ->setTitle('Build Wizard')
+                        ->setText([
+                            'Create a distribution of the game?',
+                            'In to "./build" folder.'
+                        ])
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEscEvent(function () use (&$popup) {
+                        $this->removeWidget($popup->hide());
+                    });
+                    $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
+                        $this->removeWidget($popup->hide());
+
+                        if ($flag) {
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Build')
+                                ->setText('Wait...')
+                                ->setActive(true)
+                                ->show();
+
+                            app('start')->getBuild()->build($type['id'] === 'prefix');
+
+                            $this->removeWidget($popup->hide());
+
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Success')
+                                ->setText('Build completed!')
+                                ->setButton()
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEnterEvent(function () use (&$popup) {
+                                $this->removeWidget($popup->hide());
+                            });
+                        }
+                    });
+                });
+            }
+            if ('reset' === $item['id']) {
+                if (!app('start')->getBuild()->checkSupportReset()) {
+                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                    $popup
+                        ->setTitle('Error')
+                        ->setText('This game not supported reset functionality.')
+                        ->setButton()
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEnterEvent(function () use (&$popup) {
+                        $this->removeWidget($popup->hide());
+                    });
+                } else {
+                    $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                    $popup
+                        ->setTitle('Reset Wizard')
+                        ->setText([
+                            'Reset files the game?',
+                            'Deleted files can not be returned.',
+                        ])
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEscEvent(function () use (&$popup) {
+                        $this->removeWidget($popup->hide());
+                    });
+                    $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
+                        $this->removeWidget($popup->hide());
+
+                        if ($flag) {
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Build')
+                                ->setText('Wait...')
+                                ->setActive(true)
+                                ->show();
+
+                            app('start')->getBuild()->reset();
+
+                            $this->removeWidget($popup->hide());
+
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Success')
+                                ->setText('Reset completed!')
+                                ->setButton()
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEnterEvent(function ()  use (&$popup) {
+                                $this->removeWidget($popup->hide());
+                                app()->close();
+                            });
+                        }
                     });
                 }
             }

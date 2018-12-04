@@ -22,6 +22,10 @@ class Mount
 
         $this->mount();
 
+        if ($this->getFolder() === $config->getWineDir()) {
+            $config->updateWine();
+        }
+
         if ($this->isMounted()) {
             register_shutdown_function(function () { if ($this->isMounted()) $this->umount(); });
         }

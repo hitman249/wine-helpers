@@ -193,8 +193,5 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             ncurses_getch();
             exit(0);
         }
-
-        $this->log('');
-        $this->log("Press any key to exit.");
     }
 }

@@ -129,7 +129,7 @@ abstract class AbstractWidget {
         $this->enter = array_filter($this->enter, function ($item) use (&$callback) {return $item !== $callback;});
     }
 
-    protected function doEnterEvent($v1, $v2 = null, $v3 = null)
+    protected function doEnterEvent($v1 = null, $v2 = null, $v3 = null)
     {
         foreach ($this->enter as $enter) {
             $enter($v1, $v2, $v3);
