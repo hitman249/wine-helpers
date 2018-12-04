@@ -188,7 +188,30 @@ class InfoWidget extends AbstractWidget {
 
                 $items = [
                     'Create or remove icon file',
+                    '',
+                    'Find icons dir:',
+                    app('start')->getIcon()->findDir(),
                 ];
+
+                $icons = app('start')->getIcon()->findExistIcons();
+
+                if ($icons) {
+                    $items = array_merge(
+                        $items,
+                        ['', 'Find icon exists:'],
+                        $icons
+                    );
+                }
+
+                $icons = app('start')->getIcon()->findPng();
+
+                if ($icons) {
+                    $items = array_merge(
+                        $items,
+                        ['', 'Find png exists:'],
+                        $icons
+                    );
+                }
 
                 $window->refresh();
 

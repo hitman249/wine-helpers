@@ -7,11 +7,13 @@ class PopupYesNoWidget extends AbstractWidget {
     private $text   = '';
     private $yes    = ' Yes ';
     private $no     = ' No ';
+    private $width  = 60;
+    private $height = 8;
 
     public function init()
     {
         if (null === $this->window) {
-            $this->window = \NcursesObjects\Window::createCenteredOf($this->getParentWindow(), 60, 8);
+            $this->window = \NcursesObjects\Window::createCenteredOf($this->getParentWindow(), $this->width, $this->height);
         }
 
         return $this;
@@ -42,6 +44,14 @@ class PopupYesNoWidget extends AbstractWidget {
         return $this;
     }
 
+    public function size($width, $height)
+    {
+        $this->width  = $width;
+        $this->height = $height;
+
+        return $this;
+    }
+
     public function render()
     {
         $this->init();
@@ -67,8 +77,8 @@ class PopupYesNoWidget extends AbstractWidget {
         $yes = ($width / 2) - ($all / 2);
         $no  = $yes + $yesLen + $space;
 
-        $this->window->moveCursor($yes, 5)->drawStringHere($this->yes, $this->status ? NCURSES_A_REVERSE : null);
-        $this->window->moveCursor($no, 5)->drawStringHere($this->no, !$this->status ? NCURSES_A_REVERSE : null);
+        $this->window->moveCursor($yes, $this->height - 3)->drawStringHere($this->yes, $this->status ? NCURSES_A_REVERSE : null);
+        $this->window->moveCursor($no, $this->height - 3)->drawStringHere($this->no, !$this->status ? NCURSES_A_REVERSE : null);
 
         $this->window->refresh();
     }

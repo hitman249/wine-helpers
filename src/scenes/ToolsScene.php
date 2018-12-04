@@ -114,7 +114,7 @@ class ToolsScene extends AbstractScene {
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
                                 $popup
                                     ->setTitle('Success')
-                                    ->setText(array_merge(['Add icons:'], $icons))
+                                    ->setText(array_merge(['Add or update icons:'], $icons))
                                     ->size($width + 2, 9)
                                     ->setButton()
                                     ->setActive(true)
@@ -154,7 +154,54 @@ class ToolsScene extends AbstractScene {
                     }
 
                     if ('remove' === $type['id']) {
+                        $icons = app('start')->getIcon()->findExistIcons();
 
+                        if ($icons) {
+                            $width = 60;
+
+                            foreach ($icons as $icon) {
+                                if ($width < mb_strlen($icon)) {
+                                    $width = mb_strlen($icon);
+                                }
+                            }
+
+                            $popup = $this->addWidget(new PopupYesNoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Continue')
+                                ->setText(array_merge(['Remove ?', 'Find icon exists:'], $icons))
+                                ->size($width + 2, 10)
+                                ->backAccess()
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEscEvent(function () use (&$popup) {
+                                $popup->hide();
+                                $this->removeWidget($popup);
+                            });
+                            $popup->onEnterEvent(function ($flag) use (&$popup) {
+                                $popup->hide();
+                                $this->removeWidget($popup);
+                                if ($flag) {
+                                    app('start')->getIcon()->remove();
+                                }
+                            });
+                        } else {
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Error')
+                                ->setText('Icons not found')
+                                ->setButton()
+                                ->backAccess()
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEscEvent(function () use (&$popup) {
+                                $popup->hide();
+                                $this->removeWidget($popup);
+                            });
+                            $popup->onEnterEvent(function () use (&$popup) {
+                                $popup->hide();
+                                $this->removeWidget($popup);
+                            });
+                        }
                     }
                 });
             }
