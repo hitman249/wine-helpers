@@ -23,29 +23,31 @@ class Config {
     private $dxvkConfFile;
     private $hooksGpuDir;
     private $symlinksDir;
+    private $dataSymlinksDir;
 
     public function __construct($path = null)
     {
-        $this->repo          = 'https://raw.githubusercontent.com/hitman249/wine-helpers/master';
-        $this->context       = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
-        $this->rootDir       = __DIR__;
-        $this->gameInfoDir   = "{$this->rootDir}/game_info";
-        $this->dataDir       = "{$this->rootDir}/game_info/data";
-        $this->dataFile      = "{$this->rootDir}/game_info/data.squashfs";
-        $this->additionalDir = "{$this->rootDir}/game_info/additional";
-        $this->symlinksDir   = "{$this->rootDir}/game_info/additional/symlinks";
-        $this->dllsDir       = "{$this->rootDir}/game_info/dlls";
-        $this->dlls64Dir     = "{$this->rootDir}/game_info/dlls64";
-        $this->hooksDir      = "{$this->rootDir}/game_info/hooks";
-        $this->hooksGpuDir   = "{$this->rootDir}/game_info/hooks/gpu";
-        $this->regsDir       = "{$this->rootDir}/game_info/regs";
-        $this->cacheDir      = "{$this->rootDir}/game_info/cache";
-        $this->logsDir       = "{$this->rootDir}/game_info/logs";
-        $this->dxvkConfFile  = "{$this->rootDir}/game_info/dxvk.conf";
-        $this->libsDir       = "{$this->rootDir}/libs/i386";
-        $this->libs64Dir     = "{$this->rootDir}/libs/x86-64";
-        $this->wineDir       = "{$this->rootDir}/wine";
-        $this->wineFile      = "{$this->rootDir}/wine.squashfs";
+        $this->repo            = 'https://raw.githubusercontent.com/hitman249/wine-helpers/master';
+        $this->context         = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
+        $this->rootDir         = __DIR__;
+        $this->gameInfoDir     = "{$this->rootDir}/game_info";
+        $this->dataDir         = "{$this->rootDir}/game_info/data";
+        $this->dataSymlinksDir = "{$this->rootDir}/game_info/data/_symlinks";
+        $this->dataFile        = "{$this->rootDir}/game_info/data.squashfs";
+        $this->additionalDir   = "{$this->rootDir}/game_info/additional";
+        $this->symlinksDir     = "{$this->rootDir}/game_info/additional/symlinks";
+        $this->dllsDir         = "{$this->rootDir}/game_info/dlls";
+        $this->dlls64Dir       = "{$this->rootDir}/game_info/dlls64";
+        $this->hooksDir        = "{$this->rootDir}/game_info/hooks";
+        $this->hooksGpuDir     = "{$this->rootDir}/game_info/hooks/gpu";
+        $this->regsDir         = "{$this->rootDir}/game_info/regs";
+        $this->cacheDir        = "{$this->rootDir}/game_info/cache";
+        $this->logsDir         = "{$this->rootDir}/game_info/logs";
+        $this->dxvkConfFile    = "{$this->rootDir}/game_info/dxvk.conf";
+        $this->libsDir         = "{$this->rootDir}/libs/i386";
+        $this->libs64Dir       = "{$this->rootDir}/libs/x86-64";
+        $this->wineDir         = "{$this->rootDir}/wine";
+        $this->wineFile        = "{$this->rootDir}/wine.squashfs";
 
         if (null !== $path) {
             $this->load($path);
@@ -708,5 +710,10 @@ PBA_DISABLE=1
     public function getWineArch()
     {
         return $this->wine('WINEARCH');
+    }
+
+    public function getDataSymlinksDir()
+    {
+        return $this->dataSymlinksDir;
     }
 }

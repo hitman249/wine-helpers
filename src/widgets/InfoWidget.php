@@ -189,7 +189,7 @@ class InfoWidget extends AbstractWidget {
                 $items = [
                     'Create or remove icon file',
                     '',
-                    'Find icons dir:',
+                    'Found icons dir:',
                     app('start')->getIcon()->findDir(),
                 ];
 
@@ -198,7 +198,7 @@ class InfoWidget extends AbstractWidget {
                 if ($icons) {
                     $items = array_merge(
                         $items,
-                        ['', 'Find icon exists:'],
+                        ['', 'Found icons:'],
                         $icons
                     );
                 }
@@ -208,7 +208,7 @@ class InfoWidget extends AbstractWidget {
                 if ($icons) {
                     $items = array_merge(
                         $items,
-                        ['', 'Find png exists:'],
+                        ['', 'Found png:'],
                         $icons
                     );
                 }
@@ -232,6 +232,25 @@ class InfoWidget extends AbstractWidget {
                         $mountes
                     );
                 }
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ($item['id'] === 'symlink') {
+
+                $window->erase()->border()->title($item['name']);
+                $config = app('start')->getConfig();
+                $fs     = app('start')->getFileSystem();
+
+                $items = [
+                    'Replace with a symbolic link from dir RW mode',
+                    '',
+                    './' . $fs->relativePath($config->getDataDir()) . '/* > ./' . $fs->relativePath($config->getSymlinksDir()) . '/*',
+                    '',
+                    'Skip extensions:',
+                    '.' . implode(', .', app('start')->getSymlink()->getExtensions()),
+                ];
 
                 $window->refresh();
 

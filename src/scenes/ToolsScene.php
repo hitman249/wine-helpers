@@ -41,9 +41,10 @@ class ToolsScene extends AbstractScene {
             $items[] = ['id' => 'icon',   'name' => 'Icon'];
         }
 
-        $items[] = ['id' => 'pack',   'name' => 'Pack'];
-        $items[] = ['id' => 'build',  'name' => 'Build'];
-        $items[] = ['id' => 'reset',  'name' => 'Reset'];
+        $items[] = ['id' => 'pack',    'name' => 'Pack'];
+        $items[] = ['id' => 'symlink', 'name' => 'Symlink'];
+        $items[] = ['id' => 'build',   'name' => 'Build'];
+        $items[] = ['id' => 'reset',   'name' => 'Reset'];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select
@@ -167,9 +168,9 @@ class ToolsScene extends AbstractScene {
 
                             $popup = $this->addWidget(new PopupYesNoWidget($this->getWindow()));
                             $popup
-                                ->setTitle('Continue')
-                                ->setText(array_merge(['Remove ?', 'Find icon exists:'], $icons))
-                                ->size($width + 2, 10)
+                                ->setTitle('Remove?')
+                                ->setText(array_merge(['Found icons:'], $icons))
+                                ->size($width + 2, 9)
                                 ->backAccess()
                                 ->setActive(true)
                                 ->show();
@@ -182,6 +183,19 @@ class ToolsScene extends AbstractScene {
                                 $this->removeWidget($popup);
                                 if ($flag) {
                                     app('start')->getIcon()->remove();
+
+                                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                    $popup
+                                        ->setTitle('Success')
+                                        ->setText('Icons removed')
+                                        ->setButton()
+                                        ->setActive(true)
+                                        ->show();
+
+                                    $popup->onEnterEvent(function () use (&$popup) {
+                                        $popup->hide();
+                                        $this->removeWidget($popup);
+                                    });
                                 }
                             });
                         } else {
@@ -313,6 +327,88 @@ class ToolsScene extends AbstractScene {
                         }
                     });
                 });
+            }
+            if ('symlink' === $item['id']) {
+
+                $folders = app('start')->getSymlink()->getDirs();
+
+                if (!$folders) {
+                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                    $popup
+                        ->setTitle('Error')
+                        ->setText('Not found directories in the "data" folder.')
+                        ->setButton()
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEnterEvent(function () use (&$popup) {
+                        $popup->hide();
+                        $this->removeWidget($popup);
+                    });
+                } else {
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems(array_map(function ($n) {return ['name' => $n];}, $folders))
+                        ->border()
+                        ->setTitle('Directory')
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) {
+                        $select->hide();
+                        $this->removeWidget($select);
+                    });
+                    $select->onEnterEvent(function ($type) use (&$select) {
+                        $select->hide();
+                        $this->removeWidget($select);
+
+                        $fs   = app('start')->getFileSystem();
+                        $data = $fs->relativePath(app('start')->getConfig()->getDataDir());
+
+                        $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                        $popup
+                            ->setTitle('Symlink Wizard')
+                            ->setText("Replace \"./{$data}/{$type['name']}\" folder to symlink?")
+                            ->setActive(true)
+                            ->show();
+                        $popup->onEscEvent(function () use (&$popup) {
+                            $popup->hide();
+                            $this->removeWidget($popup);
+                        });
+                        $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
+                            $popup->hide();
+                            $this->removeWidget($popup);
+
+                            if ($flag) {
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Create symlinks')
+                                    ->setText('Wait...')
+                                    ->setActive(true)
+                                    ->show();
+
+                                $result = app('start')->getSymlink()->replace($type['name']);
+
+                                $popup->hide();
+                                $this->removeWidget($popup);
+
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle($result ? 'Success' : 'Error')
+                                    ->setText($result ? 'Moved data' : 'Error moving')
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+                                $popup->onEnterEvent(function () use (&$popup) {
+                                    $popup->hide();
+                                    $this->removeWidget($popup);
+                                });
+                            }
+                        });
+                    });
+                }
             }
         });
 

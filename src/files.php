@@ -33,6 +33,7 @@ return [
         'models/CheckDependencies.php',
         'models/Icon.php',
         'models/Pack.php',
+        'models/Symlink.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

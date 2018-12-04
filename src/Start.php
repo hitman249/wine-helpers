@@ -14,6 +14,7 @@ class Start
     private $mountes;
     private $icon;
     private $fs;
+    private $symlink;
 
     public function __construct()
     {
@@ -33,6 +34,7 @@ class Start
         $this->buffer     = new Buffer();
         $this->icon       = new Icon($this->config, $this->command, $this->system);
         $this->pack       = new Pack($this->config, $this->command, $this->fs);
+        $this->symlink    = new Symlink($this->config, $this->command, $this->fs);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->config->getWineDir()),
@@ -169,6 +171,14 @@ class Start
     public function getPack()
     {
         return $this->pack;
+    }
+
+    /**
+     * @return Symlink
+     */
+    public function getSymlink()
+    {
+        return $this->symlink;
     }
 }
 

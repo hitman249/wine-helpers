@@ -135,4 +135,20 @@ class FileSystem {
 
         return true;
     }
+
+    public function mkdirs($dirs)
+    {
+        foreach ($dirs as $dir) {
+            if (!file_exists($dir)) {
+                if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $dir));
+                }
+            }
+        }
+    }
+
+    public function link($in, $out)
+    {
+        return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
+    }
 }
