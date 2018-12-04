@@ -217,6 +217,26 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ($item['id'] === 'pack') {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Pack or UnPack "data" and "wine" folders',
+                ];
+
+                if ($mountes = app('start')->getPack()->getMountes()) {
+                    $items = array_merge(
+                        $items,
+                        ['', 'Mounted:'],
+                        $mountes
+                    );
+                }
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             }
         };
 

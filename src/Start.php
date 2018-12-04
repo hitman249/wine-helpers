@@ -11,8 +11,7 @@ class Start
     private $update;
     private $monitor;
     private $buffer;
-    private $dataFolder;
-    private $wineFolder;
+    private $mountes;
     private $icon;
     private $fs;
 
@@ -33,8 +32,11 @@ class Start
         $this->log        = new Logs();
         $this->buffer     = new Buffer();
         $this->icon       = new Icon($this->config, $this->command, $this->system);
-        $this->dataFolder = new Mount($this->config, $this->command, $this->config->getDataDir());
-        $this->wineFolder = new Mount($this->config, $this->command, $this->config->getWineDir());
+        $this->pack       = new Pack($this->config, $this->command, $this->fs);
+        $this->mountes    = [
+            new Mount($this->config, $this->command, $this->config->getDataDir()),
+            new Mount($this->config, $this->command, $this->config->getWineDir()),
+        ];
 
         $this->init();
     }
@@ -65,6 +67,9 @@ class Start
         return $this->config;
     }
 
+    /**
+     * @param Config $config
+     */
     public function setConfig($config)
     {
         $this->config = $config;
@@ -148,6 +153,22 @@ class Start
     public function getFileSystem()
     {
         return $this->fs;
+    }
+
+    /**
+     * @return array[Mount]
+     */
+    public function getMountes()
+    {
+        return $this->mountes;
+    }
+
+    /**
+     * @return Pack
+     */
+    public function getPack()
+    {
+        return $this->pack;
     }
 }
 

@@ -24,6 +24,7 @@ class ToolsScene extends AbstractScene {
 
     public function renderMenu()
     {
+        /** @var FileSystem $fs */
         $fs = app('start')->getFileSystem();
 
         $items = [];
@@ -41,7 +42,6 @@ class ToolsScene extends AbstractScene {
         }
 
         $items[] = ['id' => 'pack',   'name' => 'Pack'];
-        $items[] = ['id' => 'unpack', 'name' => 'UnPack'];
         $items[] = ['id' => 'build',  'name' => 'Build'];
         $items[] = ['id' => 'reset',  'name' => 'Reset'];
 
@@ -56,10 +56,10 @@ class ToolsScene extends AbstractScene {
             ->show();
 
         $select->onEnterEvent(function ($item, $xy) use (&$pngs) {
-            if ($item['id'] === 'back') {
+            if ('back' === $item['id']) {
                 app()->showMain();
             }
-            if ($item['id'] === 'icon') {
+            if ('icon' === $item['id']) {
                 $select = $this->addWidget(new PopupSelectWidget($this->window));
                 $select
                     ->setItems([
@@ -203,6 +203,115 @@ class ToolsScene extends AbstractScene {
                             });
                         }
                     }
+                });
+            }
+            if ('pack' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'pack',   'name' => 'Pack'],
+                        ['id' => 'unpack', 'name' => 'UnPack'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+
+                $select->onEscEvent(function () use (&$select) {
+                    $select->hide();
+                    $this->removeWidget($select);
+                });
+
+                $select->onEnterEvent(function ($type) use (&$select, &$xy) {
+                    $select->hide();
+                    $this->removeWidget($select);
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems([
+                            ['id' => 'wine', 'name' => 'Wine'],
+                            ['id' => 'data', 'name' => 'Data'],
+                        ])
+                        ->setTitle($type['name'])
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+
+                    $select->onEscEvent(function () use (&$select) {
+                        $select->hide();
+                        $this->removeWidget($select);
+                    });
+
+                    $select->onEnterEvent(function ($folder) use (&$select, &$type) {
+                        $select->hide();
+                        $this->removeWidget($select);
+
+                        /** @var Config $config */
+                        $config = app('start')->getConfig();
+                        $path   = '';
+
+                        if ('wine' === $folder['id']) {
+                            $path = $config->getWineDir();
+                        }
+                        if ('data' === $folder['id']) {
+                            $path = $config->getDataDir();
+                        }
+
+                        if ($path) {
+
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle($type['name'] . 'ing ' . $folder['id'])
+                                ->setText('Wait...')
+                                ->setActive(true)
+                                ->show();
+
+                            $status = false;
+
+                            if ('pack' === $type['id']) {
+                                $status = app('start')->getPack()->pack($path);
+                            }
+                            if ('unpack' === $type['id']) {
+                                $status = app('start')->getPack()->unpack($path);
+                            }
+
+                            $popup->hide();
+                            $this->removeWidget($popup);
+
+                            if ($status) {
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Success')
+                                    ->setText('Success ' . $type['id'] . ' "' . $folder['id'] . '" folder')
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+                                $popup->onEnterEvent(function () use (&$popup) {
+                                    $popup->hide();
+                                    $this->removeWidget($popup);
+                                });
+                            } else {
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Error')
+                                    ->setText('Error ' . $type['id'] . ' "' . $folder['id'] . '"')
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+                                $popup->onEnterEvent(function () use (&$popup) {
+                                    $popup->hide();
+                                    $this->removeWidget($popup);
+                                });
+                            }
+                        }
+                    });
                 });
             }
         });

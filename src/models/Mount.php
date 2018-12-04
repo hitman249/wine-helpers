@@ -5,6 +5,7 @@ class Mount
     private $command;
     private $config;
     private $folder;
+    private $extension;
     private $mounted = false;
 
     /**
@@ -19,16 +20,51 @@ class Mount
         $this->command = $command;
         $this->folder  = $folder;
 
-        $this->command->umount($folder);
+        $this->mount();
 
-        if (file_exists($folder) && (file_exists("{$folder}.squashfs") || file_exists("{$folder}.zip"))) {
-            @rmdir($folder);
+        if ($this->isMounted()) {
+            register_shutdown_function(function () { if ($this->isMounted()) $this->umount(); });
         }
+    }
 
-        if (file_exists("{$folder}.squashfs") && !file_exists($folder)) {
+    /**
+     * @return bool
+     */
+    public function isMounted()
+    {
+        return $this->mounted;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFolder()
+    {
+        return $this->folder;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getExtension()
+    {
+        return $this->extension;
+    }
+
+    /**
+     * @return bool
+     */
+    public function mount()
+    {
+        $folder = $this->folder;
+
+        $this->umount();
+
+        if ($this->mounted === false && file_exists("{$folder}.squashfs") && !file_exists($folder)) {
             if (!mkdir($folder, 0775) && !is_dir($folder)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $folder));
             }
+            $this->extension = 'squashfs';
             $this->mounted = true;
             $this->command->squashfuse($folder);
         }
@@ -37,31 +73,40 @@ class Mount
             if (!mkdir($folder, 0775) && !is_dir($folder)) {
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $folder));
             }
+            $this->extension = 'zip';
             $this->mounted = true;
             $this->command->zipfuse($folder);
         }
 
-        if ($this->mounted) {
-            register_shutdown_function(function () {
-                foreach (range(0, 10) as $i) {
-                    if (!file_exists($this->folder)) {
-                        break;
-                    }
-
-                    sleep(1);
-
-                    $this->command->umount($this->folder);
-
-                    if (file_exists($this->folder)) {
-                        @rmdir($this->folder);
-                    }
-                }
-            });
-        }
+        return $this->mounted;
     }
 
-    public function isMounted()
+    /**
+     * @return bool
+     */
+    public function umount()
     {
+        foreach (range(0, 5) as $i) {
+            if (!file_exists($this->folder)) {
+                $this->mounted = false;
+                $this->extension = null;
+                break;
+            }
+
+            $this->command->umount($this->folder);
+
+            if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
+                @rmdir($this->folder);
+            }
+
+            if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
+                sleep(1);
+            } else {
+                $this->extension = null;
+                $this->mounted = false;
+            }
+        }
+
         return $this->mounted;
     }
 }

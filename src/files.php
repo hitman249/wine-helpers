@@ -32,6 +32,7 @@ return [
         'models/GameInfo.php',
         'models/CheckDependencies.php',
         'models/Icon.php',
+        'models/Pack.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',
