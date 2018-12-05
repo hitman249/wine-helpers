@@ -72,7 +72,7 @@ class MainScene extends AbstractScene
             ->setActive(true)
             ->show();
 
-        $select->onEnterEvent(function ($item) {
+        $select->onEnterEvent(function ($item, $xy) {
             if ('wine' === $item['id']) {
                 app()->showWine();
             }
@@ -81,6 +81,41 @@ class MainScene extends AbstractScene
             }
             if ('exit' === $item['id']) {
                 app()->close();
+            }
+            if ('start' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'start', 'name' => 'Start'],
+                        ['id' => 'debug', 'name' => 'Debug'],
+                        ['id' => 'fps',   'name' => 'FPS'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$item) {
+                    $this->removeWidget($select->hide());
+
+                    /** @var Config $config */
+                    $config = $item['config'];
+
+                    $task = new Task($config);
+                    $task->logName($config->getGameTitle());
+
+                    if ('debug' === $type['id']) {
+                        $task->debug();
+                    }
+                    if ('fps' === $type['id']) {
+                        $task->fps();
+                    }
+
+                    $task->game()->run();
+                });
             }
         });
 

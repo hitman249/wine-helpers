@@ -74,15 +74,9 @@ class ToolsScene extends AbstractScene {
                     ->offset($xy['x'], $xy['y'])
                     ->setActive(true)
                     ->show();
-
-                $select->onEscEvent(function () use (&$select) {
-                    $select->hide();
-                    $this->removeWidget($select);
-                });
-
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                 $select->onEnterEvent(function ($type) use (&$select, &$pngs) {
-                    $select->hide();
-                    $this->removeWidget($select);
+                    $this->removeWidget($select->hide());
 
                     if ('create' === $type['id']) {
                         $create = function ($icon) {
@@ -92,12 +86,7 @@ class ToolsScene extends AbstractScene {
                                 ->setText('Add icon also to system menu?')
                                 ->setActive(true)
                                 ->show();
-
-                            $addMenu->onEscEvent(function () use (&$addMenu) {
-                                $addMenu->hide();
-                                $this->removeWidget($addMenu);
-                            });
-
+                            $addMenu->onEscEvent(function () use (&$addMenu) { $this->removeWidget($addMenu->hide()); });
                             $addMenu->onEnterEvent(function ($flag) use ($icon, &$addMenu) {
                                 $addMenu->hide();
                                 $this->removeWidget($addMenu);
@@ -120,10 +109,7 @@ class ToolsScene extends AbstractScene {
                                     ->setButton()
                                     ->setActive(true)
                                     ->show();
-
-                                $popup->onEnterEvent(function () use (&$popup) {
-                                    $this->removeWidget($popup->hide());
-                                });
+                                $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                             });
                         };
 
@@ -137,15 +123,9 @@ class ToolsScene extends AbstractScene {
                                 ->maxSize(40, 10)
                                 ->setActive(true)
                                 ->show();
-
-                            $select->onEscEvent(function () use (&$select) {
-                                $select->hide();
-                                $this->removeWidget($select);
-                            });
-
+                            $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                             $select->onEnterEvent(function ($item) use (&$create, &$select) {
-                                $select->hide();
-                                $this->removeWidget($select);
+                                $this->removeWidget($select->hide());
                                 $create($item);
                             });
                         } elseif (count($pngs) > 0) {
@@ -173,11 +153,10 @@ class ToolsScene extends AbstractScene {
                                 ->backAccess()
                                 ->setActive(true)
                                 ->show();
-                            $popup->onEscEvent(function () use (&$popup) {
-                                $this->removeWidget($popup->hide());
-                            });
+                            $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                             $popup->onEnterEvent(function ($flag) use (&$popup) {
                                 $this->removeWidget($popup->hide());
+
                                 if ($flag) {
                                     app('start')->getIcon()->remove();
 
@@ -203,12 +182,8 @@ class ToolsScene extends AbstractScene {
                                 ->backAccess()
                                 ->setActive(true)
                                 ->show();
-                            $popup->onEscEvent(function () use (&$popup) {
-                                $this->removeWidget($popup->hide());
-                            });
-                            $popup->onEnterEvent(function () use (&$popup) {
-                                $this->removeWidget($popup->hide());
-                            });
+                            $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                            $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                         }
                     }
                 });
@@ -227,15 +202,9 @@ class ToolsScene extends AbstractScene {
                     ->offset($xy['x'], $xy['y'])
                     ->setActive(true)
                     ->show();
-
-                $select->onEscEvent(function () use (&$select) {
-                    $select->hide();
-                    $this->removeWidget($select);
-                });
-
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                 $select->onEnterEvent(function ($type) use (&$select, &$xy) {
-                    $select->hide();
-                    $this->removeWidget($select);
+                    $this->removeWidget($select->hide());
 
                     $select = $this->addWidget(new PopupSelectWidget($this->window));
                     $select
@@ -251,15 +220,9 @@ class ToolsScene extends AbstractScene {
                         ->offset($xy['x'], $xy['y'])
                         ->setActive(true)
                         ->show();
-
-                    $select->onEscEvent(function () use (&$select) {
-                        $select->hide();
-                        $this->removeWidget($select);
-                    });
-
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                     $select->onEnterEvent(function ($folder) use (&$select, &$type) {
-                        $select->hide();
-                        $this->removeWidget($select);
+                        $this->removeWidget($select->hide());
 
                         /** @var Config $config */
                         $config = app('start')->getConfig();
@@ -300,9 +263,7 @@ class ToolsScene extends AbstractScene {
                                     ->setButton()
                                     ->setActive(true)
                                     ->show();
-                                $popup->onEnterEvent(function () use (&$popup) {
-                                    $this->removeWidget($popup->hide());
-                                });
+                                $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                             } else {
                                 $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
                                 $popup
@@ -311,9 +272,7 @@ class ToolsScene extends AbstractScene {
                                     ->setButton()
                                     ->setActive(true)
                                     ->show();
-                                $popup->onEnterEvent(function () use (&$popup) {
-                                    $this->removeWidget($popup->hide());
-                                });
+                                $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                             }
                         }
                     });
@@ -346,13 +305,9 @@ class ToolsScene extends AbstractScene {
                         ->offset($xy['x'], $xy['y'])
                         ->setActive(true)
                         ->show();
-                    $select->onEscEvent(function () use (&$select) {
-                        $select->hide();
-                        $this->removeWidget($select);
-                    });
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                     $select->onEnterEvent(function ($type) use (&$select) {
-                        $select->hide();
-                        $this->removeWidget($select);
+                        $this->removeWidget($select->hide());
 
                         $fs   = app('start')->getFileSystem();
                         $data = $fs->relativePath(app('start')->getConfig()->getDataDir());
@@ -363,9 +318,7 @@ class ToolsScene extends AbstractScene {
                             ->setText("Replace \"./{$data}/{$type['name']}\" folder to symlink?")
                             ->setActive(true)
                             ->show();
-                        $popup->onEscEvent(function () use (&$popup) {
-                            $this->removeWidget($popup->hide());
-                        });
+                        $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                         $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
                             $this->removeWidget($popup->hide());
 
@@ -388,9 +341,7 @@ class ToolsScene extends AbstractScene {
                                     ->setButton()
                                     ->setActive(true)
                                     ->show();
-                                $popup->onEnterEvent(function () use (&$popup) {
-                                    $this->removeWidget($popup->hide());
-                                });
+                                $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                             }
                         });
                     });
@@ -412,13 +363,9 @@ class ToolsScene extends AbstractScene {
                     ->offset($xy['x'], $xy['y'])
                     ->setActive(true)
                     ->show();
-                $select->onEscEvent(function () use (&$select) {
-                    $select->hide();
-                    $this->removeWidget($select);
-                });
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
                 $select->onEnterEvent(function ($type) use (&$select) {
-                    $select->hide();
-                    $this->removeWidget($select);
+                    $this->removeWidget($select->hide());
 
                     $popup = $this->addWidget(new PopupYesNoWidget($this->window));
                     $popup
@@ -429,9 +376,7 @@ class ToolsScene extends AbstractScene {
                         ])
                         ->setActive(true)
                         ->show();
-                    $popup->onEscEvent(function () use (&$popup) {
-                        $this->removeWidget($popup->hide());
-                    });
+                    $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                     $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
                         $this->removeWidget($popup->hide());
 
@@ -454,9 +399,7 @@ class ToolsScene extends AbstractScene {
                                 ->setButton()
                                 ->setActive(true)
                                 ->show();
-                            $popup->onEnterEvent(function () use (&$popup) {
-                                $this->removeWidget($popup->hide());
-                            });
+                            $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                         }
                     });
                 });
@@ -470,9 +413,7 @@ class ToolsScene extends AbstractScene {
                         ->setButton()
                         ->setActive(true)
                         ->show();
-                    $popup->onEnterEvent(function () use (&$popup) {
-                        $this->removeWidget($popup->hide());
-                    });
+                    $popup->onEnterEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                 } else {
                     $popup = $this->addWidget(new PopupYesNoWidget($this->window));
                     $popup
@@ -483,9 +424,7 @@ class ToolsScene extends AbstractScene {
                         ])
                         ->setActive(true)
                         ->show();
-                    $popup->onEscEvent(function () use (&$popup) {
-                        $this->removeWidget($popup->hide());
-                    });
+                    $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
                     $popup->onEnterEvent(function ($flag) use (&$popup, &$type) {
                         $this->removeWidget($popup->hide());
 

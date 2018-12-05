@@ -80,17 +80,48 @@ class Task
         return $this;
     }
 
+    private function desktop()
+    {
+        if ($this->config->getBool('window', 'enable')) {
+            $title      = $this->config->get('window', 'title');
+            $resolution = $this->config->get('window', 'resolution');
+
+            return "\"explorer /desktop={$title},{$resolution}\"";
+        }
+
+        return '';
+    }
+
+    public function game()
+    {
+        $driveC     = $this->config->wine('DRIVE_C');
+        $gamePath   = $this->config->getGamePath();
+        $additional = $this->config->getGameAdditionalPath();
+
+        $fullPath   = implode('/', array_filter([$driveC, $gamePath, $additional]));
+        $wine       = $this->config->wine('WINE');
+        $desktop    = $this->desktop();
+        $fileName   = $this->config->getGameExe();
+        $arguments  = $this->config->getGameArgs();
+
+        $this->cmd = "cd \"{$fullPath}\" && \"{$wine}\" {$desktop} \"{$fileName}\" {$arguments}";
+
+        return $this;
+    }
+
     public function run()
     {
         $this->beforeRun();
 
-        $logging = '';
+        $logging = null;
 
         if ($this->logfile) {
-            $logging = $this->fpsCmd ?: '&> ' . Text::quoteArgs($this->config->getLogsDir() . "/{$this->logfile}");
+            $logging = $this->config->getLogsDir() . "/{$this->logfile}";
         }
 
-        $this->command->run("{$this->cmd} {$logging}");
+        if ($this->cmd) {
+            $this->command->run("{$this->cmd} {$this->fpsCmd}", $logging);
+        }
 
         $this->afterExit();
     }

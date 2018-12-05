@@ -62,7 +62,6 @@ class Start
         $this->winePrefix->create();
         $this->update->init();
         app($this)->start();
-//        while (1) sleep(1);
     }
 
     /**

@@ -18,12 +18,16 @@ class Command {
 
     /**
      * @param string $cmd
-     * @param callable|null $fetch
+     * @param string|null $saveLog
      * @param bool $outputConsole
      * @return bool|string
      */
-    public function run($cmd, $fetch = null, $outputConsole = false)
+    public function run($cmd, $saveLog = null, $outputConsole = false)
     {
+        if (null !== $saveLog && file_exists($saveLog)) {
+            @unlink($saveLog);
+        }
+
         $cmd = $this->cast($cmd);
 
         if ($outputConsole) {
@@ -69,6 +73,9 @@ class Command {
 
             foreach ($read as $r) {
                 $s = fread($r, 1024);
+                if ($saveLog) {
+                    @file_put_contents($saveLog, $s, FILE_APPEND);
+                }
                 $output .= $s;
             }
         }
