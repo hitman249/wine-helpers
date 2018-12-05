@@ -205,7 +205,10 @@ class WinePrefix {
             /**
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
-            $this->update->updateDxvk();
+            if ($this->update->updateDxvk()) {
+                $dxvk = $this->config->getDxvkVersion();
+                $this->log("DXVK updated to {$dxvk}.");
+            }
             app()->getCurrentScene()->setProgress(90);
 
 

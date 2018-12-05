@@ -86,7 +86,7 @@ class Task
             $title      = $this->config->get('window', 'title');
             $resolution = $this->config->get('window', 'resolution');
 
-            return "\"explorer /desktop={$title},{$resolution}\"";
+            return "explorer \"/desktop={$title},{$resolution}\"";
         }
 
         return '';
