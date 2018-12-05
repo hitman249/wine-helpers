@@ -283,11 +283,22 @@ class Update {
         return false;
     }
 
+    public function versionRemote()
+    {
+        static $version;
+
+        if (null === $version) {
+            $version = trim($this->network->get($this->config->getRepositoryUrl() . '/RELEASE'));
+        }
+
+        return $version;
+    }
+
     public function autoupdate()
     {
         if ($this->config->isScriptAutoupdate() && Network::isConnected()) {
-            $version = trim($this->network->get($this->config->getRepositoryUrl() . '/RELEASE'));
-            if ($version === $this->version()) {
+
+            if ($this->versionRemote() === $this->version()) {
                 return false;
             }
         }

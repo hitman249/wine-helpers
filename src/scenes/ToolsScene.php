@@ -41,6 +41,10 @@ class ToolsScene extends AbstractScene {
             $items[] = ['id' => 'icon',   'name' => 'Icon'];
         }
 
+        if (Network::isConnected()) {
+            $items[] = ['id' => 'update',   'name' => 'Update'];
+        }
+
         $items[] = ['id' => 'pack',    'name' => 'Pack'];
         $items[] = ['id' => 'symlink', 'name' => 'Symlink'];
         $items[] = ['id' => 'build',   'name' => 'Build'];
@@ -451,6 +455,68 @@ class ToolsScene extends AbstractScene {
                                 $this->removeWidget($popup->hide());
                                 app()->close();
                             });
+                        }
+                    });
+                }
+            }
+            if ('update' === $item['id']) {
+
+                $current = app('start')->getUpdate()->version();
+                $remote  = app('start')->getUpdate()->versionRemote();
+
+                if ($current === $remote) {
+                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                    $popup
+                        ->setTitle('Success')
+                        ->setText('Your script version is up to date.')
+                        ->setButton()
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                } else {
+                    $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                    $popup
+                        ->setTitle('Update Wizard')
+                        ->setText([
+                            'Download the new version of the script?',
+                        ])
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                    $popup->onEnterEvent(function ($flag) use (&$popup) {
+                        $this->removeWidget($popup->hide());
+
+                        if ($flag) {
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Download')
+                                ->setText('Wait...')
+                                ->setActive(true)
+                                ->show();
+
+                            $result = app('start')->getUpdate()->update();
+
+                            $this->removeWidget($popup->hide());
+
+                            if ($result) {
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Success')
+                                    ->setText('Script updated, restart script to apply.')
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+                                $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                            } else {
+                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                $popup
+                                    ->setTitle('Error')
+                                    ->setText('Script update failed.')
+                                    ->setButton()
+                                    ->setActive(true)
+                                    ->show();
+                                $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                            }
                         }
                     });
                 }

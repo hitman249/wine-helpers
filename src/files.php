@@ -36,6 +36,8 @@ return [
         'models/Symlink.php',
         'models/Build.php',
         'models/Task.php',
+        'models/Console.php',
+        'models/Dialog.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

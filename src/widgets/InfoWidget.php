@@ -334,6 +334,25 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('update' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $current = app('start')->getUpdate()->version();
+                $remote  = app('start')->getUpdate()->versionRemote();
+                $auto    = app('start')->getConfig()->isScriptAutoupdate() ? 'on' : 'off';
+                $items = [
+                    'Update this script.',
+                    '',
+                    "Auto update: {$auto}",
+                    "Current version: {$current}",
+                    "Remote version: {$remote}",
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             }
         };
 
