@@ -87,6 +87,7 @@ class Dialog
 
     public function items($items)
     {
+        $this->typeList();
         $this->items = $items;
         return $this;
     }
@@ -119,7 +120,7 @@ class Dialog
         $returnVar = null;
         $output    = null;
 
-        $result = trim(exec($cmd, $returnVar, $output));
+        $result = trim(exec("{$cmd} 2> /dev/null", $returnVar, $output));
 
         if ('--question' === $this->type) {
             return (bool)$returnVar;
