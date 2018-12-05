@@ -33,6 +33,10 @@ class Pack
                 @unlink("{$folder}.squashfs");
             }
 
+            if ($folder === $this->config->getWineDir() && file_exists("{$folder}/bin")) {
+                $this->command->run('chmod +x -R ' . Text::quoteArgs("{$folder}/bin"));
+            }
+
             $folderName = basename($folder);
 
             $cmd = "mksquashfs \"{$folder}\" \"{$folder}.squashfs\" -b 1048576 -comp gzip -Xcompression-level 9";

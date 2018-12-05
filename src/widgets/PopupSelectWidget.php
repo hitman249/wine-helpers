@@ -255,6 +255,11 @@ class PopupSelectWidget extends AbstractWidget {
         return true;
     }
 
+    public function index()
+    {
+        return $this->index;
+    }
+
     public function itemAt($index)
     {
         if (count($this->items) <= $index || 0 > $index) {

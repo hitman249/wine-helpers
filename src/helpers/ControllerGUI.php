@@ -22,12 +22,13 @@ class ControllerGUI {
             ncurses_assume_default_colors(NCURSES_COLOR_WHITE, NCURSES_COLOR_BLUE);
         }
 
-        $this->scenes = [];
-        $this->scenes['main'] = new MainScene();
-        $this->scenes['prefix'] = new PrefixScene();
+        $this->scenes             = [];
+        $this->scenes['main']     = new MainScene();
+        $this->scenes['prefix']   = new PrefixScene();
         $this->scenes['gameInfo'] = new GameInfoScene();
-        $this->scenes['checkDependencies'] = new CheckDependenciesScene();
-        $this->scenes['tools'] = new ToolsScene();
+        $this->scenes['check']    = new CheckDependenciesScene();
+        $this->scenes['tools']    = new ToolsScene();
+        $this->scenes['wine']     = new WineScene();
     }
 
     public function getNcurses()
@@ -132,7 +133,7 @@ class ControllerGUI {
      */
     public function getCheckDependenciesScene()
     {
-        return $this->getScenes('checkDependencies');
+        return $this->getScenes('check');
     }
 
     /**
@@ -141,6 +142,14 @@ class ControllerGUI {
     public function getToolsScene()
     {
         return $this->getScenes('tools');
+    }
+
+    /**
+     * @return WineScene
+     */
+    public function getWineScene()
+    {
+        return $this->getScenes('wine');
     }
 
     /**
@@ -185,6 +194,12 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getToolsScene()->show();
+    }
+
+    public function showWine()
+    {
+        $this->hideAll();
+        $this->getWineScene()->show();
     }
 
     public function close()

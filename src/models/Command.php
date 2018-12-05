@@ -86,7 +86,7 @@ class Command {
         $this->prefix->createLibsDirectory();
         $dir = $this->config->getRootDir();
 
-        $additionalWineLibs = "{$dir}/wine/lib:{$dir}/wine/lib64:{$dir}/libs/i386:{$dir}/libs/x86-64";
+        $additionalWineLibs = "{$dir}/libs/i386:{$dir}/libs/x86-64";
 
         $exported = [
             'export WINE'             => $this->config->wine('WINE'),

@@ -6,14 +6,16 @@ class Monitor {
     private $command;
     private $xrandr;
     private $monitors;
+    private $jsonPath;
 
     /**
      * Monitor constructor.
      */
     public function __construct(Config $config, Command $command)
     {
-        $this->command = $command;
-        $this->config  = $config;
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->jsonPath = $this->config->getRootDir() . '/resolutions.json';
     }
 
     public function isXrandr()
@@ -25,13 +27,13 @@ class Monitor {
         return $this->xrandr;
     }
 
-    public function resolutions()
+    public function resolutions($reload = false)
     {
         if (!$this->isXrandr()) {
             return [];
         }
 
-        if (null !== $this->monitors) {
+        if (false === $reload && null !== $this->monitors) {
             return $this->monitors;
         }
 
@@ -97,39 +99,48 @@ class Monitor {
 
     public function resolutionsSave()
     {
-        file_put_contents(
-            $this->config->getRootDir() . '/resolutions.json',
-            json_encode($this->resolutions(), JSON_PRETTY_PRINT)
-        );
+        file_put_contents($this->jsonPath, json_encode($this->resolutions(true), JSON_PRETTY_PRINT));
     }
 
-    public function restoreResolutions($oldMonitors)
+    public function resolutionLoad()
     {
-        if (!$this->isXrandr()) {
-            return;
+        if (file_exists($this->jsonPath)) {
+            return json_decode(file_get_contents($this->jsonPath), true);
         }
 
-        $monitors = $this->resolutions();
+        return null;
+    }
 
-        foreach ($oldMonitors?:[] as $output => $params) {
+    public function resolutionsRestore()
+    {
+        if (!$this->isXrandr()) {
+            return [];
+        }
+
+        $result   = [];
+        $monitors = $this->resolutions(true);
+
+        foreach ($this->resolutionLoad()?:[] as $output => $params) {
             if ($monitors[$output]) {
                 if ($params['gamma'] !== $monitors[$output]['gamma']) {
                     $this->command->run(Text::quoteArgs($this->config->wine('WINESERVER')) . " -w && xrandr --output {$output} --gamma {$params['gamma']}");
-                    (new Logs)->log("Revert gamma, output {$output}, gamma {$monitors[$output]['gamma']} > {$params['gamma']}.\n");
+                    $result[] = "Revert gamma, output {$output}, gamma {$monitors[$output]['gamma']} > {$params['gamma']}.";
                 }
                 if ($params['brightness'] !== $monitors[$output]['brightness']) {
                     $this->command->run(Text::quoteArgs($this->config->wine('WINESERVER')) . " -w && xrandr --output {$output} --brightness {$params['brightness']}");
-                    (new Logs)->log("Revert brightness, output {$output}, brightness {$monitors[$output]['brightness']} > {$params['brightness']}.\n");
+                    $result[] = "Revert brightness, output {$output}, brightness {$monitors[$output]['brightness']} > {$params['brightness']}.";
                 }
                 if ($params['resolution'] !== $monitors[$output]['resolution']) {
                     $this->command->run(Text::quoteArgs($this->config->wine('WINESERVER')) . " -w && xrandr --output {$output} --mode {$params['resolution']}");
-                    (new Logs)->log("Revert resolution, output {$output}, resolution {$monitors[$output]['resolution']} > {$params['resolution']}.\n");
+                    $result[] = "Revert resolution, output {$output}, resolution {$monitors[$output]['resolution']} > {$params['resolution']}.";
                 }
             }
         }
 
-        if (file_exists($this->config->getRootDir() . '/resolutions.json')) {
-            @unlink($this->config->getRootDir() . '/resolutions.json');
+        if (file_exists($this->jsonPath)) {
+            @unlink($this->jsonPath);
         }
+
+        return $result;
     }
 }

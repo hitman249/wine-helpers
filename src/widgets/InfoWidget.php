@@ -50,7 +50,7 @@ class InfoWidget extends AbstractWidget {
         $window = $this->window;
 
         $callback = function ($item) use (&$window) {
-            if ($item['id'] === 'start') {
+            if ('start' === $item['id']) {
 
                 /** @var Config $config */
                 $config = $item['config'];
@@ -78,7 +78,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'wine') {
+            } elseif ('wine' === $item['id']) {
                 $window->erase()->border()->title($item['name']);
 
                 $config  = app('start')->getConfig();
@@ -86,7 +86,7 @@ class InfoWidget extends AbstractWidget {
                 $wine    = new Wine($config, app('start')->getCommand());
 
                 $items = [
-                    'Utilities: Config, File Manager, Regedit, Kill',
+                    'Utilities: Config, File Manager, Regedit.',
                     '',
                 ];
 
@@ -116,7 +116,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'tools') {
+            } elseif ('tools' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -135,7 +135,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'settings') {
+            } elseif ('settings' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -147,7 +147,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'info') {
+            } elseif ('info' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -170,7 +170,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'exit') {
+            } elseif ('exit' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -182,7 +182,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'back') {
+            } elseif ('back' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -194,7 +194,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'icon') {
+            } elseif ('icon' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -229,7 +229,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'pack') {
+            } elseif ('pack' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -249,7 +249,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'symlink') {
+            } elseif ('symlink' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
                 $config = app('start')->getConfig();
@@ -268,7 +268,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'build') {
+            } elseif ('build' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -280,7 +280,7 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ($item['id'] === 'reset') {
+            } elseif ('reset' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
@@ -292,6 +292,42 @@ class InfoWidget extends AbstractWidget {
                     './game_info/data.squashfs',
                     './extract.sh',
                     './static.tar.gz',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('winecfg' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Configuring WINE with Winecfg.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('filemanager' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Use file manager to install software.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('regedit' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Registry Editor.',
                 ];
 
                 $window->refresh();

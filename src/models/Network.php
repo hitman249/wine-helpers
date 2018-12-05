@@ -24,7 +24,7 @@ class Network {
             return self::$isConnected;
         }
 
-        $connected = @fsockopen('www.google.com', 80);
+        $connected = @fsockopen('8.8.8.8', 53, $errno,$errstr, 5);
 
         if ($connected) {
             self::$isConnected = true;

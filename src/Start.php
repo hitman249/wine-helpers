@@ -16,6 +16,7 @@ class Start
     private $fs;
     private $symlink;
     private $build;
+    private $wine;
 
     public function __construct()
     {
@@ -37,6 +38,7 @@ class Start
         $this->pack       = new Pack($this->config, $this->command, $this->fs);
         $this->symlink    = new Symlink($this->config, $this->command, $this->fs);
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
+        $this->wine       = new Wine($this->config, $this->command);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->config->getWineDir()),
@@ -189,6 +191,14 @@ class Start
     public function getBuild()
     {
         return $this->build;
+    }
+
+    /**
+     * @return Wine
+     */
+    public function getWine()
+    {
+        return $this->wine;
     }
 }
 

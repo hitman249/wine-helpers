@@ -1,6 +1,9 @@
 <?php
 
-class MainScene extends AbstractScene {
+class MainScene extends AbstractScene
+{
+    private $selectIndex = 0;
+
     public function render()
     {
         /** @var Config $config */
@@ -21,10 +24,12 @@ class MainScene extends AbstractScene {
             ->setData($menu)
             ->show();
 
-//        $popup = $this->addWidget(new PopupYesNoWidget($this->window));
-//        $popup
-//            ->setActive(true)
-//            ->show();
+        if ($menu->selectAt($this->selectIndex)) {
+            $menu->render();
+        }
+        $menu->onChangeEvent(function () use (&$menu) {
+            $this->selectIndex = $menu->index();
+        });
     }
 
     public function renderMenu()
@@ -51,7 +56,7 @@ class MainScene extends AbstractScene {
             [
                 ['id' => 'wine',     'name' => 'Wine'],
                 ['id' => 'tools',    'name' => 'Tools'],
-                ['id' => 'settings', 'name' => 'Settings'],
+//                ['id' => 'settings', 'name' => 'Settings'],
                 ['id' => 'info',     'name' => 'Info'],
                 ['id' => 'exit',     'name' => 'Exit'],
             ]
@@ -68,13 +73,13 @@ class MainScene extends AbstractScene {
             ->show();
 
         $select->onEnterEvent(function ($item) {
-            if ($item['id'] === 'wine') {
-                app()->showPrefix();
+            if ('wine' === $item['id']) {
+                app()->showWine();
             }
-            if ($item['id'] === 'tools') {
+            if ('tools' === $item['id']) {
                 app()->showTools();
             }
-            if ($item['id'] === 'exit') {
+            if ('exit' === $item['id']) {
                 app()->close();
             }
         });
