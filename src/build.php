@@ -27,7 +27,7 @@ foreach ($files['global'] as $path) {
 }
 
 file_put_contents(
-//    dirname(__DIR__). '/start2',
-    '/home/neiron/PhpstormProjects/test/start2',
+    dirname(__DIR__). '/start',
+//    '/home/neiron/PhpstormProjects/test/start2',
     file_get_contents(__DIR__ . '/loader.sh') . "\n\n<?php\n" . implode("\n\n", $additional) . "\n\nnamespace { " . implode("\n\n", $global) . "\n}"
 );
