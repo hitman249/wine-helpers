@@ -42,8 +42,8 @@ class Start
         $this->wine       = new Wine($this->config, $this->command);
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
         $this->mountes    = [
-            new Mount($this->config, $this->command, $this->config->getDataDir()),
-            new Mount($this->config, $this->command, $this->config->getWineDir()),
+            new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
+            new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
         ];
 
         $this->init();
@@ -54,12 +54,13 @@ class Start
         $this->console->lock();
 
         app($this);
+
         $this->gameInfo->create();
         $this->winePrefix->create();
         $this->update->init();
         $this->console->init();
 
-        if ($this->console->isGui()) {
+        if ($this->gameInfo->isCreated() || $this->winePrefix->isCreated() || $this->console->isGui()) {
             app('gui');
             app($this)->start();
         }

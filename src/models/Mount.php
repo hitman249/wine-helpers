@@ -4,6 +4,7 @@ class Mount
 {
     private $command;
     private $config;
+    private $console;
     private $folder;
     private $extension;
     private $mounted = false;
@@ -12,13 +13,15 @@ class Mount
      * Mount constructor.
      * @param Config $config
      * @param Command $command
+     * @param Console $console
      * @param string $folder
      */
-    public function __construct(Config $config, Command $command, $folder)
+    public function __construct(Config $config, Command $command, Console $console, $folder)
     {
         $this->config  = $config;
         $this->command = $command;
         $this->folder  = $folder;
+        $this->console = $console;
 
         $this->mount();
 
@@ -60,6 +63,10 @@ class Mount
      */
     public function mount()
     {
+        if (!$this->console->lock()) {
+            return false;
+        }
+
         $folder = $this->folder;
 
         $this->umount();
@@ -90,6 +97,10 @@ class Mount
      */
     public function umount()
     {
+        if (!$this->console->lock()) {
+            return false;
+        }
+
         foreach (range(0, 5) as $i) {
             if (!file_exists($this->folder)) {
                 $this->mounted = false;

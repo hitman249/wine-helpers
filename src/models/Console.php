@@ -62,18 +62,29 @@ class Console
 
     public function lock()
     {
-        if ((!$this->isKill() && !$this->isWinetricks() && !$this->isHelp() && !$this->isWine()) && !$this->system->lock()) {
-            $this->log->logStart();
-            $this->log->log('Application is already running.');
-            $this->log->logStop();
+        static $lock;
 
-            exit(0);
+        if (null === $lock) {
+
+            $lock = (!$this->isKill() && !$this->isWinetricks() && !$this->isHelp() && !$this->isWine());
+
+            if ($lock && !$this->system->lock()) {
+                $this->log->logStart();
+                $this->log->log('Application is already running.');
+                $this->log->logStop();
+
+                exit(0);
+            }
         }
+
+        return $lock;
     }
 
     public function init()
     {
         if (!$this->arguments) {
+
+            (new Monitor($this->config, $this->command))->resolutionsRestore();
 
             /** @var Config $config */
             $config = app('start')->getConfig();
@@ -145,5 +156,7 @@ class Console
             $this->log->log(implode("\n", $help));
             exit(0);
         }
+
+        (new Monitor($this->config, $this->command))->resolutionsRestore();
     }
 }
