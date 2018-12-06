@@ -507,6 +507,9 @@ class Update {
         $php = $this->network->getRepo('/php');
 
         if ($php) {
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
             file_put_contents($filePath, $php);
             $this->command->run("chmod +x \"{$filePath}\"");
 

@@ -128,18 +128,22 @@ class Task
 
     private function beforeRun()
     {
-        app('gui');
+        if ($this->system->checkPhp()) {
 
-        $scene = app()->getCurrentScene();
-        $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
-        $popup
-            ->setTitle('Running')
-            ->setText([
-                'Application is running...',
-                $this->fpsCmd ? '' : 'See log ./' . $this->fs->relativePath($this->config->getLogsDir() . "/{$this->logfile}"),
-            ])
-            ->setActive(true)
-            ->show();
+            app('gui');
+
+            $scene = app()->getCurrentScene();
+            $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+            $popup
+                ->setTitle('Running')
+                ->setText([
+                    'Application is running...',
+                    $this->fpsCmd ? '' : 'See log ./' . $this->fs->relativePath($this->config->getLogsDir() . "/{$this->logfile}"),
+                ])
+                ->setActive(true)
+                ->show();
+
+        }
 
         $this->monitor->resolutionsSave();
         $this->event->beforeRun();
@@ -149,6 +153,11 @@ class Task
     {
         $this->event->afterExit();
         $this->monitor->resolutionsRestore();
-        app()->close();
+
+        if ($this->system->checkPhp()) {
+            app()->close();
+        } else {
+            exit(0);
+        }
     }
 }

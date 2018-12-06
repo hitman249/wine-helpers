@@ -59,8 +59,12 @@ class Start
         $this->winePrefix->create();
         $this->update->init();
 
-        if (!$this->gameInfo->isCreated() && !$this->winePrefix->isCreated()) {
+        if (!$this->system->checkPhp() || (!$this->gameInfo->isCreated() && !$this->winePrefix->isCreated())) {
             $this->console->init();
+        }
+
+        if (!$this->system->checkPhp()) {
+            return;
         }
 
         if ($this->gameInfo->isCreated() || $this->winePrefix->isCreated() || $this->console->isGui()) {
@@ -222,13 +226,15 @@ pcntl_signal(SIGINT, function ($signal) {
         case SIGQUIT:
         case SIGTERM:
         case SIGSTOP:
-            $scene = app()->getCurrentScene();
-            $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
-            $popup
-                ->setTitle('Exit')
-                ->setText('Wait umount...')
-                ->setActive(true)
-                ->show();
+            if (app('start')->getSystem()->checkPhp()) {
+                $scene = app()->getCurrentScene();
+                $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                $popup
+                    ->setTitle('Exit')
+                    ->setText('Wait umount...')
+                    ->setActive(true)
+                    ->show();
+            }
 
             exit(0);
     }
