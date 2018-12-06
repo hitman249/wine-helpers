@@ -12,6 +12,7 @@ class WinePrefix {
     private $event;
     private $log;
     private $buffer;
+    private $created = false;
 
     /**
      * WinePrefix constructor.
@@ -58,7 +59,9 @@ class WinePrefix {
 
         if (!file_exists($this->config->wine('WINEPREFIX'))) {
 
-            (new CheckDependencies($this->config, $this->command))->check();
+            $this->created = true;
+
+            (new CheckDependencies($this->config, $this->command, $this->system))->check();
 
             app()->showPrefix();
 
@@ -67,6 +70,7 @@ class WinePrefix {
 
             $this->log('Initialize ' . $this->wine->version() . ' prefix.');
             $this->wine->boot();
+            @file_put_contents($this->config->wine('WINEPREFIX') . '/version', $this->wine->version());
             app()->getCurrentScene()->setProgress(20);
 
             /**
@@ -149,7 +153,7 @@ class WinePrefix {
 
                 if ($folders) {
                     $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
-                    $isCyrillic = trim($this->command->run('locale | grep LANG=ru'));
+                    $isCyrillic = $this->system->isCyrillic();
 
                     $folderCount = count($folders);
                     if (count($adds) >= $folderCount) {
@@ -206,7 +210,7 @@ class WinePrefix {
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
             if ($this->update->updateDxvk()) {
-                $dxvk = $this->config->getDxvkVersion();
+                $dxvk = $this->update->versionDxvk();
                 $this->log("DXVK updated to {$dxvk}.");
             }
             app()->getCurrentScene()->setProgress(90);
@@ -637,5 +641,10 @@ class WinePrefix {
 
             file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
         }
+    }
+
+    public function isCreated()
+    {
+        return $this->created;
     }
 }

@@ -461,65 +461,146 @@ class ToolsScene extends AbstractScene {
             }
             if ('update' === $item['id']) {
 
-                $current = app('start')->getUpdate()->version();
-                $remote  = app('start')->getUpdate()->versionRemote();
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'script', 'name' => 'Script'],
+                        ['id' => 'dxvk',   'name' => 'DXVK'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$xy) {
+                    $this->removeWidget($select->hide());
 
-                if ($current === $remote) {
-                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
-                    $popup
-                        ->setTitle('Success')
-                        ->setText('Your script version is up to date.')
-                        ->setButton()
-                        ->setActive(true)
-                        ->show();
-                    $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
-                } else {
-                    $popup = $this->addWidget(new PopupYesNoWidget($this->window));
-                    $popup
-                        ->setTitle('Update Wizard')
-                        ->setText([
-                            'Download the new version of the script?',
-                        ])
-                        ->setActive(true)
-                        ->show();
-                    $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
-                    $popup->onEnterEvent(function ($flag) use (&$popup) {
-                        $this->removeWidget($popup->hide());
+                    if ('script' === $type['id']) {
+                        $current = app('start')->getUpdate()->version();
+                        $remote  = app('start')->getUpdate()->versionRemote();
 
-                        if ($flag) {
+                        if ($current === $remote) {
                             $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
                             $popup
-                                ->setTitle('Download')
-                                ->setText('Wait...')
+                                ->setTitle('Success')
+                                ->setText('Your script version is up to date.')
+                                ->setButton()
                                 ->setActive(true)
                                 ->show();
+                            $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                        } else {
+                            $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                            $popup
+                                ->setTitle('Update Wizard')
+                                ->setText([
+                                    'Download the new version of the script?',
+                                ])
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                            $popup->onEnterEvent(function ($flag) use (&$popup) {
+                                $this->removeWidget($popup->hide());
 
-                            $result = app('start')->getUpdate()->update();
+                                if ($flag) {
+                                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                    $popup
+                                        ->setTitle('Download')
+                                        ->setText('Wait...')
+                                        ->setActive(true)
+                                        ->show();
 
-                            $this->removeWidget($popup->hide());
+                                    $result = app('start')->getUpdate()->update();
 
-                            if ($result) {
-                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
-                                $popup
-                                    ->setTitle('Success')
-                                    ->setText('Script updated, restart script to apply.')
-                                    ->setButton()
-                                    ->setActive(true)
-                                    ->show();
-                                $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
-                            } else {
-                                $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
-                                $popup
-                                    ->setTitle('Error')
-                                    ->setText('Script update failed.')
-                                    ->setButton()
-                                    ->setActive(true)
-                                    ->show();
-                                $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
-                            }
+                                    $this->removeWidget($popup->hide());
+
+                                    if ($result) {
+                                        $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                        $popup
+                                            ->setTitle('Success')
+                                            ->setText('Script updated, restart script to apply.')
+                                            ->setButton()
+                                            ->setActive(true)
+                                            ->show();
+                                        $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                                    } else {
+                                        $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                        $popup
+                                            ->setTitle('Error')
+                                            ->setText('Script update failed.')
+                                            ->setButton()
+                                            ->setActive(true)
+                                            ->show();
+                                        $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                                    }
+                                }
+                            });
                         }
-                    });
-                }
+                    }
+                    if ('dxvk' === $type['id']) {
+                        $current = app('start')->getUpdate()->versionDxvk();
+                        $remote  = app('start')->getUpdate()->versionDxvkRemote();
+
+                        if ($current === $remote) {
+                            $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                            $popup
+                                ->setTitle('Success')
+                                ->setText('Your DXVK version is up to date.')
+                                ->setButton()
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                        } else {
+                            $popup = $this->addWidget(new PopupYesNoWidget($this->window));
+                            $popup
+                                ->setTitle('Update Wizard')
+                                ->setText([
+                                    'Download the new version of the DXVK?',
+                                ])
+                                ->setActive(true)
+                                ->show();
+                            $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                            $popup->onEnterEvent(function ($flag) use (&$popup) {
+                                $this->removeWidget($popup->hide());
+
+                                if ($flag) {
+                                    $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                    $popup
+                                        ->setTitle('Download')
+                                        ->setText('Wait...')
+                                        ->setActive(true)
+                                        ->show();
+
+                                    $result = app('start')->getUpdate()->updateDxvk();
+
+                                    $this->removeWidget($popup->hide());
+
+                                    if ($result) {
+                                        $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                        $popup
+                                            ->setTitle('Success')
+                                            ->setText('DXVK updated.')
+                                            ->setButton()
+                                            ->setActive(true)
+                                            ->show();
+                                        $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                                    } else {
+                                        $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                                        $popup
+                                            ->setTitle('Error')
+                                            ->setText('DXVK update failed.')
+                                            ->setButton()
+                                            ->setActive(true)
+                                            ->show();
+                                        $popup->onEnterEvent(function ()  use (&$popup) { $this->removeWidget($popup->hide()); });
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
             }
         });
 

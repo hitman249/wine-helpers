@@ -9,7 +9,7 @@ if (!function_exists('app')) {
         static $gui;
         static $start;
 
-        if (null === $gui) {
+        if (null === $gui && $type === 'gui') {
             $gui = new ControllerGUI();
         }
 
@@ -31,7 +31,12 @@ if (!function_exists('debug_string_backtrace')) {
         /** @var Config $config */
         $config = null === $config ? app('start')->getConfig() : $config;
 
-        $file = $config->getLogsDir() . '/debug.log';
+        if (is_string($config)) {
+            $file = $config;
+        } else {
+            $file = $config->getLogsDir() . '/debug.log';
+        }
+
 
         static $init;
 

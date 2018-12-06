@@ -6,16 +6,19 @@ class CheckDependencies {
     private $config;
     private $log;
     private $buffer;
+    private $system;
 
     /**
      * Event constructor.
      * @param Config $config
      * @param Command $command
+     * @param System $system
      */
-    public function __construct(Config $config, Command $command)
+    public function __construct(Config $config, Command $command, System $system)
     {
         $this->command = $command;
         $this->config  = $config;
+        $this->system  = $system;
     }
 
     public function log($text)
@@ -185,6 +188,20 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log('');
             $this->log('Install libfuse.');
             $this->log("sudo apt-get install libfuse2");
+        }
+
+        if ($this->config->isEsync() || $this->config->isDxvk()) {
+            $currentUlimit     = $this->system->getUlimitSoft();
+            $recommendedUlimit = 200000;
+
+            if ($recommendedUlimit > $currentUlimit) {
+                $this->log('');
+                $this->log("Error. Current ulimit: {$currentUlimit}, Required min ulimit: {$recommendedUlimit}");
+                $this->log('');
+                $this->log('Add to "/etc/security/limits.conf" file and reboot system:');
+                $this->log("* soft nofile {$recommendedUlimit}");
+                $this->log("* hard nofile {$recommendedUlimit}");
+            }
         }
 
         if (false === $isOk) {

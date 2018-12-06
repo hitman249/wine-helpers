@@ -359,4 +359,15 @@ class System {
 
         return '';
     }
+
+    public function isCyrillic()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run('locale | grep LANG=ru'));
+        }
+
+        return $result;
+    }
 }

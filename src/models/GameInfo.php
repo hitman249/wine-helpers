@@ -6,6 +6,7 @@ class GameInfo {
     private $config;
     private $log;
     private $buffer;
+    private $created = false;
 
     /**
      * GameInfo constructor.
@@ -46,6 +47,8 @@ class GameInfo {
     public function create()
     {
         if (!file_exists($this->config->getGameInfoDir())) {
+
+            $this->created = true;
 
             app()->showGameInfo();
 
@@ -264,5 +267,10 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             app()->getCurrentScene()->setProgress(10);
         }
+    }
+
+    public function isCreated()
+    {
+        return $this->created;
     }
 }

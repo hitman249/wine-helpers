@@ -328,51 +328,63 @@ class Update {
 
     public function dxvkAutoupdate()
     {
-        if ($this->config->isDxvkAutoupdate() && Network::isConnected()) {
-            if (file_exists($this->config->wine('DRIVE_C') . '/dxvk')) {
-
-                $log = $this->config->wine('WINEPREFIX') . "/winetricks.log";
-
-                if (file_exists($log)) {
-                    $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
-                        function ($n) {return !$n && $n !== 'dxvk';});
-                    file_put_contents($log, implode("\n", $winetricks));
-                }
-
-                $newVersion = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
-                $oldVersion = trim(file_get_contents($this->config->wine('DRIVE_C') . '/dxvk'));
-
-                if ($newVersion !== $oldVersion) {
-                    unlink($this->config->wine('DRIVE_C') . '/dxvk');
-                    $this->updateDxvk();
-                }
-            }
+        if ($this->config->isDxvkAutoupdate()) {
+            $this->updateDxvk();
         }
 
         return false;
     }
 
+    public function versionDxvk()
+    {
+        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
+
+        if (file_exists($dxvk)) {
+            return trim(file_get_contents($dxvk));
+        }
+
+        return '';
+    }
+
+    public function versionDxvkRemote()
+    {
+        static $version;
+
+        if (null === $version) {
+            $version = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
+        }
+
+        return $version;
+    }
+
     public function updateDxvk()
     {
-        if (!file_exists($this->config->wine('WINEPREFIX'))) {
+        if (!file_exists($this->config->wine('WINEPREFIX')) || !$this->config->isDxvk() || !Network::isConnected()) {
             return false;
         }
 
         $this->updateDxvkConfig();
 
         $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
+        $log  = $this->config->wine('WINEPREFIX') . "/winetricks.log";
 
-        if ($this->config->isDxvk() && file_exists($dxvk)) {
-            return false;
+        if (file_exists($log)) {
+            $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
+                function ($n) {return !$n && $n !== 'dxvk';});
+            file_put_contents($log, implode("\n", $winetricks));
         }
 
-        (new Wine($this->config, $this->command))->winetricks(['dxvk']);
+        $newVersion = $this->versionDxvkRemote();
+        $oldVersion = $this->versionDxvk();
 
-        $version = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
+        if ($newVersion !== $oldVersion) {
+            (new Wine($this->config, $this->command))->winetricks(['dxvk']);
+            file_put_contents($dxvk, $newVersion);
 
-        file_put_contents($dxvk, $version);
+            return true;
+        }
 
-        return true;
+        return false;
     }
 
     public function downloadWinetricks()

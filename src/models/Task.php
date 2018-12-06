@@ -128,6 +128,8 @@ class Task
 
     private function beforeRun()
     {
+        app('gui');
+
         $scene = app()->getCurrentScene();
         $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
         $popup

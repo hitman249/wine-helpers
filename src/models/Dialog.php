@@ -16,7 +16,7 @@ class Dialog
     public function __construct()
     {
         $this->type    = '--info';
-        $this->width   = '';
+        $this->width   = '--width=400';
         $this->height  = '';
         $this->title   = '--title=""';
         $this->items   = [];

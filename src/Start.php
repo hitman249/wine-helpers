@@ -17,6 +17,7 @@ class Start
     private $symlink;
     private $build;
     private $wine;
+    private $console;
 
     public function __construct()
     {
@@ -39,6 +40,7 @@ class Start
         $this->symlink    = new Symlink($this->config, $this->command, $this->fs);
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
+        $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->config->getWineDir()),
@@ -49,19 +51,18 @@ class Start
 
     private function init()
     {
-        if (!$this->system->lock()) {
-            $this->log->logStart();
-            $this->log->log('Application is already running.');
-            $this->log->logStop();
-
-            exit(0);
-        }
+        $this->console->lock();
 
         app($this);
         $this->gameInfo->create();
         $this->winePrefix->create();
         $this->update->init();
-        app($this)->start();
+        $this->console->init();
+
+        if ($this->console->isGui()) {
+            app('gui');
+            app($this)->start();
+        }
     }
 
     /**
@@ -198,6 +199,15 @@ class Start
     public function getWine()
     {
         return $this->wine;
+    }
+
+
+    /**
+     * @return Console
+     */
+    public function getConsole()
+    {
+        return $this->console;
     }
 }
 

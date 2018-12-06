@@ -702,17 +702,6 @@ PBA_DISABLE=1
         return $driveC;
     }
 
-    public function getDxvkVersion()
-    {
-        if (!$this->isDxvk() || !file_exists($this->wine('DRIVE_C') . '/dxvk')) {
-            return '';
-        }
-
-        $version = file_get_contents($this->wine('DRIVE_C') . '/dxvk');
-
-        return $version;
-    }
-
     public function getWindowsVersion()
     {
         return $this->get('script' , 'winver');
@@ -726,5 +715,16 @@ PBA_DISABLE=1
     public function getDataSymlinksDir()
     {
         return $this->dataSymlinksDir;
+    }
+
+    public function versionPrefix()
+    {
+        $version = $this->wine('WINEPREFIX') . '/version';
+
+        if (file_exists($version)) {
+            return trim(file_get_contents($version));
+        }
+
+        return '';
     }
 }

@@ -72,7 +72,7 @@ class Wine {
         $this->run(array_merge(['regsvr32'], $args));
     }
 
-    public function winetricks($args)
+    public function winetricks($args, $output = false)
     {
         (new Update($this->config, $this->command))->downloadWinetricks();
 
@@ -81,7 +81,7 @@ class Wine {
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
 
-            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}");
+            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", null, $output);
         }
 
         return '';

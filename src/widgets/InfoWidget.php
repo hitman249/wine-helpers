@@ -338,16 +338,36 @@ class InfoWidget extends AbstractWidget {
 
                 $window->erase()->border()->title($item['name']);
 
-                $current = app('start')->getUpdate()->version();
-                $remote  = app('start')->getUpdate()->versionRemote();
-                $auto    = app('start')->getConfig()->isScriptAutoupdate() ? 'on' : 'off';
+                $config  = app('start')->getConfig();
+                $update  = app('start')->getUpdate();
+
+                $current = $update->version();
+                $remote  = $update->versionRemote();
+                $auto    = $config->isScriptAutoupdate() ? 'on' : 'off';
+
                 $items = [
-                    'Update this script.',
+                    'Update this script' . ($config->isDxvk() ? ' or DXVK.' : '.'),
                     '',
                     "Auto update: {$auto}",
                     "Current version: {$current}",
                     "Remote version: {$remote}",
                 ];
+
+                if ($config->isDxvk()) {
+                    $currentDxvk = $update->versionDxvk();
+                    $remoteDxvk  = $update->versionDxvkRemote();
+                    $autoDxvk    = $config->isDxvkAutoupdate() ? 'on' : 'off';
+
+                    $items = array_merge(
+                        $items,
+                        [
+                            '',
+                            "Auto update DXVK: {$autoDxvk}",
+                            "Current DXVK version: {$currentDxvk}",
+                            "Remote DXVK version: {$remoteDxvk}",
+                        ]
+                    );
+                }
 
                 $window->refresh();
 
