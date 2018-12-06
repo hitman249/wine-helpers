@@ -1,5 +1,9 @@
 ## Описание 
 
+![Settings](1.png)
+![Settings](2.png)
+![Settings](3.png)
+
 Этот скрипт предназначен в первую очередь для облегчения портирования Windows игр/программ под Linux, но может 
 применяться и в других целях. Работа скрипта гарантируется на всех дистрибутивах Linux, где установлены стандартные 
 утилиты GNU и оболочка bash.
@@ -11,12 +15,6 @@ CentOS 7, Deepin 15.6, Manjaro 17.1.11.
 
 1) Распаковать ```chmod +x ./extract.sh && ./extract.sh```
 2) Запустить `./start`
-
-> Также:  
-> `./start fps`   - запустить и показать счётчик FPS   
-> `./start debug` - запустить в режиме дебага   
-> `./start icon ` - создать иконку   
-
 
 ### Как сделать порт игры
 
@@ -34,7 +32,7 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 
 5) Появится директория `./game_info`, редактируете файл `./game_info/game_info.ini`
 
-6) Через файловый менеджер `./start fm` устанавливаете игру.
+6) Через файловый менеджер устанавливаете игру.
 
 7) Если требуются дополнительные библиотеки копируете их в папки `dlls` и `dlls64` скрипт создаст симлинки 
 файлов в директорию:
@@ -72,15 +70,7 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 * Если вам хочется чтобы ваша игра занимала как можно меньше места и при этом в неё можно было играть, в скрипте 
 предусмотрена автоматическая упаковка директорий `./wine` и `./game_info/data`
   
-  Для этого нужно выполнить
-    
-  - `./start pack wine`  
-  - `./start pack data`
-
-  Распаковать
-    
-  - `./start unpack wine`  
-  - `./start unpack data`
+  Для этого запустите скрипт в режиме GUI командой `./start gui` и перейдите в **Tools > Pack**
 
 
 * Рядом с указанными директориями создадутся файлы `./wine.squashfs` и `./game_info/data.squashfs`.  
@@ -92,21 +82,14 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 * Часто игры могут писать в собственную папку, поэтому нужно вынести данные файлы и папки в директорию 
 `./game_info/additional`, а в папке с игрой создать для них симлинки.
 
-  Делается это командой: 
+  Делается это в GUI: 
 
-  - `./start rwdirlink "Folder"`
-    
-    > При условии что игра лежит в папке `C:/Games/Folder` == `./game_info/data/Folder` 
-    
-* Для проверки, что игра работает корректно, её следует упаковать, а папку `./game_info/data` на это время переименовать 
-  в `./game_info/data1`. Если игра вылетает нужно определить в какие файлы она пишет, после чего заменить их вместо 
-  симлинков оригиналами. 
-  
+  - **Tools > Symlink**, скрипт сам предложит поддерживаемые папки. 
   
 
 * Когда всё будет готово можно сделать сборку игры командой:
 
-  `./start build` 
+  - **Tools > Build** 
 
   Которая создаст одноимённую папку, и скопирует туда методом hardlink все необходимые файлы.
   > **hardlink** - вместо копирования делает hard ссылку на файл, в итоге процесс копирования сводится только к созданию 
@@ -117,55 +100,12 @@ wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master
 
 ```text
 Help:
-./start                           - Run game.
-./start cfg                       - Configure.
-./start check                     - Check script dependencies.
-./start fm                        - File Manager.
-./start icon                      - Create desktop icon.
-./start icon delete (remove)      - Delete desktop icon.
-./start kill                      - Kill this instance Wine.
-./start regedit (reg)             - Windows Registry Editor.
-
-./start pack data                 - Packing "./game_info/data" folder to "./game_info/data.squashfs" file.
-./start pack zip data             - Packing "./game_info/data" folder to "./game_info/data.zip" file (support write).
-./start pack wine                 - Packing "./wine" folder to "./wine.squashfs" file.
-./start unpack data               - Unpacking "./game_info/data.squashfs" or "./game_info/data.zip" file to "./game_info/data" folder.
-./start unpack wine               - Unpacking "./wine.squashfs" file to "./wine" folder.
-./start link (symlink)            - Replace the folder with a symbolic link from the "data" folder.
-./start rwdirlink                 - Replace the folder with a symbolic link from dir RW mode.
-./start build                     - Build game to "./build" folder.
-./start build prefix              - Build game to "./build" folder with "prefix" folder.
-
-./start debug                     - Enable debug mode, work analog "diff".
-./start fps                       - Show game fps.
-./start settings                  - Settings game.
-./start winetricks d3dx9          - Winetricks install d3dx9.
-./start config game_info1.ini     - Use other config.
-
-./start diff                      - Enable change files analyze from system32, syswow64 folders.
-./start wine                      - Get Wine Instance.
-./start unlock                    - Unlock for one next command.
-./start autofix                   - Auto find *.so missing libs by other version and created symlinks
-./start update                    - Update this script.
-./start reset                     - Full reset files the game.
-
-./start cpu                       - Get CPU info.
-./start cpu performance           - Set CPU mode to "performance".
-./start cpu ondemand              - Set CPU mode to "ondemand".
-./start cpu conservative          - Set CPU mode to "conservative".
-./start cpu powersave             - Set CPU mode to "powersave".
-
-./start monitor(s)                - Monitors info.
-./start sysinfo                   - System info.
-./start probe                     - Full system info.
-./start version
+./start             - Run game.
+./start gui         - Graphical user interface.
+./start kill        - Kill this instance Wine.
+./start winetricks  - Winetricks install d3dx9 (./start winetricks d3dx9).
+./start wine        - Get Wine Instance.
 ./start help
-
-Examples:
-./start diff fm
-./start diff winetricks d3dx9
-./start symlink "configs"
-./start unlock && ./start winetricks d3dx9
 ```
 
 ## Возможности
@@ -200,14 +140,6 @@ Examples:
 (изменяет перед применением *.reg файлов).
 
 * (Опционально) Отображение диалога с выбором что запускать, если обнаруживается несколько *.ini файлов.
-
- ![Settings](2.png)
-
-* (Опционально) Если в конфиге задан хук `settings[] = "settings.sh"`, будет отображён диалог выбора запуска настроек или игры.
-Также настройку игры можно оформить в виде отдельного *.ini файла. 
- 
- ![Settings](1.png)
-
 
 * Использование ini файла `./game_info/game_info.ini` для настроек:
 
@@ -319,48 +251,6 @@ resolution = "800x600"
 
 ; file[] = "game_info/data/example.conf"
 ``` 
-
- ## Полезные советы
- 
-* Если после `./start` следует аттрибут `diff` а затем команда, то как только команда отработает 
-скрипт покажет изменившиеся файлы в директориях `system32`, `syswow64`
-Пример:
-
-```text
-change system32 files
---------------------
-d3d11.dll
-dxgi.dll
---------------------
-
-
-delete system32 files
---------------------
-d3d8.dll
-d3dcompiler_33.dll
---------------------
-```
-  
-* Библиотеки из папок `dlls`, `dlls64` применяются сразу, без пересоздания префикса.
-
-* Игру в режиме дебага можно запустить добавив `debug` к команде.   
-Пример: `./start debug`
-
-* Команды `cfg`, `fm`, `regedit` всегда работают в режиме дебага, к ним `debug` приписывать не нужно.
-
-* Можно отловить изменения в папках `system32`, `syswow64` также через установку из `fm` добавив в команду `diff`  
-Пример: `./start diff fm`
-
-* "Умное" создание иконки (команда: `./start icon`), создаёт в папке `Games` \ `Игры` если она присутствует на рабочем 
-  столе, также ищет файл без расширения `.desktop` (иногда нужна иконка без расширения), ищет `png` файлы в качестве 
-  картинки, в папках `./`, `./game_info`, `./game_info/data`, если таковых несколько предлагает выбрать конкретную.
-  
-* В ini файлах можно пробросить дополнительные переменные для ENV окружения, секция `[export]`.
-
-* Команда `./start autofix` пытается создать симлинки на отсутствующие библиотеки при условии, что в системе установлены 
-библиотеки другой версии. Использовать на свой страх, с таким костылём возможна **нестабильная** работа wine.  
-Создаёт симлинки в папку `./libs/i386`, `./libs/x86-64`.  
-Рекомендуется самостоятельно найти эти библиотеки **нужной** версии и закинуть в означенные выше папки.
 
  ## Полезные ссылки
  

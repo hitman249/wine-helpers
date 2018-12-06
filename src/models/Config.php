@@ -396,7 +396,6 @@ resolution = \"800x600\"
 ; gpu_amd[] = \"gpu/amd.sh\"
 ; gpu_nvidia[] = \"gpu/nvidia.sh\"
 ; gpu_intel[] = \"gpu/intel.sh\"
-; settings[] = \"settings.sh\"
 [export]
 ;
 ; Экспорт дополнительных переменных к команде запуска игры
