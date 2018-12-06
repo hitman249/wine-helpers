@@ -12,7 +12,7 @@ class WineScene extends AbstractScene {
 
         $this->window
             ->border()
-            ->title($wine->version() . ' (' . $config->getWineArch() . ')')
+            ->title($wine->version())
             ->status($update->getUrl())
             ->refresh();
 

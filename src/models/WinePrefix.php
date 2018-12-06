@@ -59,6 +59,7 @@ class WinePrefix {
 
         if (!file_exists($this->config->wine('WINEPREFIX'))) {
 
+            app('gui');
             $this->created = true;
 
             (new CheckDependencies($this->config, $this->command, $this->system))->check();

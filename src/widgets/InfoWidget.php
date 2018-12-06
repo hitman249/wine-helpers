@@ -54,6 +54,7 @@ class InfoWidget extends AbstractWidget {
 
                 /** @var Config $config */
                 $config = $item['config'];
+                $update = app('start')->getUpdate();
 
                 if (!$config) {
                     return;
@@ -69,7 +70,7 @@ class InfoWidget extends AbstractWidget {
                     'Sandbox: ' . ($config->isSandbox() ? 'on' : 'off'),
                     'Sound:   ' . ($config->isPulse() ? 'pulse' : 'alsa'),
                     'CSMT:    ' . ($config->isCsmt() ? 'on' : 'off'),
-                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($dxvkVersion = $config->getDxvkVersion()) ? "({$dxvkVersion})" : '') : 'off'),
+                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($dxvkVersion = $update->versionDxvk()) ? "({$dxvkVersion})" : '') : 'off'),
                     'PBA:     ' . ($config->isPBA() ? 'on' : 'off'),
                     'Esync:   ' . ($config->isEsync() ? 'on' : 'off'),
                 ];
@@ -91,6 +92,19 @@ class InfoWidget extends AbstractWidget {
                 ];
 
                 $sysWine = $wine->isUsedSystemWine() ? 'Used system wine!' : null;
+
+                $versinPrefix = $config->versionPrefix();
+
+                if ($versinPrefix && $versinPrefix !== $wine->version()) {
+                    $items = array_merge(
+                        $items,
+                        [
+                            '!!! Warning !!!',
+                            "This prefix ({$versinPrefix}) is incompatible with the current used wine!",
+                            '',
+                        ]
+                    );
+                }
 
                 if ($sysWine) {
                     $items = array_merge($items, [$sysWine, '']);

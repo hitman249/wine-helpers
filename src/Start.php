@@ -58,7 +58,10 @@ class Start
         $this->gameInfo->create();
         $this->winePrefix->create();
         $this->update->init();
-        $this->console->init();
+
+        if (!$this->gameInfo->isCreated() && !$this->winePrefix->isCreated()) {
+            $this->console->init();
+        }
 
         if ($this->gameInfo->isCreated() || $this->winePrefix->isCreated() || $this->console->isGui()) {
             app('gui');

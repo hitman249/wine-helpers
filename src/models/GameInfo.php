@@ -48,6 +48,7 @@ class GameInfo {
     {
         if (!file_exists($this->config->getGameInfoDir())) {
 
+            app('gui');
             $this->created = true;
 
             app()->showGameInfo();

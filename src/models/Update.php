@@ -359,7 +359,7 @@ class Update {
 
     public function updateDxvk()
     {
-        if (!file_exists($this->config->wine('WINEPREFIX')) || !$this->config->isDxvk() || !Network::isConnected()) {
+        if (!Network::isConnected() || !$this->config->isDxvk() || !file_exists($this->config->wine('WINEPREFIX'))) {
             return false;
         }
 

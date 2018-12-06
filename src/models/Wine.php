@@ -76,12 +76,14 @@ class Wine {
     {
         (new Update($this->config, $this->command))->downloadWinetricks();
 
-        if (file_exists($this->config->getRootDir() . '/winetricks')) {
+        if ($args && file_exists($this->config->getRootDir() . '/winetricks')) {
+
             $config = clone $this->config;
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
+            $logFile = $this->config->getDxvkLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
 
-            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", null, $output);
+            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
         }
 
         return '';
