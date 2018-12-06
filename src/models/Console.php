@@ -111,11 +111,17 @@ class Console
                 $title = 'Запустить';
             }
 
-            $item = (new Dialog())
-                ->columns(['name' => $title])
-                ->items($starts)
-                ->size(400, 300)
-                ->get();
+            $item = null;
+
+            if (count($starts) > 1) {
+                $item = (new Dialog())
+                    ->columns(['name' => $title])
+                    ->items($starts)
+                    ->size(400, 300)
+                    ->get();
+            } elseif ($starts) {
+                $item = reset($starts);
+            }
 
             if (!$item) {
                 exit(0);
