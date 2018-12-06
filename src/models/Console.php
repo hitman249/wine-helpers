@@ -66,9 +66,12 @@ class Console
 
         if (null === $lock) {
 
-            $lock = (!$this->isKill() && !$this->isWinetricks() && !$this->isHelp() && !$this->isWine());
+            $mount = $this->system->lock();
+            $force = ($this->isKill() || $this->isWinetricks() || $this->isHelp() || $this->isWine());
 
-            if ($lock && !$this->system->lock()) {
+            $lock = $mount;
+
+            if (!$mount && !$force) {
                 $this->log->logStart();
                 $this->log->log('Application is already running.');
                 $this->log->logStop();
@@ -139,7 +142,10 @@ class Console
         }
 
         if ($this->isWinetricks()) {
-            (new Wine($this->config, $this->command))->winetricks(array_splice($this->arguments, 1), true);
+            $args = array_splice($this->arguments, 1);
+            $this->log->log('Processing...');
+            $this->log->log('See logs: ' . './game_info/logs/winetricks-' . implode('-', $args) . '.log');
+            (new Wine($this->config, $this->command))->winetricks($args);
             exit(0);
         }
 

@@ -81,7 +81,7 @@ class Wine {
             $config = clone $this->config;
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
-            $logFile = $this->config->getDxvkLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
+            $logFile = $this->config->getLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
 
             return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
         }
