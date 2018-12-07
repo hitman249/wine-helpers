@@ -193,6 +193,7 @@ class Config {
                 $this->config = (new FileINI($path))->get();
             } else {
                 $this->config = parse_ini_string($this->getDefaultConfig(), true);
+                file_put_contents($path, $this->getDefaultConfig());
             }
         }
     }

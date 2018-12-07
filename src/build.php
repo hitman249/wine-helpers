@@ -29,4 +29,4 @@ foreach ($files['global'] as $path) {
 $data = file_get_contents(__DIR__ . '/loader.sh') . "\n\n<?php\n" . implode("\n\n", $additional) . "\n\nnamespace { " . implode("\n\n", $global) . "\n}";
 
 file_put_contents(dirname(__DIR__). '/start', $data);
-file_put_contents('/home/neiron/PhpstormProjects/test/start2', $data);
+file_put_contents('/home/neiron/PhpstormProjects/test/start', $data);

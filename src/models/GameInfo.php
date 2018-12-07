@@ -46,7 +46,7 @@ class GameInfo {
 
     public function create()
     {
-        if (!file_exists($this->config->getGameInfoDir())) {
+        if ($this->isEmptyGameFolder()) {
 
             app('gui');
             $this->created = true;
@@ -268,6 +268,23 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             app()->getCurrentScene()->setProgress(10);
         }
+    }
+
+    private function isEmptyGameFolder()
+    {
+        if (!file_exists($this->config->getGameInfoDir())) {
+            return true;
+        }
+
+        $skip = [$this->config->getLogsDir(), $this->config->getCacheDir()];
+
+        foreach (glob($this->config->getGameInfoDir() . '/*') as $path) {
+            if (!in_array($path, $skip, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function isCreated()
