@@ -105,7 +105,12 @@ class Command {
             'export WINEDLLOVERRIDES' => $this->config->wine('WINEDLLOVERRIDES'),
             'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$additionalWineLibs}",
             'export DXVK_CONFIG_FILE' => $this->config->getDxvkConfigFile(),
+            'export PROTON_LOG'       => $this->config->getLogsDir() . '/proton.log',
         ];
+
+        if (!$this->config->isEsync()) {
+            $exported['export PROTON_NO_ESYNC'] = 'noesync';
+        }
 
         if ($this->config->isDxvk()) {
 
