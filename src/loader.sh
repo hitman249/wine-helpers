@@ -18,7 +18,7 @@ else
     chmod +x "$RUN_FROM"
 fi
 
-tail -n +27 ./start2 > "$(pwd -P)/start-tmp"
+tail -n +27 ./start > "$(pwd -P)/start-tmp"
 
 "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
 
