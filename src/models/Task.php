@@ -128,7 +128,7 @@ class Task
 
     private function beforeRun()
     {
-        if ($this->system->checkPhp()) {
+        if ($this->system->checkPhp() && app('start')->getConsole()->isTerminal()) {
 
             app('gui');
 

@@ -27,6 +27,11 @@ class Console
         $this->arguments = array_splice($argv, 1);
     }
 
+    public function isTerminal()
+    {
+        return (bool)getenv('TERM');
+    }
+
     public function isGui()
     {
         return trim(reset($this->arguments)) === 'gui' || $this->gui;

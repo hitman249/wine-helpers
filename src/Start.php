@@ -63,7 +63,7 @@ class Start
             $this->console->init();
         }
 
-        if (!$this->system->checkPhp()) {
+        if (!$this->system->checkPhp() || !$this->console->isTerminal()) {
             return;
         }
 
@@ -226,7 +226,7 @@ pcntl_signal(SIGINT, function ($signal) {
         case SIGQUIT:
         case SIGTERM:
         case SIGSTOP:
-            if (app('start')->getSystem()->checkPhp()) {
+            if (app('start')->getSystem()->checkPhp() && app('start')->getConsole()->isTerminal()) {
                 $scene = app()->getCurrentScene();
                 $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
                 $popup
