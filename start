@@ -3159,6 +3159,9 @@ class Config {
             'WINEBOOT'         => "{$this->rootDir}/wine/bin/wine\" \"wineboot",
             'WINEFILE'         => "{$this->rootDir}/wine/bin/wine\" \"winefile",
             'WINECFG'          => "{$this->rootDir}/wine/bin/wine\" \"winecfg",
+            'WINETASKMGR'      => "{$this->rootDir}/wine/bin/wine\" \"taskmgr",
+            'WINEUNINSTALLER'  => "{$this->rootDir}/wine/bin/wine\" \"uninstaller",
+            'WINEPROGRAM'      => "{$this->rootDir}/wine/bin/wine\" \"progman",
             'WINESERVER'       => "{$this->rootDir}/wine/bin/wineserver",
         ];
     }
@@ -3166,14 +3169,17 @@ class Config {
     public function updateWine()
     {
         if ((new Wine($this, new Command($this)))->isUsedSystemWine()) {
-            $this->wine['WINE']       = 'wine';
-            $this->wine['WINE64']     = 'wine64';
-            $this->wine['REGEDIT']    = 'wine" "regedit';
-            $this->wine['REGEDIT64']  = 'wine64" "regedit';
-            $this->wine['WINEBOOT']   = 'wineboot';
-            $this->wine['WINEFILE']   = 'winefile';
-            $this->wine['WINECFG']    = 'winecfg';
-            $this->wine['WINESERVER'] = 'wineserver';
+            $this->wine['WINE']            = 'wine';
+            $this->wine['WINE64']          = 'wine64';
+            $this->wine['REGEDIT']         = 'wine" "regedit';
+            $this->wine['REGEDIT64']       = 'wine64" "regedit';
+            $this->wine['WINETASKMGR']     = 'wine" "taskmgr';
+            $this->wine['WINEUNINSTALLER'] = 'wine" "uninstaller';
+            $this->wine['WINEPROGRAM']     = 'wine" "progman';
+            $this->wine['WINEBOOT']        = 'wineboot';
+            $this->wine['WINEFILE']        = 'winefile';
+            $this->wine['WINECFG']         = 'winecfg';
+            $this->wine['WINESERVER']      = 'wineserver';
         }
     }
 
@@ -8211,9 +8217,12 @@ class WineScene extends AbstractScene {
     {
         $items = [
             ['id' => 'back',        'name' => 'Back'],
-            ['id' => 'winecfg',     'name' => 'Config',       'wine' => 'WINECFG'],
-            ['id' => 'filemanager', 'name' => 'File Manager', 'wine' => 'WINEFILE'],
-            ['id' => 'regedit',     'name' => 'Regedit',      'wine' => 'REGEDIT'],
+            ['id' => 'winecfg',     'name' => 'Config',          'wine' => 'WINECFG'],
+            ['id' => 'filemanager', 'name' => 'File Manager',    'wine' => 'WINEFILE'],
+            ['id' => 'regedit',     'name' => 'Regedit',         'wine' => 'REGEDIT'],
+            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
+            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
+            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -8230,7 +8239,7 @@ class WineScene extends AbstractScene {
             if ('back' === $item['id']) {
                 app()->showMain();
             }
-            if (in_array($item['id'], ['winecfg', 'filemanager', 'regedit'])) {
+            if (in_array($item['id'], ['winecfg', 'filemanager', 'regedit', 'taskmgr', 'uninstaller', 'progman'])) {
                 $config = app('start')->getConfig();
                 $task   = new Task($config);
                 $task
@@ -8970,6 +8979,42 @@ class InfoWidget extends AbstractWidget {
                         ]
                     );
                 }
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('taskmgr' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Task Manager implementation.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('uninstaller' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Basic program uninstaller.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('progman' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Program Manager implementation.'
+                ];
 
                 $window->refresh();
 

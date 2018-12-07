@@ -66,6 +66,9 @@ class Config {
             'WINEBOOT'         => "{$this->rootDir}/wine/bin/wine\" \"wineboot",
             'WINEFILE'         => "{$this->rootDir}/wine/bin/wine\" \"winefile",
             'WINECFG'          => "{$this->rootDir}/wine/bin/wine\" \"winecfg",
+            'WINETASKMGR'      => "{$this->rootDir}/wine/bin/wine\" \"taskmgr",
+            'WINEUNINSTALLER'  => "{$this->rootDir}/wine/bin/wine\" \"uninstaller",
+            'WINEPROGRAM'      => "{$this->rootDir}/wine/bin/wine\" \"progman",
             'WINESERVER'       => "{$this->rootDir}/wine/bin/wineserver",
         ];
     }
@@ -73,14 +76,17 @@ class Config {
     public function updateWine()
     {
         if ((new Wine($this, new Command($this)))->isUsedSystemWine()) {
-            $this->wine['WINE']       = 'wine';
-            $this->wine['WINE64']     = 'wine64';
-            $this->wine['REGEDIT']    = 'wine" "regedit';
-            $this->wine['REGEDIT64']  = 'wine64" "regedit';
-            $this->wine['WINEBOOT']   = 'wineboot';
-            $this->wine['WINEFILE']   = 'winefile';
-            $this->wine['WINECFG']    = 'winecfg';
-            $this->wine['WINESERVER'] = 'wineserver';
+            $this->wine['WINE']            = 'wine';
+            $this->wine['WINE64']          = 'wine64';
+            $this->wine['REGEDIT']         = 'wine" "regedit';
+            $this->wine['REGEDIT64']       = 'wine64" "regedit';
+            $this->wine['WINETASKMGR']     = 'wine" "taskmgr';
+            $this->wine['WINEUNINSTALLER'] = 'wine" "uninstaller';
+            $this->wine['WINEPROGRAM']     = 'wine" "progman';
+            $this->wine['WINEBOOT']        = 'wineboot';
+            $this->wine['WINEFILE']        = 'winefile';
+            $this->wine['WINECFG']         = 'winecfg';
+            $this->wine['WINESERVER']      = 'wineserver';
         }
     }
 

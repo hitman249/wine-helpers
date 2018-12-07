@@ -28,9 +28,12 @@ class WineScene extends AbstractScene {
     {
         $items = [
             ['id' => 'back',        'name' => 'Back'],
-            ['id' => 'winecfg',     'name' => 'Config',       'wine' => 'WINECFG'],
-            ['id' => 'filemanager', 'name' => 'File Manager', 'wine' => 'WINEFILE'],
-            ['id' => 'regedit',     'name' => 'Regedit',      'wine' => 'REGEDIT'],
+            ['id' => 'winecfg',     'name' => 'Config',          'wine' => 'WINECFG'],
+            ['id' => 'filemanager', 'name' => 'File Manager',    'wine' => 'WINEFILE'],
+            ['id' => 'regedit',     'name' => 'Regedit',         'wine' => 'REGEDIT'],
+            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
+            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
+            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -47,7 +50,7 @@ class WineScene extends AbstractScene {
             if ('back' === $item['id']) {
                 app()->showMain();
             }
-            if (in_array($item['id'], ['winecfg', 'filemanager', 'regedit'])) {
+            if (in_array($item['id'], ['winecfg', 'filemanager', 'regedit', 'taskmgr', 'uninstaller', 'progman'])) {
                 $config = app('start')->getConfig();
                 $task   = new Task($config);
                 $task
