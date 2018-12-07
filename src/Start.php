@@ -25,7 +25,10 @@ class Start
             @unlink(__DIR__ . '/start-tmp');
         }
 
+        app($this);
+
         $this->config     = new Config();
+        $this->log        = new Logs();
         $this->command    = new Command($this->config);
         $this->gameInfo   = new GameInfo($this->config, $this->command);
         $this->winePrefix = new WinePrefix($this->config, $this->command);
@@ -33,7 +36,6 @@ class Start
         $this->fs         = new FileSystem($this->config, $this->command);
         $this->update     = new Update($this->config, $this->command);
         $this->monitor    = new Monitor($this->config, $this->command);
-        $this->log        = new Logs();
         $this->buffer     = new Buffer();
         $this->icon       = new Icon($this->config, $this->command, $this->system);
         $this->pack       = new Pack($this->config, $this->command, $this->fs);
@@ -52,8 +54,6 @@ class Start
     private function init()
     {
         $this->console->lock();
-
-        app($this);
 
         $this->gameInfo->create();
         $this->winePrefix->create();
