@@ -5585,7 +5585,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             return true;
         }
 
-        $skip = [$this->config->getLogsDir(), $this->config->getCacheDir()];
+        $skip = [$this->config->getLogsDir(), $this->config->getCacheDir(), $this->config->getConfigFile()];
 
         foreach (glob($this->config->getGameInfoDir() . '/*') as $path) {
             if (!in_array($path, $skip, true)) {
