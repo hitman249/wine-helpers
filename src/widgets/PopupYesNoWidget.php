@@ -13,6 +13,13 @@ class PopupYesNoWidget extends AbstractWidget {
     public function init()
     {
         if (null === $this->window) {
+            foreach ((array)$this->text as $i => $line) {
+                $width = (mb_strlen($line) + 4);
+                if ($this->width < $width) {
+                    $this->width = $width;
+                }
+            }
+
             $this->window = \NcursesObjects\Window::createCenteredOf($this->getParentWindow(), $this->width, $this->height);
         }
 
