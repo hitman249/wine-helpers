@@ -54,8 +54,8 @@ class MainScene extends AbstractScene
         $items = array_merge(
             $starts,
             [
-                ['id' => 'wine',     'name' => 'Wine'],
                 ['id' => 'tools',    'name' => 'Tools'],
+                ['id' => 'wine',     'name' => 'Wine'],
 //                ['id' => 'settings', 'name' => 'Settings'],
                 ['id' => 'info',     'name' => 'Info'],
                 ['id' => 'exit',     'name' => 'Exit'],

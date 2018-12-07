@@ -4289,7 +4289,6 @@ class Update {
 
     public function update()
     {
-        return false;
         $newStart = $this->network->get($this->config->getRepositoryUrl() . '/start');
 
         if ($newStart) {
@@ -4917,6 +4916,13 @@ class WinePrefix {
          * Set windows version; Borrowed from winetricks
          */
         $this->updateWinVersion();
+
+
+        /**
+         * Update configs
+         */
+        $this->update->updateConfig();
+        $this->update->updateDxvkConfig();
     }
 
     public function updateReplaces()
@@ -7294,8 +7300,8 @@ class MainScene extends AbstractScene
         $items = array_merge(
             $starts,
             [
-                ['id' => 'wine',     'name' => 'Wine'],
                 ['id' => 'tools',    'name' => 'Tools'],
+                ['id' => 'wine',     'name' => 'Wine'],
 //                ['id' => 'settings', 'name' => 'Settings'],
                 ['id' => 'info',     'name' => 'Info'],
                 ['id' => 'exit',     'name' => 'Exit'],

@@ -308,7 +308,6 @@ class Update {
 
     public function update()
     {
-        return false;
         $newStart = $this->network->get($this->config->getRepositoryUrl() . '/start');
 
         if ($newStart) {
