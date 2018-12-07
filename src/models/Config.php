@@ -342,20 +342,25 @@ cmd = \"-language=russian\"
 name = \"The Super Game: Deluxe Edition\"
 version = \"1.0.0\"
 [script]
-csmt = 1
-winetricks = 0
-dialogs = 1
 autoupdate = 1
-
-; Not use /home/user directory
-sandbox = 1
 
 ; Download latest d3d11.dll and dxgi.dll
 dxvk = 0
 dxvk_autoupdate = 1
 
+; Required for determining display manner FPS
+dxvk_d3d10 = 0
+
+; winetricks_to_install = \"d3dx9 xact\"
+winetricks_to_install = \"\"
+
 ; Windows version (win7, winxp, win2k)
 winver = \"win7\"
+
+csmt = 1
+
+; Not use /home/user directory
+sandbox = 1
 
 ; Set sound driver to PulseAudio or ALSA
 pulse = 1

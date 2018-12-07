@@ -155,20 +155,25 @@ name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
 
 [script]
-csmt = 1
-winetricks = 0
-dialogs = 1
 autoupdate = 1
-
-; Not use /home/user directory
-sandbox = 1
 
 ; Download latest d3d11.dll and dxgi.dll
 dxvk = 0
 dxvk_autoupdate = 1
 
+; Required for determining display manner FPS
+dxvk_d3d10 = 0
+
+; winetricks_to_install = "d3dx9 xact"
+winetricks_to_install = ""
+
 ; Windows version (win7, winxp, win2k)
 winver = "win7"
+
+csmt = 1
+
+; Not use /home/user directory
+sandbox = 1
 
 ; Set sound driver to PulseAudio or ALSA
 pulse = 1
@@ -220,7 +225,6 @@ resolution = "800x600"
 ; gpu_amd[] = "gpu/amd.sh"
 ; gpu_nvidia[] = "gpu/nvidia.sh"
 ; gpu_intel[] = "gpu/intel.sh"
-; settings[] = "settings.sh"
 
 [export]
 ;
@@ -236,9 +240,14 @@ resolution = "800x600"
 ; GALLIUM_HUD=simple,fps
 ; WINEESYNC=1
 ; PBA_DISABLE=1
+; MESA_GLTHREAD=true
+; __GL_THREADED_OPTIMIZATIONS=1
 ;
 ; Если в игре хрипит звук можно попробовать
 ; PULSE_LATENCY_MSEC=60
+
+WINEESYNC=1
+PBA_DISABLE=1
 
 [replaces]
 ;

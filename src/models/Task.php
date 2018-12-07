@@ -49,7 +49,7 @@ class Task
 
         $root = $this->config->getRootDir();
 
-        if (!$this->config->isDxvk()) {
+        if (!$this->config->isDxvk() || $this->config->getBool('script', 'dxvk_d3d10')) {
             $mesa = $this->system->getMesaVersion();
 
             if ($mesa) {

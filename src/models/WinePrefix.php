@@ -217,6 +217,11 @@ class WinePrefix {
             app()->getCurrentScene()->setProgress(90);
 
 
+            if ($winetricksInstall = $this->config->get('script', 'winetricks_to_install')) {
+                $this->log("Winetricks install \"{$winetricksInstall}\".");
+                $this->wine->winetricks(array_filter(explode(' ', $winetricksInstall)));
+            }
+
             /**
              * Fired hooks
              */
