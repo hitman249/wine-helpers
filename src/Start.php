@@ -53,6 +53,10 @@ class Start
 
     private function init()
     {
+        if (getenv('TERM')) {
+            putenv('TERM=xterm');
+        }
+
         $this->console->lock();
 
         $this->gameInfo->create();

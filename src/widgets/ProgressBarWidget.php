@@ -37,10 +37,10 @@ class ProgressBarWidget extends AbstractWidget {
         $this->init();
 
         $this->window->getSize($columns, $row);
-        $symbols = round($columns / 100 * $this->percent);
+        $symbols = round(($columns - 2)  / 100 * $this->percent);
 
         $this->window->erase()->refresh();
-        $this->window->drawStringHere(str_repeat('▓', $symbols) . str_repeat('░', $columns - $symbols));
+        $this->window->drawStringHere('[' . str_repeat('=', $symbols) . str_repeat('-', $columns - 2 - $symbols) . ']');
         $this->window->refresh();
     }
 }
