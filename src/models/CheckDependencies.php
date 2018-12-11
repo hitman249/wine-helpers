@@ -97,7 +97,7 @@ class CheckDependencies {
                 $app = 'ld';
             }
 
-            $is = trim($this->command->run("which {$app}"));
+            $is = trim($this->command->run("command -v {$app}"));
 
             if ($app === 'ld') {
                 $app = 'binutils';

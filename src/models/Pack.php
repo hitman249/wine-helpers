@@ -86,7 +86,7 @@ class Pack
         static $result;
 
         if (null === $result) {
-            $result = (bool)trim($this->command->run('which mksquashfs'));
+            $result = (bool)trim($this->command->run('command -v mksquashfs'));
         }
 
         return $result;

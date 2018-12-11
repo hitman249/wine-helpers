@@ -2538,7 +2538,7 @@ class System {
 
     public function getDesktopPath()
     {
-        $isXdg = (bool)trim($this->command->run('which xdg-user-dir'));
+        $isXdg = (bool)trim($this->command->run('command -v xdg-user-dir'));
 
         if ($isXdg) {
             return trim($this->command->run('xdg-user-dir DESKTOP'));
@@ -2722,7 +2722,7 @@ class System {
 
         if (null === $result) {
 
-            $isGetConf = (bool)trim($this->command->run('which getconf'));
+            $isGetConf = (bool)trim($this->command->run('command -v getconf'));
 
             if ($isGetConf) {
                 $text = explode("\n", trim($this->command->run('getconf GNU_LIBC_VERSION')));
@@ -2764,7 +2764,7 @@ class System {
         static $result;
 
         if (null === $result) {
-            $isGlxinfo = $this->command->run("which glxinfo");
+            $isGlxinfo = $this->command->run("command -v glxinfo");
 
             if ($isGlxinfo) {
                 $type = trim($this->command->run('glxinfo | grep -E "(ATI|AMD)"'));
@@ -3931,12 +3931,12 @@ class Wine {
 
     public function checkSystemWine()
     {
-        return (bool)trim($this->command->run('which "wine"'));
+        return (bool)trim($this->command->run('command -v "wine"'));
     }
 
     public function checkWine()
     {
-        return (bool)trim($this->command->run('which ' . Text::quoteArgs($this->config->wine('WINE'))));
+        return (bool)trim($this->command->run('command -v ' . Text::quoteArgs($this->config->wine('WINE'))));
     }
 
     public function version()
@@ -4534,7 +4534,7 @@ class Monitor {
     public function isXrandr()
     {
         if (null === $this->xrandr) {
-            $this->xrandr = (bool)trim($this->command->run("which xrandr"));
+            $this->xrandr = (bool)trim($this->command->run("command -v xrandr"));
         }
 
         return $this->xrandr;
@@ -5147,7 +5147,7 @@ class WinePrefix {
             "[HKEY_CURRENT_USER\Software\Wine\Drivers]\n",
         ];
 
-        $isInstallPulseAudio = (bool)trim($this->command->run("which pulseaudio"));
+        $isInstallPulseAudio = (bool)trim($this->command->run("command -v pulseaudio"));
 
         if ($isInstallPulseAudio === false && $this->config->isPulse()) {
             $this->config->set('script', 'pulse', 0);
@@ -5716,7 +5716,7 @@ class CheckDependencies {
                 $app = 'ld';
             }
 
-            $is = trim($this->command->run("which {$app}"));
+            $is = trim($this->command->run("command -v {$app}"));
 
             if ($app === 'ld') {
                 $app = 'binutils';
@@ -6094,7 +6094,7 @@ class Pack
         static $result;
 
         if (null === $result) {
-            $result = (bool)trim($this->command->run('which mksquashfs'));
+            $result = (bool)trim($this->command->run('command -v mksquashfs'));
         }
 
         return $result;

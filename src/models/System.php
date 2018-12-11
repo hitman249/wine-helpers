@@ -29,7 +29,7 @@ class System {
 
     public function getDesktopPath()
     {
-        $isXdg = (bool)trim($this->command->run('which xdg-user-dir'));
+        $isXdg = (bool)trim($this->command->run('command -v xdg-user-dir'));
 
         if ($isXdg) {
             return trim($this->command->run('xdg-user-dir DESKTOP'));
@@ -213,7 +213,7 @@ class System {
 
         if (null === $result) {
 
-            $isGetConf = (bool)trim($this->command->run('which getconf'));
+            $isGetConf = (bool)trim($this->command->run('command -v getconf'));
 
             if ($isGetConf) {
                 $text = explode("\n", trim($this->command->run('getconf GNU_LIBC_VERSION')));
@@ -255,7 +255,7 @@ class System {
         static $result;
 
         if (null === $result) {
-            $isGlxinfo = $this->command->run("which glxinfo");
+            $isGlxinfo = $this->command->run("command -v glxinfo");
 
             if ($isGlxinfo) {
                 $type = trim($this->command->run('glxinfo | grep -E "(ATI|AMD)"'));

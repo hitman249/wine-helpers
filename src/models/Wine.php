@@ -91,12 +91,12 @@ class Wine {
 
     public function checkSystemWine()
     {
-        return (bool)trim($this->command->run('which "wine"'));
+        return (bool)trim($this->command->run('command -v "wine"'));
     }
 
     public function checkWine()
     {
-        return (bool)trim($this->command->run('which ' . Text::quoteArgs($this->config->wine('WINE'))));
+        return (bool)trim($this->command->run('command -v ' . Text::quoteArgs($this->config->wine('WINE'))));
     }
 
     public function version()

@@ -21,7 +21,7 @@ class Monitor {
     public function isXrandr()
     {
         if (null === $this->xrandr) {
-            $this->xrandr = (bool)trim($this->command->run("which xrandr"));
+            $this->xrandr = (bool)trim($this->command->run("command -v xrandr"));
         }
 
         return $this->xrandr;

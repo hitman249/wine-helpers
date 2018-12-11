@@ -487,7 +487,7 @@ class WinePrefix {
             "[HKEY_CURRENT_USER\Software\Wine\Drivers]\n",
         ];
 
-        $isInstallPulseAudio = (bool)trim($this->command->run("which pulseaudio"));
+        $isInstallPulseAudio = (bool)trim($this->command->run("command -v pulseaudio"));
 
         if ($isInstallPulseAudio === false && $this->config->isPulse()) {
             $this->config->set('script', 'pulse', 0);
