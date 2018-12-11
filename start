@@ -5734,29 +5734,37 @@ class CheckDependencies {
             app()->getCurrentScene()->setProgress($progress);
         }
 
-        $isVulkan = (bool)$this->command->run('ldconfig -p | grep libvulkan.so');
-        $this->log($this->formattedItem('libvulkan', $isVulkan ? 'ok' : 'fail'));
+        if ($apps['ldconfig']) {
+            $isVulkan = (bool)$this->command->run('ldconfig -p | grep libvulkan.so');
+            $this->log($this->formattedItem('libvulkan', $isVulkan ? 'ok' : 'fail'));
 
-        $progress += $percent;
-        app()->getCurrentScene()->setProgress($progress);
+            $progress += $percent;
+            app()->getCurrentScene()->setProgress($progress);
 
-        $isFuse = (bool)$this->command->run('ldconfig -p | grep libfuse.so');
-        $this->log($this->formattedItem('libfuse', $isFuse ? 'ok' : 'fail'));
+            $isFuse = (bool)$this->command->run('ldconfig -p | grep libfuse.so');
+            $this->log($this->formattedItem('libfuse', $isFuse ? 'ok' : 'fail'));
 
-        $progress += $percent;
-        app()->getCurrentScene()->setProgress($progress);
+            $progress += $percent;
+            app()->getCurrentScene()->setProgress($progress);
 
-        $isOpenAL = (bool)$this->command->run('ldconfig -p | grep libopenal.so');
-        $this->log($this->formattedItem('libopenal', $isOpenAL ? 'ok' : 'fail'));
+            $isOpenAL = (bool)$this->command->run('ldconfig -p | grep libopenal.so');
+            $this->log($this->formattedItem('libopenal', $isOpenAL ? 'ok' : 'fail'));
 
-        $progress += $percent;
-        app()->getCurrentScene()->setProgress($progress);
+            $progress += $percent;
+            app()->getCurrentScene()->setProgress($progress);
 
-        $isXinerama = (bool)$this->command->run('ldconfig -p | grep libXinerama.so');
-        $this->log($this->formattedItem('libxinerama1', $isXinerama ? 'ok' : 'fail'));
+            $isXinerama = (bool)$this->command->run('ldconfig -p | grep libXinerama.so');
+            $this->log($this->formattedItem('libxinerama1', $isXinerama ? 'ok' : 'fail'));
 
-        $progress += $percent;
-        app()->getCurrentScene()->setProgress($progress);
+            $progress += $percent;
+            app()->getCurrentScene()->setProgress($progress);
+        } else {
+            $message = 'Failed to check due to missing ldconfig';
+            $this->log('');
+            $this->log("libvulkan, libfuse, libopenal, libXinerama\n{$message}.");
+            $progress += ($percent * 4);
+            app()->getCurrentScene()->setProgress($progress);
+        }
 
         if (false === $apps['wine']) {
             $isOk = false;
@@ -5792,14 +5800,14 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install x11-xserver-utils");
         }
 
-        if (!$isVulkan && $this->config->isDxvk()) {
+        if ($apps['ldconfig'] && !$isVulkan && $this->config->isDxvk()) {
             $isOk = false;
             $this->log('');
             $this->log('Please install libvulkan1.');
             $this->log("sudo apt-get install libvulkan1");
         }
 
-        if (!$isFuse) {
+        if ($apps['ldconfig'] && !$isFuse) {
             if (file_exists($this->config->getRootDir() . '/wine.squashfs')
                 || file_exists($this->config->getRootDir() . '/game_info/data.squashfs')) {
                 $isOk = false;
