@@ -334,6 +334,22 @@ namespace Rakit\Curl {
         }
 
         /**
+         * execute post request
+         *
+         * @param string $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function postRaw($data)
+        {
+            $this->option(CURLOPT_URL, $this->url);
+            $this->option(CURLOPT_POST, TRUE);
+            $this->option(CURLOPT_POSTFIELDS, $data);
+
+            return $this->execute();
+        }
+
+        /**
          * execute put request
          *
          * @param array $data

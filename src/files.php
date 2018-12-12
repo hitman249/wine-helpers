@@ -40,6 +40,7 @@ return [
         'models/Task.php',
         'models/Console.php',
         'models/Dialog.php',
+        'models/YandexDisk.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',
