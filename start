@@ -6615,7 +6615,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         $wine       = $this->config->getWineDir();
         $wineSquash = $this->config->getWineFile();
 
-        if (file_exists($wineSquash) && file_exists($wine) && !app('start')->getSystem()->isXz()) {
+        if (file_exists($wineSquash) || file_exists($wine) || !app('start')->getSystem()->isXz()) {
             return false;
         }
 
@@ -10348,7 +10348,7 @@ class ProgressBarWidget extends AbstractWidget {
         $symbols = round(($columns - 2)  / 100 * $this->percent);
 
         $this->window->erase()->refresh();
-        $this->window->drawStringHere('[' . str_repeat('=', $symbols) . str_repeat('-', $columns - 2 - $symbols) . ']');
+        $this->window->drawStringHere('[' . str_repeat('#', $symbols) . str_repeat('-', $columns - 2 - $symbols) . ']');
         $this->window->refresh();
     }
 }

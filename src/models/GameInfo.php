@@ -390,7 +390,7 @@ users/--REPLACE_WITH_USERNAME--/Documents"
         $wine       = $this->config->getWineDir();
         $wineSquash = $this->config->getWineFile();
 
-        if (file_exists($wineSquash) && file_exists($wine) && !app('start')->getSystem()->isXz()) {
+        if (file_exists($wineSquash) || file_exists($wine) || !app('start')->getSystem()->isXz()) {
             return false;
         }
 
