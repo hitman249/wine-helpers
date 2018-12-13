@@ -5,6 +5,8 @@
 ![Settings](3.png)
 ![Settings](4.png)
 ![Settings](5.png)
+![Settings](6.png)
+![Settings](7.png)
 
 Этот скрипт предназначен в первую очередь для облегчения портирования Windows игр/программ под Linux, но может 
 применяться и в других целях. Работа скрипта гарантируется на всех дистрибутивах Linux, где установлены стандартные 
@@ -22,7 +24,7 @@ CentOS 7, Deepin 15.6, Manjaro 17.1.11.
 
 1) Создать папку (желательно без пробелов в пути и кириллицы)
 
-2) Скопировать туда папку wine, готовые сборки можно скачать [отсюда](https://yadi.sk/d/IrofgqFSqHsPu), выполнить:
+2) Выполнить
 ```bash
 wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
 ```
