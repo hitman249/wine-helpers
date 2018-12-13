@@ -10,6 +10,8 @@ return [
         'extensions/ncurses/Terminal.php',
         'extensions/ncurses/Window.php',
         'extensions/ncurses/WindowStyle.php',
+        'extensions/curl/Rakit/Curl/Curl.php',
+        'extensions/curl/Rakit/Curl/Response.php',
     ],
     'global' => [
         'helpers/Text.php',
@@ -38,6 +40,7 @@ return [
         'models/Task.php',
         'models/Console.php',
         'models/Dialog.php',
+        'models/YandexDisk.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

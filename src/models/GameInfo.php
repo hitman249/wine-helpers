@@ -267,6 +267,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/intel.sh' . '"');
 
             app()->getCurrentScene()->setProgress(10);
+
+            $this->downloadWineWizard();
         }
     }
 
@@ -290,5 +292,126 @@ users/--REPLACE_WITH_USERNAME--/Documents"
     public function isCreated()
     {
         return $this->created;
+    }
+
+    public function selectWine($urlOrYa, $id = null, $name = null)
+    {
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->show();
+
+        $ya = null;
+
+        if ($urlOrYa instanceof YandexDisk) {
+            if (null !== $id) {
+                $ya = $urlOrYa->getFolder($id);
+            } else {
+                $ya = $urlOrYa;
+            }
+        } else {
+            $ya = new YandexDisk($urlOrYa);
+        }
+
+        $result = null;
+
+        $items = [];
+
+        if ($ya->getParent()) {
+            $items[] = ['id' => '..', 'name' => '..'];
+        }
+
+        foreach ($ya->getList() as $key => $value) {
+            $items[] = ['id' => $key, 'name' => $value];
+        }
+
+        $scene->removeWidget($popup->hide());
+
+        $select = $scene->addWidget(new PopupSelectWidget($scene->getWindow()));
+        $select
+            ->setTitle($name ?: 'Select Wine')
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 6)
+            ->setActive(true)
+            ->show();
+        $select->onEscEvent(function () use (&$select, &$scene) { $scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($item) use (&$select, &$ya, &$scene, &$result) {
+            $scene->removeWidget($select->hide());
+            if ($ya->isDir($item['id'])) {
+                $result = $this->selectWine($ya, $item['id'], $item['name']);
+            } elseif ($item['id'] === '..') {
+                $result = $this->selectWine($ya->getParent());
+            } else {
+                app()->press(false);
+                $item['ya'] = $ya;
+                $result = $item;
+
+                $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                $popup
+                    ->setTitle('Download wine')
+                    ->setText('Wait ...')
+                    ->show();
+
+                $archive = $this->config->getRootDir() . '/archive.tar.xz';
+                $ya->download($item['id'], $archive);
+
+                $scene->removeWidget($popup->hide());
+
+                if (file_exists($archive)) {
+                    $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                    $popup
+                        ->setTitle('Extract wine')
+                        ->setText('Wait ...')
+                        ->show();
+
+                    app('start')->getFileSystem()->unpackXz($archive, $this->config->getWineDir());
+
+                    $wine = new Wine($this->config, $this->command);
+
+                    app('start')->setWine($wine);
+                    app('start')->getWinePrefix()->setWine($wine);
+                    $this->config->updateWine();
+
+                    $scene->removeWidget($popup->hide());
+                }
+            }
+        });
+
+        return $result;
+    }
+
+    public function downloadWineWizard()
+    {
+        $wine       = $this->config->getWineDir();
+        $wineSquash = $this->config->getWineFile();
+
+        if (file_exists($wineSquash) && file_exists($wine) && !app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupYesNoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Wine download Wizard')
+            ->setText([
+                'Download wine?',
+            ])
+            ->setActive(true)
+            ->show();
+        $popup->onEscEvent(function () use (&$popup, &$scene) { $scene->removeWidget($popup->hide()); });
+        $popup->onEnterEvent(function ($flag) use (&$popup, &$scene) {
+            $scene->removeWidget($popup->hide());
+
+            if ($flag) {
+                $this->selectWine('https://yadi.sk/d/IrofgqFSqHsPu/wine_builds');
+            }
+        });
+        app()->press();
     }
 }

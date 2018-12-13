@@ -111,8 +111,8 @@ class FileSystem {
         }
 
         foreach (new DirectoryIterator($in) as $iterator) {
-            if ($iterator->isFile()) {
-                rename($iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
+            if ($iterator->isFile() || $iterator->isLink()) {
+                rename($iterator->isLink() ? $iterator->getPathName() : $iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
             } else if (!$iterator->isDot() && $iterator->isDir()) {
                 $this->mv($iterator->getRealPath(), "{$out}/{$iterator}");
                 if (file_exists($iterator->getRealPath())) {
@@ -150,5 +150,51 @@ class FileSystem {
     public function link($in, $out)
     {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
+    }
+
+    public function unpackXz($inFile, $outDir)
+    {
+        if (!app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        if (!file_exists($inFile) || is_dir($inFile)) {
+            return false;
+        }
+
+        if (file_exists($outDir)) {
+            $this->rm($outDir);
+        }
+
+        $dir = dirname($inFile);
+        $rnd = mt_rand(10000, 99999);
+        $tmpDir = "{$dir}/tmp_{$rnd}";
+        $this->mkdirs([$tmpDir]);
+
+        if (!file_exists($tmpDir)) {
+            return false;
+        }
+
+        $fileName = basename($inFile);
+        $mvFile   = "{$tmpDir}/{$fileName}";
+        $this->mv($inFile, $mvFile);
+        $this->command->run("cd \"{$tmpDir}\" && tar xf \"./{$fileName}\"");
+        $this->rm($mvFile);
+
+        $find = glob("{$tmpDir}/*");
+
+        $path = $tmpDir;
+
+        if (count($find) === 1) {
+            $path = reset($find);
+        }
+
+        $this->mv($path, $outDir);
+
+        if (file_exists($tmpDir)) {
+            $this->rm($tmpDir);
+        }
+
+        return true;
     }
 }

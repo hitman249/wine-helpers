@@ -85,6 +85,7 @@ class CheckDependencies {
             'binutils'   => false,
             'ffmpeg'     => false,
             'sudo'       => false,
+            'xz'         => false,
         ];
 
         ksort($apps);

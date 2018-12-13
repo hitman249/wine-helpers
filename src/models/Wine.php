@@ -4,6 +4,8 @@ class Wine {
 
     private $command;
     private $config;
+    private $version;
+    private $missingLibs;
 
     /**
      * Wine constructor.
@@ -101,13 +103,11 @@ class Wine {
 
     public function version()
     {
-        static $version;
-
-        if (null === $version) {
-            $version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
+        if (null === $this->version) {
+            $this->version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
         }
 
-        return $version;
+        return $this->version;
     }
 
     public function isUsedSystemWine()
@@ -118,19 +118,17 @@ class Wine {
 
     public function getMissingLibs()
     {
-        static $result;
-
-        if (null === $result) {
+        if (null === $this->missingLibs) {
             $help = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --help');
 
             if (strpos($help, '--check-libs') === false) {
-                $result = [];
-                return $result;
+                $this->missingLibs = [];
+                return $this->missingLibs;
             }
 
-            $result = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
-            $result = array_filter(
-                array_map('trim', explode("\n", $result)),
+            $this->missingLibs = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
+            $this->missingLibs = array_filter(
+                array_map('trim', explode("\n", $this->missingLibs)),
                 function ($line) {
                     if (!$line) {
                         return false;
@@ -146,6 +144,6 @@ class Wine {
             );
         }
 
-        return $result;
+        return $this->missingLibs;
     }
 }

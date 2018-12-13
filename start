@@ -1734,6 +1734,769 @@ namespace NcursesObjects
     }
 }
 
+
+
+namespace Rakit\Curl {
+    class Curl {
+
+        /**
+         * @var curl session $curl
+         */
+        protected $curl;
+
+        /**
+         * @var string $url for url target
+         */
+        protected $url;
+
+        /**
+         * @var array $params for store query params or post fields
+         */
+        protected $params = array();
+
+        /**
+         * @var array $cookies for store cookie data
+         */
+        protected $cookies = array();
+
+        /**
+         * @var array $options for store curl options
+         */
+        protected $options = array();
+
+        /**
+         * @var array $files for store file post fields
+         */
+        protected $files = array();
+
+        /**
+         * @var array $headers for store header settings
+         */
+        protected $headers = array();
+
+        /**
+         * @var int $limit_redirect_count
+         */
+        protected $limit_redirect_count = 0;
+
+        /**
+         * @var array $redirect_urls
+         */
+        protected $redirect_urls = array();
+
+        /**
+         * @var string $cookie_jar for storing session cookies while request
+         */
+        protected $cookie_jar = null;
+
+        /**
+         * @var bool $closed
+         */
+        protected $closed = FALSE;
+
+        /**
+         * @var mixed $error_message
+         */
+        protected $error_message = null;
+
+        /**
+         * @var mixed $errno
+         */
+        protected $errno = null;
+
+        /**
+         * @var Response $response for store response object after curl_exec()
+         */
+        public $response = null;
+
+        /**
+         * Curl constructor.
+         * @param $url
+         * @param array $params
+         * @throws \ErrorException
+         */
+        public function __construct($url, array $params = array())
+        {
+            // check curl extension
+            if ( ! extension_loaded('curl')) {
+                throw new \ErrorException('cURL library need PHP cURL extension');
+            }
+
+            $this->curl = curl_init();
+            $this->url = $url;
+            $this->params = $params;
+
+            $this->timeout(10);
+            $this->option(CURLOPT_RETURNTRANSFER, 1);
+            $this->option(CURLOPT_HEADER, TRUE);
+        }
+
+        /**
+         * set timeout
+         *
+         * @param int $time request time limit
+         * @return self
+         */
+        public function timeout($time)
+        {
+            $this->option(CURLOPT_CONNECTTIMEOUT, $time);
+
+            return $this;
+        }
+
+        /**
+         * set http authentication
+         *
+         * @param string username
+         * @param string password
+         * @param string type curl authentication type
+         *
+         * @return self
+         */
+        public function auth($username, $password, $type = 'basic')
+        {
+            $auth_type = constant('CURLAUTH_' . strtoupper($type));
+
+            $this->option(CURLOPT_HTTPAUTH, $auth_type);
+            $this->option(CURLOPT_USERPWD, $username . ':' . $password);
+
+            return $this;
+        }
+
+        /**
+         * set useragent
+         *
+         * @param string $user_agent
+         * @return self
+         */
+        public function useragent($user_agent)
+        {
+            $this->option(CURLOPT_USERAGENT, $user_agent);
+
+            return $this;
+        }
+
+        /**
+         * set referer
+         *
+         * @param string $referer
+         * @return self
+         */
+        public function referer($referer)
+        {
+            $this->option(CURLOPT_REFERER, $referer);
+
+            return $this;
+        }
+
+        /**
+         * set an option
+         *
+         * @param string $option option key
+         * @param mixed $value option value
+         * @return self
+         */
+        public function option($option, $value)
+        {
+            $this->options[$option] = $value;
+
+            return $this;
+        }
+
+        /**
+         * check if option has been setted
+         *
+         * @param string $option option name
+         * @return bool
+         */
+        public function hasOption($option)
+        {
+            return array_key_exists($option, $this->options);
+        }
+
+        /**
+         * set proxy
+         *
+         * @param string $url proxy url
+         * @param int $port proxy port
+         * @return self
+         */
+        public function proxy($url, $port = 80)
+        {
+            $this->option(CURLOPT_HTTPPROXYTUNNEL, true);
+            $this->option(CURLOPT_PROXY, $url . ':' . $port);
+            return $this;
+        }
+
+        /**
+         * set request header
+         *
+         * @param string $key header key
+         * @param string $value header value
+         * @return self
+         */
+        public function header($key, $value = null)
+        {
+            $this->headers[] = $value === null ? $key : $key.': '.$value;
+
+            return $this;
+        }
+
+        /**
+         * getting curl session
+         */
+        public function getCurl()
+        {
+            return $this->curl;
+        }
+
+        /**
+         * set request data(params)
+         *
+         * @param string $key
+         * @param string $value
+         * @return self
+         */
+        public function param($key, $value)
+        {
+            $this->params[$key] = $value;
+            return $this;
+        }
+
+        /**
+         * set request cookie
+         *
+         * @param string $key
+         * @param string $value
+         * @return self
+         */
+        public function cookie($key, $value)
+        {
+            $this->cookies[$key] = $value;
+
+            return $this;
+        }
+
+        /**
+         * add a file to upload
+         *
+         * @param string $key post file key
+         * @param string $filepath
+         * @param string $mimetype
+         * @param string $filename posted filename
+         * @return self
+         */
+        public function addFile($key, $filepath, $mimetype='', $filename='')
+        {
+            $postfield = "@$filepath;filename="
+                . ($filename ?: basename($filepath))
+                . ($mimetype ? ";type=$mimetype" : '');
+
+            $this->files[$key] = $postfield;
+
+            return $this;
+        }
+
+        /**
+         * auto redirect if reseponse is redirecting (status: 3xx)
+         *
+         * @param int $count maximum redirecting
+         */
+        public function autoRedirect($count)
+        {
+            if(!is_int($count)) {
+                throw new \InvalidArgumentException("Limit redirect must be integer");
+            }
+
+            $this->limit_redirect_count = $count;
+        }
+
+        /**
+         * storing session cookie with CURLOPT_COOKIEJAR and CURLOPT_COOKIEFILE
+         *
+         * @param string $file file to store cookies
+         */
+        public function storeSession($file)
+        {
+            $this->option(CURLOPT_COOKIEJAR, $file);
+            $this->option(CURLOPT_COOKIEFILE, $file);
+            $this->cookie_jar = $file;
+        }
+
+        /**
+         * set request as ajax(XMLHttpRequest)
+         */
+        public function ajax()
+        {
+            $this->header("X-Requested-With: XMLHttpRequest");
+            return $this;
+        }
+
+        /**
+         * execute get request
+         *
+         * @param array $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function get(array $data = array())
+        {
+            $params = array_merge($this->params, $data);
+
+            $params = !empty($params)? '?' . http_build_query($params) : '';
+            $url = $this->url.$params;
+            $this->option(CURLOPT_URL, $url);
+            $this->option(CURLOPT_HTTPGET, TRUE);
+
+            return $this->execute();
+        }
+
+        /**
+         * execute post request
+         *
+         * @param array $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function post(array $data = array())
+        {
+            $params = array_merge($this->params, $this->files, $data);
+
+            $this->option(CURLOPT_URL, $this->url);
+            $this->option(CURLOPT_POST, TRUE);
+            $this->option(CURLOPT_POSTFIELDS, $params);
+
+            return $this->execute();
+        }
+
+        /**
+         * execute post request
+         *
+         * @param string $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function postRaw($data)
+        {
+            $this->option(CURLOPT_URL, $this->url);
+            $this->option(CURLOPT_POST, TRUE);
+            $this->option(CURLOPT_POSTFIELDS, $data);
+
+            return $this->execute();
+        }
+
+        /**
+         * execute put request
+         *
+         * @param array $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function put(array $data = array())
+        {
+            $params = array_merge($this->params, $data);
+
+            $params = !empty($this->params)? '?' . http_build_query($this->params) : '';
+            $url = $this->url.$params;
+            $this->option(CURLOPT_URL, $url);
+            $this->option(CURLOPT_CUSTOMREQUEST, 'PUT');
+
+            return $this->execute();
+        }
+
+        /**
+         * execute patch request
+         *
+         * @param array $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function patch(array $data = array())
+        {
+            $params = array_merge($this->params, $this->files, $data);
+
+            $this->option(CURLOPT_URL, $this->url);
+            $this->option(CURLOPT_CUSTOMREQUEST, 'PATCH');
+            $this->option(CURLOPT_POSTFIELDS, $params);
+
+            return $this->execute();
+        }
+
+        /**
+         * execute delete request
+         *
+         * @param array $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function delete(array $data = array())
+        {
+            $params = array_merge($this->params, $data);
+            $params = !empty($params)? '?' . http_build_query($params) : '';
+            $url = $this->url.$params;
+            $this->option(CURLOPT_URL, $url);
+            $this->option(CURLOPT_CUSTOMREQUEST, 'DELETE');
+
+            return $this->execute();
+        }
+
+        /**
+         * getting redirect urls
+         * @return array redirect urls
+         */
+        public function getRedirectUrls()
+        {
+            return $this->redirect_urls;
+        }
+
+        /**
+         * getting last url (may be last redirected url or defined url)
+         * @return string url
+         */
+        public function getFinalUrl()
+        {
+            if(count($this->redirect_urls) > 0) {
+                return $this->redirect_urls[count($this->redirect_urls)-1];
+            }
+
+            return $this->url;
+        }
+
+        /**
+         * execute curl
+         *
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         * @throws \Exception
+         */
+        protected function execute()
+        {
+            if(TRUE === $this->closed) {
+                throw new \Exception("Cannot execute curl session twice, create a new one!");
+            }
+
+            if(!empty($this->cookies)) {
+                $this->option(CURLOPT_COOKIE, http_build_query($this->cookies, '', '; '));
+            }
+
+            $this->option(CURLOPT_HTTPHEADER, $this->headers);
+
+            curl_setopt_array($this->curl, $this->options);
+
+            $response = curl_exec($this->curl);
+            $info = curl_getinfo($this->curl);
+            $this->errno = $error = curl_errno($this->curl);
+            $this->error_message = curl_error($this->curl);
+            $this->response = new Response($info, $response, $this->errno, $this->error_message);
+
+            $this->close();
+
+            if($this->limit_redirect_count > 0) {
+                $count_redirect = 0;
+                while($this->response->isRedirect()) {
+                    $this->redirect();
+                    $count_redirect++;
+
+                    if($count_redirect >= $this->limit_redirect_count) {
+                        break;
+                    }
+                }
+            }
+
+            return $this->response;
+        }
+
+        /**
+         * redirect from response 3xx
+         * @throws \ErrorException
+         */
+        protected function redirect()
+        {
+            $redirect_url = $this->response->getHeader("location");
+            $curl = new static($redirect_url);
+            if($this->cookie_jar) {
+                $curl->storeSession($this->cookie_jar);
+            }
+            $this->response = $curl->get();
+            $this->redirect_urls[] = $redirect_url;
+        }
+
+        /**
+         * getting error number after execute
+         * @return int error number
+         */
+        public function getErrno()
+        {
+            return $this->errno;
+        }
+
+        /**
+         * alias for getErrno
+         * @return int error number
+         */
+        public function getError()
+        {
+            return $this->getErrno();
+        }
+
+        /**
+         * getting error message after execute
+         * @return string error message
+         */
+        public function getErrorMessage()
+        {
+            return $this->error_message;
+        }
+
+        /**
+         * closing curl
+         */
+        protected function close()
+        {
+            curl_close($this->curl);
+            $this->closed = TRUE;
+        }
+
+        /**
+         * simple get request
+         * @throws \ErrorException
+         */
+        public static function doGet($url, array $data = array())
+        {
+            return static::make($url, $data)->get();
+        }
+
+        /**
+         * simple post request
+         * @throws \ErrorException
+         */
+        public static function doPost($url, array $data = array())
+        {
+            return static::make($url, $data)->post();
+        }
+
+        /**
+         * simple put request
+         * @throws \ErrorException
+         */
+        public static function doPut($url, array $data = array())
+        {
+            return static::make($url, $data)->put();
+        }
+
+        /**
+         * simple patch request
+         * @throws \ErrorException
+         */
+        public static function doPatch($url, array $data = array())
+        {
+            return static::make($url, $data)->patch();
+        }
+
+        /**
+         * simple delete request
+         * @throws \ErrorException
+         */
+        public static function doDelete($url, array $data = array())
+        {
+            return static::make($url, $data)->delete();
+        }
+
+        /**
+         * make a curl request object
+         * @throws \ErrorException
+         */
+        public static function make($url, array $data = array())
+        {
+            return new static($url, $data);
+        }
+
+    }
+}
+
+
+
+
+namespace Rakit\Curl {
+    class Response {
+
+        protected $info;
+
+        protected $body;
+
+        protected $error;
+
+        protected $error_message;
+
+        protected $header_string;
+
+        protected $parsed_headers = array();
+
+        protected $cookie = array();
+
+        public function __construct(array $info, $response, $errno, $error_message)
+        {
+            $this->errno = $errno;
+            $this->error_message = $error_message;
+            $this->body = substr($response, $info['header_size']);
+            $this->header_string = substr($response, 0, $info['header_size']);
+            $this->info = $info;
+
+            $this->parsed_headers = $this->parseHeaderString($this->header_string);
+        }
+
+        public function isNotFound()
+        {
+            return $this->getStatus() == 404;
+        }
+
+        public function isRedirect()
+        {
+            $status = $this->getStatus();
+            if(substr($status, 0, 1) == '3') return TRUE;
+        }
+
+        public function error()
+        {
+            return $this->errno != 0;
+        }
+
+        public function getErrno()
+        {
+            return $this->errno;
+        }
+
+        public function getError()
+        {
+            return $this->getErrno();
+        }
+
+        public function getErrorMessage()
+        {
+            return $this->error_message;
+        }
+
+        public function getHeader($key, $default = null)
+        {
+            $key = strtolower($key);
+            return isset($this->parsed_headers[$key]) ? $this->parsed_headers[$key] : $default;
+        }
+
+        public function getHeaders()
+        {
+            return $this->parsed_headers;
+        }
+
+        public function getCookie()
+        {
+            return $this->cookie;
+        }
+
+        public function length()
+        {
+            return strlen($this->getbody()) + strlen($this->getHeaderString());
+        }
+
+        public function getStatus()
+        {
+            return $this->getInfo('http_code', 0);
+        }
+
+        public function getContentType()
+        {
+            return $this->getInfo('content_type', FALSE);
+        }
+
+        public function isHtml()
+        {
+            return $this->getContentType() === 'text/html';
+        }
+
+        public function getInfo($key, $default = null)
+        {
+            return isset($this->info[$key])? $this->info[$key] : $default;
+        }
+
+        public function getAllInfo()
+        {
+            return $this->info;
+        }
+
+        public function getBody()
+        {
+            return $this->body;
+        }
+
+        public function getHeaderString()
+        {
+            return $this->header_string;
+        }
+
+        public function toArray()
+        {
+            $data = array(
+                'headers' => $this->getHeaders(),
+                'cookie' => $this->getCookie(),
+                'body' => $this->getBody()
+            );
+
+            return array_merge($this->info, $data);
+        }
+
+        public function __toString()
+        {
+            return (string) $this->getBody();
+        }
+
+        protected function parseHeaderString($header_string)
+        {
+            $exp = explode("\n", $header_string);
+
+            $headers = array();
+
+            foreach($exp as $header) {
+                $header = trim($header);
+
+                if(preg_match('/^HTTP\/(?<v>[^ ]+)/', $header, $match)) {
+                    $headers['http_version'] = $match['v'];
+                    $this->info['http_version'] = $match['v'];
+                } elseif('' == $header) {
+                    continue;
+                } else {
+                    list($key, $value) = explode(':', $header, 2);
+                    $key = strtolower($key);
+                    $headers[$key] = trim($value);
+
+                    if($key === 'set-cookie') {
+                        $this->parseCookie($value);
+                    }
+                }
+            }
+
+            return $headers;
+        }
+
+        protected function parseCookie($cookie_string)
+        {
+            $exp = explode(';', $cookie_string);
+
+            $cookie['value'] = array_shift($exp);
+
+            foreach($exp as $i => $data) {
+                $_parse = explode('=', $data, 2);
+                $key = $_parse[0];
+                $value = isset($_parse[1])? $_parse[1] : "";
+
+                $cookie[trim(strtolower($key))] = trim($value);
+            }
+
+            $this->cookie = $cookie;
+        }
+
+    }
+}
+
+
 namespace { 
 
 class Text
@@ -1885,6 +2648,58 @@ if (!function_exists('debug_string_backtrace')) {
         file_put_contents($file, "{$trace}\n\n", FILE_APPEND);
 
         return "{$trace}\n\n";
+    }
+}
+
+/* *
+ * startsWith('http://example.com', 'http://') -> true
+ * startsWith('http://example.com', 'ttp://')  -> false
+ * */
+if (!function_exists('startsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function startsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (strpos($haystack, $str) === 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || strpos($haystack, (string)$needle) === 0;
+    }
+}
+
+/**
+ * endWith('http://example.com', 'om')         -> true
+ * endWith('http://example.com', '.co')        -> false
+ */
+if (!function_exists('endsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function endsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (substr($haystack, -strlen($str)) === $str) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || substr($haystack, (string)-strlen($needle)) === $needle;
     }
 }
 
@@ -2242,8 +3057,8 @@ class FileSystem {
         }
 
         foreach (new DirectoryIterator($in) as $iterator) {
-            if ($iterator->isFile()) {
-                rename($iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
+            if ($iterator->isFile() || $iterator->isLink()) {
+                rename($iterator->isLink() ? $iterator->getPathName() : $iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
             } else if (!$iterator->isDot() && $iterator->isDir()) {
                 $this->mv($iterator->getRealPath(), "{$out}/{$iterator}");
                 if (file_exists($iterator->getRealPath())) {
@@ -2281,6 +3096,52 @@ class FileSystem {
     public function link($in, $out)
     {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
+    }
+
+    public function unpackXz($inFile, $outDir)
+    {
+        if (!app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        if (!file_exists($inFile) || is_dir($inFile)) {
+            return false;
+        }
+
+        if (file_exists($outDir)) {
+            $this->rm($outDir);
+        }
+
+        $dir = dirname($inFile);
+        $rnd = mt_rand(10000, 99999);
+        $tmpDir = "{$dir}/tmp_{$rnd}";
+        $this->mkdirs([$tmpDir]);
+
+        if (!file_exists($tmpDir)) {
+            return false;
+        }
+
+        $fileName = basename($inFile);
+        $mvFile   = "{$tmpDir}/{$fileName}";
+        $this->mv($inFile, $mvFile);
+        $this->command->run("cd \"{$tmpDir}\" && tar xf \"./{$fileName}\"");
+        $this->rm($mvFile);
+
+        $find = glob("{$tmpDir}/*");
+
+        $path = $tmpDir;
+
+        if (count($find) === 1) {
+            $path = reset($find);
+        }
+
+        $this->mv($path, $outDir);
+
+        if (file_exists($tmpDir)) {
+            $this->rm($tmpDir);
+        }
+
+        return true;
     }
 }
 
@@ -2879,6 +3740,28 @@ class System {
 
         return $result;
     }
+
+    public function isTar()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v tar"));
+        }
+
+        return $result;
+    }
+
+    public function isXz()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v xz"));
+        }
+
+        return $this->isTar() && $result;
+    }
 }
 
 
@@ -3185,6 +4068,18 @@ class Config {
             $this->wine['WINEFILE']        = 'winefile';
             $this->wine['WINECFG']         = 'winecfg';
             $this->wine['WINESERVER']      = 'wineserver';
+        } else {
+            $this->wine['WINE']            = "{$this->rootDir}/wine/bin/wine";
+            $this->wine['WINE64']          = "{$this->rootDir}/wine/bin/wine64";
+            $this->wine['REGEDIT']         = "{$this->rootDir}/wine/bin/wine\" \"regedit";
+            $this->wine['REGEDIT64']       = "{$this->rootDir}/wine/bin/wine64\" \"regedit";
+            $this->wine['WINETASKMGR']     = "{$this->rootDir}/wine/bin/wine\" \"taskmgr";
+            $this->wine['WINEUNINSTALLER'] = "{$this->rootDir}/wine/bin/wine\" \"uninstaller";
+            $this->wine['WINEPROGRAM']     = "{$this->rootDir}/wine/bin/wine\" \"progman";
+            $this->wine['WINEBOOT']        = "{$this->rootDir}/wine/bin/wine\" \"wineboot";
+            $this->wine['WINEFILE']        = "{$this->rootDir}/wine/bin/wine\" \"winefile";
+            $this->wine['WINECFG']         = "{$this->rootDir}/wine/bin/wine\" \"winecfg";
+            $this->wine['WINESERVER']      = "{$this->rootDir}/wine/bin/wineserver";
         }
     }
 
@@ -3844,6 +4739,8 @@ class Wine {
 
     private $command;
     private $config;
+    private $version;
+    private $missingLibs;
 
     /**
      * Wine constructor.
@@ -3941,13 +4838,11 @@ class Wine {
 
     public function version()
     {
-        static $version;
-
-        if (null === $version) {
-            $version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
+        if (null === $this->version) {
+            $this->version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
         }
 
-        return $version;
+        return $this->version;
     }
 
     public function isUsedSystemWine()
@@ -3958,19 +4853,17 @@ class Wine {
 
     public function getMissingLibs()
     {
-        static $result;
-
-        if (null === $result) {
+        if (null === $this->missingLibs) {
             $help = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --help');
 
             if (strpos($help, '--check-libs') === false) {
-                $result = [];
-                return $result;
+                $this->missingLibs = [];
+                return $this->missingLibs;
             }
 
-            $result = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
-            $result = array_filter(
-                array_map('trim', explode("\n", $result)),
+            $this->missingLibs = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
+            $this->missingLibs = array_filter(
+                array_map('trim', explode("\n", $this->missingLibs)),
                 function ($line) {
                     if (!$line) {
                         return false;
@@ -3986,7 +4879,7 @@ class Wine {
             );
         }
 
-        return $result;
+        return $this->missingLibs;
     }
 }
 
@@ -5320,6 +6213,14 @@ class WinePrefix {
     {
         return $this->created;
     }
+
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 }
 
 
@@ -5591,6 +6492,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/intel.sh' . '"');
 
             app()->getCurrentScene()->setProgress(10);
+
+            $this->downloadWineWizard();
         }
     }
 
@@ -5614,6 +6517,127 @@ users/--REPLACE_WITH_USERNAME--/Documents"
     public function isCreated()
     {
         return $this->created;
+    }
+
+    public function selectWine($urlOrYa, $id = null, $name = null)
+    {
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->show();
+
+        $ya = null;
+
+        if ($urlOrYa instanceof YandexDisk) {
+            if (null !== $id) {
+                $ya = $urlOrYa->getFolder($id);
+            } else {
+                $ya = $urlOrYa;
+            }
+        } else {
+            $ya = new YandexDisk($urlOrYa);
+        }
+
+        $result = null;
+
+        $items = [];
+
+        if ($ya->getParent()) {
+            $items[] = ['id' => '..', 'name' => '..'];
+        }
+
+        foreach ($ya->getList() as $key => $value) {
+            $items[] = ['id' => $key, 'name' => $value];
+        }
+
+        $scene->removeWidget($popup->hide());
+
+        $select = $scene->addWidget(new PopupSelectWidget($scene->getWindow()));
+        $select
+            ->setTitle($name ?: 'Select Wine')
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 6)
+            ->setActive(true)
+            ->show();
+        $select->onEscEvent(function () use (&$select, &$scene) { $scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($item) use (&$select, &$ya, &$scene, &$result) {
+            $scene->removeWidget($select->hide());
+            if ($ya->isDir($item['id'])) {
+                $result = $this->selectWine($ya, $item['id'], $item['name']);
+            } elseif ($item['id'] === '..') {
+                $result = $this->selectWine($ya->getParent());
+            } else {
+                app()->press(false);
+                $item['ya'] = $ya;
+                $result = $item;
+
+                $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                $popup
+                    ->setTitle('Download wine')
+                    ->setText('Wait ...')
+                    ->show();
+
+                $archive = $this->config->getRootDir() . '/archive.tar.xz';
+                $ya->download($item['id'], $archive);
+
+                $scene->removeWidget($popup->hide());
+
+                if (file_exists($archive)) {
+                    $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                    $popup
+                        ->setTitle('Extract wine')
+                        ->setText('Wait ...')
+                        ->show();
+
+                    app('start')->getFileSystem()->unpackXz($archive, $this->config->getWineDir());
+
+                    $wine = new Wine($this->config, $this->command);
+
+                    app('start')->setWine($wine);
+                    app('start')->getWinePrefix()->setWine($wine);
+                    $this->config->updateWine();
+
+                    $scene->removeWidget($popup->hide());
+                }
+            }
+        });
+
+        return $result;
+    }
+
+    public function downloadWineWizard()
+    {
+        $wine       = $this->config->getWineDir();
+        $wineSquash = $this->config->getWineFile();
+
+        if (file_exists($wineSquash) && file_exists($wine) && !app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupYesNoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Wine download Wizard')
+            ->setText([
+                'Download wine?',
+            ])
+            ->setActive(true)
+            ->show();
+        $popup->onEscEvent(function () use (&$popup, &$scene) { $scene->removeWidget($popup->hide()); });
+        $popup->onEnterEvent(function ($flag) use (&$popup, &$scene) {
+            $scene->removeWidget($popup->hide());
+
+            if ($flag) {
+                $this->selectWine('https://yadi.sk/d/IrofgqFSqHsPu/wine_builds');
+            }
+        });
+        app()->press();
     }
 }
 
@@ -5704,6 +6728,7 @@ class CheckDependencies {
             'binutils'   => false,
             'ffmpeg'     => false,
             'sudo'       => false,
+            'xz'         => false,
         ];
 
         ksort($apps);
@@ -6936,6 +7961,197 @@ class Dialog
 
 
 
+class YandexDisk
+{
+    private $url;
+    private $data;
+    private $cookie;
+    private $headers;
+    private $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/71.0.3578.80 Chrome/71.0.3578.80 Safari/537.36';
+    private $parent;
+    private $currentPath;
+
+    /**
+     * YandexDisk constructor.
+     * @param string $url
+     */
+    public function __construct($url, $parent = null)
+    {
+        $this->url = $url;
+        $this->parent = $parent;
+
+        try {
+            $request  = new \Rakit\Curl\Curl($this->url);
+            $request->header('User-Agent', $this->userAgent);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            try {
+                sleep(1);
+                $response = $request->get();
+            } catch (ErrorException $e) {
+                try {
+                    sleep(3);
+                    $response = $request->get();
+                } catch (ErrorException $e) {
+                    return;
+                }
+            }
+        }
+
+        if ($request && !$response->error()) {
+
+            $html = $response->getBody();
+
+            $this->cookie  = $response->getCookie();
+            $this->headers = $response->getHeaders();
+
+            preg_match_all('/(\<script type="application\/json".+?>)(.+?)(<\/script>)/m', $html, $matches, PREG_SET_ORDER, 0);
+
+            if ($matches[0][2]) {
+                $json       = json_decode($matches[0][2], true);
+                $this->data = $json;
+            }
+        }
+    }
+
+    /**
+     * @return null|YandexDisk
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    public function getList()
+    {
+        $itemList = [];
+        $data = $this->getData();
+
+        foreach ($data ?: [] as $id => $resource) {
+            if (!$this->currentPath && isset($resource['path'])) {
+                list($hash, $_path) = explode(':', $resource['path']);
+                $this->currentPath = $resource['path'];
+            }
+
+            foreach ($resource['children'] as $childId) {
+                $dir  = $data[$childId]['type'] === 'dir' ? '/' : '';
+                $path = "{$resource['name']}/{$data[$childId]['name']}{$dir}";
+
+                if (endsWith($path, ['/', '.xz'])) {
+                    $itemList[$childId] = $path;
+                }
+            }
+        }
+
+        return $this->getParent() ? $itemList : array_splice($itemList, 1);
+    }
+
+    public function getFileData($id)
+    {
+        $result = [];
+        $data   = $this->getData();
+
+        if ($data && $data[$id]) {
+            return $data[$id];
+        }
+
+        return $result;
+    }
+
+    public function getData()
+    {
+        return $this->data['resources'];
+    }
+
+    public function getRequest()
+    {
+        return $this->data;
+    }
+
+    private function getPostData($id)
+    {
+        $file = $this->getFileData($id);
+        return ['hash' => $file['path'], 'sk' => $this->getEnv('sk')];
+    }
+
+    private function getEnv($field = null)
+    {
+        return $field ? $this->data['environment'][$field] : $this->data['environment'];
+    }
+
+    private function getFileLink($id)
+    {
+        try {
+            $request  = new \Rakit\Curl\Curl('https://yadi.sk/public/api/download-url');
+
+            $request->header('Content-Type', 'text/plain');
+            $request->header('Host', 'yadi.sk');
+            $request->header('Origin', 'https://yadi.sk');
+            $request->header('User-Agent', $this->userAgent);
+
+            $request->cookie('yandexuid', $this->getEnv('yandexuid'));
+            $request->cookie('lang', $this->getEnv('currentLang'));
+            $request->cookie('tld', $this->getEnv('currentLang'));
+
+            $raw = json_encode($this->getPostData($id));
+
+            $response = $request->postRaw($raw);
+        } catch (ErrorException $e) {
+            return '';
+        }
+
+        if ($request && !$response->error()) {
+
+            $json = $response->getBody();
+
+            if ($json) {
+                $json = json_decode($json, true);
+
+                if ($json && !$json['error']) {
+                    return $json['data']['url'];
+                }
+            }
+        }
+
+        return '';
+    }
+
+    public function download($id, $pathFile)
+    {
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($this->getFileLink($id));
+            $request->autoRedirect(5);
+            $response = $request->get();
+            file_put_contents($pathFile, $response->getBody());
+        } catch (ErrorException $e) {}
+    }
+
+    public function getFolder($id)
+    {
+        $file = $this->getFileData($id);
+
+        if ($file['type'] === 'dir') {
+            return new self($file['meta']['short_url'], $this);
+        }
+
+        return null;
+    }
+
+    public function isDir($id)
+    {
+        $file = $this->getFileData($id);
+        return $file['type'] === 'dir';
+    }
+
+    public function getCurrentPath()
+    {
+        return $this->currentPath;
+    }
+}
+
+
+
 class ControllerGUI {
 
     private $ncurses;
@@ -7000,13 +8216,18 @@ class ControllerGUI {
         $this->press();
     }
 
-    public function press()
+    public function press($flag = true)
     {
         static $init = false;
 
+        if (false === $flag) {
+            $init = false;
+            return;
+        }
+
         if ($init === false) {
             $init = true;
-            while (true) {
+            while ($init) {
                 $this->pressKey(ncurses_getch());
             }
         }
@@ -9954,6 +11175,13 @@ class Start
         return $this->wine;
     }
 
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 
     /**
      * @return Console

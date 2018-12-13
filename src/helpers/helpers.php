@@ -81,3 +81,55 @@ if (!function_exists('debug_string_backtrace')) {
         return "{$trace}\n\n";
     }
 }
+
+/* *
+ * startsWith('http://example.com', 'http://') -> true
+ * startsWith('http://example.com', 'ttp://')  -> false
+ * */
+if (!function_exists('startsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function startsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (strpos($haystack, $str) === 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || strpos($haystack, (string)$needle) === 0;
+    }
+}
+
+/**
+ * endWith('http://example.com', 'om')         -> true
+ * endWith('http://example.com', '.co')        -> false
+ */
+if (!function_exists('endsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function endsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (substr($haystack, -strlen($str)) === $str) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || substr($haystack, (string)-strlen($needle)) === $needle;
+    }
+}
