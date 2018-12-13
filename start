@@ -2070,6 +2070,22 @@ namespace Rakit\Curl {
         }
 
         /**
+         * execute post request
+         *
+         * @param string $data
+         * @return \Rakit\Curl\Response
+         * @throws \ErrorException
+         */
+        public function postRaw($data)
+        {
+            $this->option(CURLOPT_URL, $this->url);
+            $this->option(CURLOPT_POST, TRUE);
+            $this->option(CURLOPT_POSTFIELDS, $data);
+
+            return $this->execute();
+        }
+
+        /**
          * execute put request
          *
          * @param array $data
@@ -2635,6 +2651,58 @@ if (!function_exists('debug_string_backtrace')) {
     }
 }
 
+/* *
+ * startsWith('http://example.com', 'http://') -> true
+ * startsWith('http://example.com', 'ttp://')  -> false
+ * */
+if (!function_exists('startsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function startsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (strpos($haystack, $str) === 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || strpos($haystack, (string)$needle) === 0;
+    }
+}
+
+/**
+ * endWith('http://example.com', 'om')         -> true
+ * endWith('http://example.com', '.co')        -> false
+ */
+if (!function_exists('endsWith')) {
+    /**
+     * @param string       $haystack
+     * @param array|string $needle
+     *
+     * @return bool
+     */
+    function endsWith($haystack, $needle)
+    {
+        if (is_array($needle)) {
+            foreach ($needle as $str) {
+                if (substr($haystack, -strlen($str)) === $str) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        return (string)$needle === "" || substr($haystack, (string)-strlen($needle)) === $needle;
+    }
+}
+
 
 
 class FileINI {
@@ -2989,8 +3057,8 @@ class FileSystem {
         }
 
         foreach (new DirectoryIterator($in) as $iterator) {
-            if ($iterator->isFile()) {
-                rename($iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
+            if ($iterator->isFile() || $iterator->isLink()) {
+                rename($iterator->isLink() ? $iterator->getPathName() : $iterator->getRealPath(), "{$out}/" . $iterator->getFilename());
             } else if (!$iterator->isDot() && $iterator->isDir()) {
                 $this->mv($iterator->getRealPath(), "{$out}/{$iterator}");
                 if (file_exists($iterator->getRealPath())) {
@@ -3028,6 +3096,52 @@ class FileSystem {
     public function link($in, $out)
     {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
+    }
+
+    public function unpackXz($inFile, $outDir)
+    {
+        if (!app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        if (!file_exists($inFile) || is_dir($inFile)) {
+            return false;
+        }
+
+        if (file_exists($outDir)) {
+            $this->rm($outDir);
+        }
+
+        $dir = dirname($inFile);
+        $rnd = mt_rand(10000, 99999);
+        $tmpDir = "{$dir}/tmp_{$rnd}";
+        $this->mkdirs([$tmpDir]);
+
+        if (!file_exists($tmpDir)) {
+            return false;
+        }
+
+        $fileName = basename($inFile);
+        $mvFile   = "{$tmpDir}/{$fileName}";
+        $this->mv($inFile, $mvFile);
+        $this->command->run("cd \"{$tmpDir}\" && tar xf \"./{$fileName}\"");
+        $this->rm($mvFile);
+
+        $find = glob("{$tmpDir}/*");
+
+        $path = $tmpDir;
+
+        if (count($find) === 1) {
+            $path = reset($find);
+        }
+
+        $this->mv($path, $outDir);
+
+        if (file_exists($tmpDir)) {
+            $this->rm($tmpDir);
+        }
+
+        return true;
     }
 }
 
@@ -3626,6 +3740,28 @@ class System {
 
         return $result;
     }
+
+    public function isTar()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v tar"));
+        }
+
+        return $result;
+    }
+
+    public function isXz()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v xz"));
+        }
+
+        return $this->isTar() && $result;
+    }
 }
 
 
@@ -3932,6 +4068,18 @@ class Config {
             $this->wine['WINEFILE']        = 'winefile';
             $this->wine['WINECFG']         = 'winecfg';
             $this->wine['WINESERVER']      = 'wineserver';
+        } else {
+            $this->wine['WINE']            = "{$this->rootDir}/wine/bin/wine";
+            $this->wine['WINE64']          = "{$this->rootDir}/wine/bin/wine64";
+            $this->wine['REGEDIT']         = "{$this->rootDir}/wine/bin/wine\" \"regedit";
+            $this->wine['REGEDIT64']       = "{$this->rootDir}/wine/bin/wine64\" \"regedit";
+            $this->wine['WINETASKMGR']     = "{$this->rootDir}/wine/bin/wine\" \"taskmgr";
+            $this->wine['WINEUNINSTALLER'] = "{$this->rootDir}/wine/bin/wine\" \"uninstaller";
+            $this->wine['WINEPROGRAM']     = "{$this->rootDir}/wine/bin/wine\" \"progman";
+            $this->wine['WINEBOOT']        = "{$this->rootDir}/wine/bin/wine\" \"wineboot";
+            $this->wine['WINEFILE']        = "{$this->rootDir}/wine/bin/wine\" \"winefile";
+            $this->wine['WINECFG']         = "{$this->rootDir}/wine/bin/wine\" \"winecfg";
+            $this->wine['WINESERVER']      = "{$this->rootDir}/wine/bin/wineserver";
         }
     }
 
@@ -4591,6 +4739,8 @@ class Wine {
 
     private $command;
     private $config;
+    private $version;
+    private $missingLibs;
 
     /**
      * Wine constructor.
@@ -4688,13 +4838,11 @@ class Wine {
 
     public function version()
     {
-        static $version;
-
-        if (null === $version) {
-            $version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
+        if (null === $this->version) {
+            $this->version = trim($this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --version'));
         }
 
-        return $version;
+        return $this->version;
     }
 
     public function isUsedSystemWine()
@@ -4705,19 +4853,17 @@ class Wine {
 
     public function getMissingLibs()
     {
-        static $result;
-
-        if (null === $result) {
+        if (null === $this->missingLibs) {
             $help = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --help');
 
             if (strpos($help, '--check-libs') === false) {
-                $result = [];
-                return $result;
+                $this->missingLibs = [];
+                return $this->missingLibs;
             }
 
-            $result = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
-            $result = array_filter(
-                array_map('trim', explode("\n", $result)),
+            $this->missingLibs = $this->command->run(Text::quoteArgs($this->config->wine('WINE')) . ' --check-libs');
+            $this->missingLibs = array_filter(
+                array_map('trim', explode("\n", $this->missingLibs)),
                 function ($line) {
                     if (!$line) {
                         return false;
@@ -4733,7 +4879,7 @@ class Wine {
             );
         }
 
-        return $result;
+        return $this->missingLibs;
     }
 }
 
@@ -6067,6 +6213,14 @@ class WinePrefix {
     {
         return $this->created;
     }
+
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 }
 
 
@@ -6338,6 +6492,8 @@ users/--REPLACE_WITH_USERNAME--/Documents"
             $this->log('Create file   "' . $this->config->getHooksGpuDir() . '/intel.sh' . '"');
 
             app()->getCurrentScene()->setProgress(10);
+
+            $this->downloadWineWizard();
         }
     }
 
@@ -6361,6 +6517,127 @@ users/--REPLACE_WITH_USERNAME--/Documents"
     public function isCreated()
     {
         return $this->created;
+    }
+
+    public function selectWine($urlOrYa, $id = null, $name = null)
+    {
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->show();
+
+        $ya = null;
+
+        if ($urlOrYa instanceof YandexDisk) {
+            if (null !== $id) {
+                $ya = $urlOrYa->getFolder($id);
+            } else {
+                $ya = $urlOrYa;
+            }
+        } else {
+            $ya = new YandexDisk($urlOrYa);
+        }
+
+        $result = null;
+
+        $items = [];
+
+        if ($ya->getParent()) {
+            $items[] = ['id' => '..', 'name' => '..'];
+        }
+
+        foreach ($ya->getList() as $key => $value) {
+            $items[] = ['id' => $key, 'name' => $value];
+        }
+
+        $scene->removeWidget($popup->hide());
+
+        $select = $scene->addWidget(new PopupSelectWidget($scene->getWindow()));
+        $select
+            ->setTitle($name ?: 'Select Wine')
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 6)
+            ->setActive(true)
+            ->show();
+        $select->onEscEvent(function () use (&$select, &$scene) { $scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($item) use (&$select, &$ya, &$scene, &$result) {
+            $scene->removeWidget($select->hide());
+            if ($ya->isDir($item['id'])) {
+                $result = $this->selectWine($ya, $item['id'], $item['name']);
+            } elseif ($item['id'] === '..') {
+                $result = $this->selectWine($ya->getParent());
+            } else {
+                app()->press(false);
+                $item['ya'] = $ya;
+                $result = $item;
+
+                $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                $popup
+                    ->setTitle('Download wine')
+                    ->setText('Wait ...')
+                    ->show();
+
+                $archive = $this->config->getRootDir() . '/archive.tar.xz';
+                $ya->download($item['id'], $archive);
+
+                $scene->removeWidget($popup->hide());
+
+                if (file_exists($archive)) {
+                    $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
+                    $popup
+                        ->setTitle('Extract wine')
+                        ->setText('Wait ...')
+                        ->show();
+
+                    app('start')->getFileSystem()->unpackXz($archive, $this->config->getWineDir());
+
+                    $wine = new Wine($this->config, $this->command);
+
+                    app('start')->setWine($wine);
+                    app('start')->getWinePrefix()->setWine($wine);
+                    $this->config->updateWine();
+
+                    $scene->removeWidget($popup->hide());
+                }
+            }
+        });
+
+        return $result;
+    }
+
+    public function downloadWineWizard()
+    {
+        $wine       = $this->config->getWineDir();
+        $wineSquash = $this->config->getWineFile();
+
+        if (file_exists($wineSquash) && file_exists($wine) && !app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        $scene = app()->getCurrentScene();
+
+        $popup = $scene->addWidget(new PopupYesNoWidget($scene->getWindow()));
+        $popup
+            ->setTitle('Wine download Wizard')
+            ->setText([
+                'Download wine?',
+            ])
+            ->setActive(true)
+            ->show();
+        $popup->onEscEvent(function () use (&$popup, &$scene) { $scene->removeWidget($popup->hide()); });
+        $popup->onEnterEvent(function ($flag) use (&$popup, &$scene) {
+            $scene->removeWidget($popup->hide());
+
+            if ($flag) {
+                $this->selectWine('https://yadi.sk/d/IrofgqFSqHsPu/wine_builds');
+            }
+        });
+        app()->press();
     }
 }
 
@@ -6451,6 +6728,7 @@ class CheckDependencies {
             'binutils'   => false,
             'ffmpeg'     => false,
             'sudo'       => false,
+            'xz'         => false,
         ];
 
         ksort($apps);
@@ -7683,6 +7961,197 @@ class Dialog
 
 
 
+class YandexDisk
+{
+    private $url;
+    private $data;
+    private $cookie;
+    private $headers;
+    private $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/71.0.3578.80 Chrome/71.0.3578.80 Safari/537.36';
+    private $parent;
+    private $currentPath;
+
+    /**
+     * YandexDisk constructor.
+     * @param string $url
+     */
+    public function __construct($url, $parent = null)
+    {
+        $this->url = $url;
+        $this->parent = $parent;
+
+        try {
+            $request  = new \Rakit\Curl\Curl($this->url);
+            $request->header('User-Agent', $this->userAgent);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            try {
+                sleep(1);
+                $response = $request->get();
+            } catch (ErrorException $e) {
+                try {
+                    sleep(3);
+                    $response = $request->get();
+                } catch (ErrorException $e) {
+                    return;
+                }
+            }
+        }
+
+        if ($request && !$response->error()) {
+
+            $html = $response->getBody();
+
+            $this->cookie  = $response->getCookie();
+            $this->headers = $response->getHeaders();
+
+            preg_match_all('/(\<script type="application\/json".+?>)(.+?)(<\/script>)/m', $html, $matches, PREG_SET_ORDER, 0);
+
+            if ($matches[0][2]) {
+                $json       = json_decode($matches[0][2], true);
+                $this->data = $json;
+            }
+        }
+    }
+
+    /**
+     * @return null|YandexDisk
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    public function getList()
+    {
+        $itemList = [];
+        $data = $this->getData();
+
+        foreach ($data ?: [] as $id => $resource) {
+            if (!$this->currentPath && isset($resource['path'])) {
+                list($hash, $_path) = explode(':', $resource['path']);
+                $this->currentPath = $resource['path'];
+            }
+
+            foreach ($resource['children'] as $childId) {
+                $dir  = $data[$childId]['type'] === 'dir' ? '/' : '';
+                $path = "{$resource['name']}/{$data[$childId]['name']}{$dir}";
+
+                if (endsWith($path, ['/', '.xz'])) {
+                    $itemList[$childId] = $path;
+                }
+            }
+        }
+
+        return $this->getParent() ? $itemList : array_splice($itemList, 1);
+    }
+
+    public function getFileData($id)
+    {
+        $result = [];
+        $data   = $this->getData();
+
+        if ($data && $data[$id]) {
+            return $data[$id];
+        }
+
+        return $result;
+    }
+
+    public function getData()
+    {
+        return $this->data['resources'];
+    }
+
+    public function getRequest()
+    {
+        return $this->data;
+    }
+
+    private function getPostData($id)
+    {
+        $file = $this->getFileData($id);
+        return ['hash' => $file['path'], 'sk' => $this->getEnv('sk')];
+    }
+
+    private function getEnv($field = null)
+    {
+        return $field ? $this->data['environment'][$field] : $this->data['environment'];
+    }
+
+    private function getFileLink($id)
+    {
+        try {
+            $request  = new \Rakit\Curl\Curl('https://yadi.sk/public/api/download-url');
+
+            $request->header('Content-Type', 'text/plain');
+            $request->header('Host', 'yadi.sk');
+            $request->header('Origin', 'https://yadi.sk');
+            $request->header('User-Agent', $this->userAgent);
+
+            $request->cookie('yandexuid', $this->getEnv('yandexuid'));
+            $request->cookie('lang', $this->getEnv('currentLang'));
+            $request->cookie('tld', $this->getEnv('currentLang'));
+
+            $raw = json_encode($this->getPostData($id));
+
+            $response = $request->postRaw($raw);
+        } catch (ErrorException $e) {
+            return '';
+        }
+
+        if ($request && !$response->error()) {
+
+            $json = $response->getBody();
+
+            if ($json) {
+                $json = json_decode($json, true);
+
+                if ($json && !$json['error']) {
+                    return $json['data']['url'];
+                }
+            }
+        }
+
+        return '';
+    }
+
+    public function download($id, $pathFile)
+    {
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($this->getFileLink($id));
+            $request->autoRedirect(5);
+            $response = $request->get();
+            file_put_contents($pathFile, $response->getBody());
+        } catch (ErrorException $e) {}
+    }
+
+    public function getFolder($id)
+    {
+        $file = $this->getFileData($id);
+
+        if ($file['type'] === 'dir') {
+            return new self($file['meta']['short_url'], $this);
+        }
+
+        return null;
+    }
+
+    public function isDir($id)
+    {
+        $file = $this->getFileData($id);
+        return $file['type'] === 'dir';
+    }
+
+    public function getCurrentPath()
+    {
+        return $this->currentPath;
+    }
+}
+
+
+
 class ControllerGUI {
 
     private $ncurses;
@@ -7747,13 +8216,18 @@ class ControllerGUI {
         $this->press();
     }
 
-    public function press()
+    public function press($flag = true)
     {
         static $init = false;
 
+        if (false === $flag) {
+            $init = false;
+            return;
+        }
+
         if ($init === false) {
             $init = true;
-            while (true) {
+            while ($init) {
                 $this->pressKey(ncurses_getch());
             }
         }
@@ -10701,6 +11175,13 @@ class Start
         return $this->wine;
     }
 
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 
     /**
      * @return Console

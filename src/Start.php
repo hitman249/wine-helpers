@@ -213,6 +213,13 @@ class Start
         return $this->wine;
     }
 
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 
     /**
      * @return Console

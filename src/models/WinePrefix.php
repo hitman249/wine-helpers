@@ -660,4 +660,12 @@ class WinePrefix {
     {
         return $this->created;
     }
+
+    /**
+     * @param Wine $wine
+     */
+    public function setWine($wine)
+    {
+        $this->wine = $wine;
+    }
 }

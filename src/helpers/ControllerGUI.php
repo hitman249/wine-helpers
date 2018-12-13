@@ -64,13 +64,18 @@ class ControllerGUI {
         $this->press();
     }
 
-    public function press()
+    public function press($flag = true)
     {
         static $init = false;
 
+        if (false === $flag) {
+            $init = false;
+            return;
+        }
+
         if ($init === false) {
             $init = true;
-            while (true) {
+            while ($init) {
                 $this->pressKey(ncurses_getch());
             }
         }

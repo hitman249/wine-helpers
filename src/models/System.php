@@ -370,4 +370,26 @@ class System {
 
         return $result;
     }
+
+    public function isTar()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v tar"));
+        }
+
+        return $result;
+    }
+
+    public function isXz()
+    {
+        static $result;
+
+        if (null === $result) {
+            $result = (bool)trim($this->command->run("command -v xz"));
+        }
+
+        return $this->isTar() && $result;
+    }
 }

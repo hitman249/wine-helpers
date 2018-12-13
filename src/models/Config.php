@@ -87,6 +87,18 @@ class Config {
             $this->wine['WINEFILE']        = 'winefile';
             $this->wine['WINECFG']         = 'winecfg';
             $this->wine['WINESERVER']      = 'wineserver';
+        } else {
+            $this->wine['WINE']            = "{$this->rootDir}/wine/bin/wine";
+            $this->wine['WINE64']          = "{$this->rootDir}/wine/bin/wine64";
+            $this->wine['REGEDIT']         = "{$this->rootDir}/wine/bin/wine\" \"regedit";
+            $this->wine['REGEDIT64']       = "{$this->rootDir}/wine/bin/wine64\" \"regedit";
+            $this->wine['WINETASKMGR']     = "{$this->rootDir}/wine/bin/wine\" \"taskmgr";
+            $this->wine['WINEUNINSTALLER'] = "{$this->rootDir}/wine/bin/wine\" \"uninstaller";
+            $this->wine['WINEPROGRAM']     = "{$this->rootDir}/wine/bin/wine\" \"progman";
+            $this->wine['WINEBOOT']        = "{$this->rootDir}/wine/bin/wine\" \"wineboot";
+            $this->wine['WINEFILE']        = "{$this->rootDir}/wine/bin/wine\" \"winefile";
+            $this->wine['WINECFG']         = "{$this->rootDir}/wine/bin/wine\" \"winecfg";
+            $this->wine['WINESERVER']      = "{$this->rootDir}/wine/bin/wineserver";
         }
     }
 
