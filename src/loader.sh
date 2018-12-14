@@ -18,8 +18,15 @@ else
     chmod +x "$RUN_FROM"
 fi
 
-tail -n +27 ./start > "$(pwd -P)/start-tmp"
-
+rm "./restart"
+tail -n +34 ./start > "$(pwd -P)/start-tmp"
 "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+
+while [ -f "./restart" ]
+do
+    rm "./restart"
+    tail -n +34 ./start > "$(pwd -P)/start-tmp"
+    "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+done
 
 exit;

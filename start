@@ -18,9 +18,16 @@ else
     chmod +x "$RUN_FROM"
 fi
 
-tail -n +27 ./start > "$(pwd -P)/start-tmp"
-
+rm "./restart"
+tail -n +33 ./start > "$(pwd -P)/start-tmp"
 "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+
+while [ -f "./restart" ]
+do
+    rm "./restart"
+    tail -n +33 ./start > "$(pwd -P)/start-tmp"
+    "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+done
 
 exit;
 
@@ -4921,7 +4928,9 @@ class Update {
         /**
          * Autoupdate script
          */
-        $this->autoupdate();
+        if ($this->autoupdate()) {
+            $this->restart();
+        }
 
 
         /**
@@ -4936,10 +4945,11 @@ class Update {
         $this->updateReadme();
 
 
-        /**
-         * PHP Interpreter
-         */
-        $this->updatePhp();
+        $restart = $this->config->getRootDir() . '/restart';
+
+        if (file_exists($restart)) {
+            unlink($restart);
+        }
     }
 
     public function updateReadme($create = false, $update = false)
@@ -5401,6 +5411,16 @@ class Update {
         }
 
         return false;
+    }
+
+    public function restart()
+    {
+        $restart = $this->config->getRootDir() . '/restart';
+
+        if (!file_exists($restart)) {
+            file_put_contents($restart, ' ');
+            exit(0);
+        }
     }
 }
 
@@ -11023,7 +11043,7 @@ class Start
 
         if ($this->update->updatePhp()) {
             $this->log->log('PHP interpreter updated, please restart the application.');
-            exit(0);
+            $this->update->restart();
         }
 
         $this->gameInfo->create();

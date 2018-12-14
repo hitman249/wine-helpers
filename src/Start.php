@@ -61,7 +61,7 @@ class Start
 
         if ($this->update->updatePhp()) {
             $this->log->log('PHP interpreter updated, please restart the application.');
-            exit(0);
+            $this->update->restart();
         }
 
         $this->gameInfo->create();

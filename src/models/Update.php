@@ -36,7 +36,9 @@ class Update {
         /**
          * Autoupdate script
          */
-        $this->autoupdate();
+        if ($this->autoupdate()) {
+            $this->restart();
+        }
 
 
         /**
@@ -51,10 +53,11 @@ class Update {
         $this->updateReadme();
 
 
-        /**
-         * PHP Interpreter
-         */
-        $this->updatePhp();
+        $restart = $this->config->getRootDir() . '/restart';
+
+        if (file_exists($restart)) {
+            unlink($restart);
+        }
     }
 
     public function updateReadme($create = false, $update = false)
@@ -516,5 +519,15 @@ class Update {
         }
 
         return false;
+    }
+
+    public function restart()
+    {
+        $restart = $this->config->getRootDir() . '/restart';
+
+        if (!file_exists($restart)) {
+            file_put_contents($restart, ' ');
+            exit(0);
+        }
     }
 }
