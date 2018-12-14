@@ -59,6 +59,11 @@ class Start
 
         $this->console->lock();
 
+        if ($this->update->updatePhp()) {
+            $this->log->log('PHP interpreter updated, please restart the application.');
+            exit(0);
+        }
+
         $this->gameInfo->create();
         $this->winePrefix->create();
         $this->update->init();
