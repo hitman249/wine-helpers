@@ -1,4 +1,4 @@
-## Описание 
+## Screenshots 
 
 ![Settings](1.png)
 ![Settings](2.png)
@@ -8,96 +8,143 @@
 ![Settings](6.png)
 ![Settings](7.png)
 
-Этот скрипт предназначен в первую очередь для облегчения портирования Windows игр/программ под Linux, но может 
-применяться и в других целях. Работа скрипта гарантируется на всех дистрибутивах Linux, где установлены стандартные 
-утилиты GNU и оболочка bash.
+# Description 
 
-**Portable PHP 5.6.38** `amd64` идущий в комплекте, протестирован на Ubuntu 18.04, 16.04, Debian 8, Rosa R8, R10, 
-CentOS 7, Deepin 15.6, Manjaro 17.1.11.
+- The application uses separate **wine** and **prefix** when porting.  
+- **DXVK**, **winetricks** packages and **wine** assembly are downloaded automatically.  
+- The application can compress data in **squashfs** to save space.
 
-### Как запустить игру
+### Requirements
 
-1) Распаковать ```chmod +x ./extract.sh && ./extract.sh```
-2) Запустить `./start`
+- **Operating system:** Linux
+- **Architecture:** x86_64
 
-### Как сделать порт игры
+### Requirements DirectX 11
 
-1) Создать папку (желательно без пробелов в пути и кириллицы)
+- Graphics card must support vulkan.
+- Drivers:
+    - AMD driver:  
+        - AMD RADV, Mesa 18.3 or newer
+        - AMDGPU PRO 18.50 or newer
+    - NVIDIA driver:  
+        - 415.22 or newer
+    - INTEL driver:  
+        - Mesa 18.3 or newer
+- Wine:
+    - 3.19 or newer
 
-2) Выполнить
-```bash
-wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start
-```
+## How to run the game
 
-3) В папке у вас должны получиться 2 элемента, папка `wine` и файл `start`.   
-Если папки wine нет, будет использоваться wine установленный в систему.
+1) Extract 
+    ```bash
+    chmod +x ./extract.sh && ./extract.sh
+    ```
+2) Start the game
+    ```bash
+    ./start
+    ``` 
+    Or go to configuration mode
+    ```bash
+    ./start gui
+    ```
 
-4) Запускаете файл `./start`
+## How to port the game
 
-5) Появится директория `./game_info`, редактируете файл `./game_info/game_info.ini`
+1) Create an empty folder
 
-6) Через файловый менеджер устанавливаете игру.
+2) Run:
+    ```bash
+    wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start./start
+    ```
+    ```bash
+    ./start
+    ```
 
-7) Если требуются дополнительные библиотеки копируете их в папки `dlls` и `dlls64` скрипт создаст симлинки 
-файлов в директорию:
-    - `dlls`   -> `windows/system32`
-    - `dlls64` -> `windows/syswow64`
+3) Follow the wizard instructions to download the **wine** and wait for the menu. Exit application.
+
+4) Edit the file according to the game information.
+    ```text
+    ./game_info/game_info.ini
+    ```
+
+5) Run the configurator. Through the file manager install the game.
+    ```bash
+    ./start gui
+    ```
+    ```text
+    Wine > File Manager
+    ```
+6) Game files should be in the folder: 
+    ```text
+    ./game_info/data
+    ```
+
+7) Additional `*.dll` libraries can be copied to folders:
+    ```text
+    ./game_info/dlls
+    ./game_info/dlls64
+    ```
     
-8) Если требуется использовать `*.reg` файлы, копируйте их в папку `regs`
+8) Additional `*.reg` files can be copied to folder:
+    ```text
+    ./game_info/regs
+    ```
 
-9) Если требуется `winetricks` используйте команду `./start winetricks wmp9`, также можно отредактировать параметр  
-`winetricks_to_install = ""`, в этом случае пакеты автоматически установятся во время создания префикса
+9) Use the configuration file `winetricks_to_install = ""` parameter to install additional packages. Or use the command: 
+    ```bash
+    ./start winetricks
+    ```
 
-10) Если нужен `dxvk` ставите в конфиге `dxvk = 1`, скачивается сам!
+10) To use dxvk, use the `dxvk = 1` parameter in the configuration file.
 
-11) В папке `./game_info/additional` можно пробросить папки для сохранений, чтобы они не удалились вместе с `prefix`-ом
+11) To forward additional folders in prefix, use the following directory:
+    ```text
+    ./game_info/additional
+    ```
 
-12) Файлы игры должны быть в папке `./game_info/data`
+12) Delete the `prefix` folder. 
 
-13) В конце удаляете все лишние файлы и папку `prefix`
+13) The start team must successfully launch the game.
+    ```bash
+    ./start
+    ```
 
-14) Запускаете `./start`, игра должна запуститься.
-
-15) Если всё корректно запускается, снова удаляете все лишние файлы и папку `prefix`
-
-16) Готово. Игру можно запаковывать.
-
-#### Рекомендации
-
-* Игры внутри префикса рекомендуется всегда ставить в папку **C:/Games**/Folder. Это откроет вам _дополнительные_ возможности скрипта.
-
-### Использование squashfs
-
-* Если вам хочется чтобы ваша игра занимала как можно меньше места и при этом в неё можно было играть, в скрипте 
-предусмотрена автоматическая упаковка директорий `./wine` и `./game_info/data`
-  
-  Для этого запустите скрипт в режиме GUI командой `./start gui` и перейдите в **Tools > Pack**
+14) The game has been successfully ported.
 
 
-* Рядом с указанными директориями создадутся файлы `./wine.squashfs` и `./game_info/data.squashfs`.  
+#### Recommendations
 
-  > Будьте внимательны, папки с именами `./wine` и `./game_info/data` имеют **больший** приоритет над файлами 
-    `wine.squashfs` и `data.squashfs`.
+* Games recommended to put in the folder:
+    ```text
+    C:/Games/
+    ```
+
+### Using squashfs
+
+*  Compress `./wine`
+    ```bash
+    ./start gui
+    ```
+    ```bash
+    Tools > Pack > wine
+    ```
+    ```bash
+    rm -rf ./wine
+    ```
+
+*  Compress `./game_info/data`
+    ```bash
+    ./start gui
+    ```
+    ```bash
+    Tools > Pack > data
+    ```
+    ```bash
+    rm -rf ./game_info/data
+    ```
 
 
-* Часто игры могут писать в собственную папку, поэтому нужно вынести данные файлы и папки в директорию 
-`./game_info/additional`, а в папке с игрой создать для них симлинки.
-
-  Делается это в GUI: 
-
-  - **Tools > Symlink**, скрипт сам предложит поддерживаемые папки. 
-  
-
-* Когда всё будет готово можно сделать сборку игры командой:
-
-  - **Tools > Build** 
-
-  Которая создаст одноимённую папку, и скопирует туда методом hardlink все необходимые файлы.
-  > **hardlink** - вместо копирования делает hard ссылку на файл, в итоге процесс копирования сводится только к созданию 
-  ссылок.
-
-
-## Help
+# Help
 
 ```text
 Help:
@@ -109,160 +156,7 @@ Help:
 ./start help
 ```
 
-## Возможности
-
-* Автоматизирует работу с отдельным wine префиксом
-
-* Перед запуском игры сохраняет разрешение, яркость и гамму на каждом мониторе в отдельности.
-
-* После завершения игры восстанавливает только изменившиеся параметры разрешение, яркость и гамму, 
-в отдельности по каждому параметру и монитору. Т.е. если изменилась гамма на втором мониторе, то 
-только она и будет исправлена.
-
-* При использовании `winetricks` он автоматически выкачивается.
-
-* Показывает недостающие либы wine
-
-* Показывает используемую версию Wine, Vulkan, xrandr, winetricks
-
-* Если в системе не установлен PulseAudio, скрипт автоматически переключит wine на ALSA.
-
-* (Опционально) Автоматически обновляет dxvk до последней версии при каждом запуске игры.
-
-* (Опционально) Автоматически обновляет себя.
-
-* (Опционально) Использование нескольких ini файлов для совмещения нескольких игр в одном префиксе.
-
-* (Опционально) Хуки после создания префикса, перед запуском и после остановки приложения.
-
-* (Опционально) Хуки GPU для внесения специфичных от производителя видеокарты исправлений (после создания префикса).
-
-* (Опционально) Можно автоматически подменять ширину и высоту в конфигурационных файлах игры при создании префикса 
-(изменяет перед применением *.reg файлов).
-
-* (Опционально) Отображение диалога с выбором что запускать, если обнаруживается несколько *.ini файлов.
-
-* Использование ini файла `./game_info/game_info.ini` для настроек:
-
-```ini
-[game]
-path = "Games"
-additional_path = "The Super Game/bin"
-exe = "Game.exe"
-cmd = "-language=russian"
-name = "The Super Game: Deluxe Edition"
-version = "1.0.0"
-
-[script]
-autoupdate = 1
-
-; Download latest d3d11.dll and dxgi.dll
-dxvk = 0
-dxvk_autoupdate = 1
-
-; Required for determining display manner FPS
-dxvk_d3d10 = 0
-
-; winetricks_to_install = "d3dx9 xact"
-winetricks_to_install = ""
-
-; Windows version (win7, winxp, win2k)
-winver = "win7"
-
-csmt = 1
-
-; Not use /home/user directory
-sandbox = 1
-
-; Set sound driver to PulseAudio or ALSA
-pulse = 1
-
-; Auto fixed resolution, brightness, gamma for all monitors
-fixres = 1
-
-[wine]
-WINEDEBUG = "-all"
-WINEARCH = "win32"
-WINEDLLOVERRIDES = ""
-
-[window]
-enable = 0
-title = "Wine"
-resolution = "800x600"
-
-[dlls]
-;
-; Additional dlls folder logic
-; Example: dll[name_file.dll] = "nooverride"
-;
-; Variables:
-; "builtin"        - Встроенная
-; "native"         - Сторонняя (default)
-; "builtin,native" - Встроенная, Сторонняя
-; "native,builtin" - Сторонняя, Встроенная
-; "nooverride"     - Не заносить в реестр
-; "register"       - Зарегистрировать библиотеку через regsvr32
-;
-; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
-;
-
-; dll[d3d11.dll] = "nooverride"
-; dll[l3codecx.ax] = "register"
-
-[hooks]
-;
-; Хуки
-; after_create_prefix - команды выполняются после создания префикса
-; before_run_game - команды выполняются перед запуском игры
-; after_exit_game - команды выполняются после завершения игры
-;
-
-; after_create_prefix[] = "create.sh"
-; before_run_game[] = "before.sh"
-; after_exit_game[] = "after.sh"
-; after_exit_game[] = "after2.sh"
-; gpu_amd[] = "gpu/amd.sh"
-; gpu_nvidia[] = "gpu/nvidia.sh"
-; gpu_intel[] = "gpu/intel.sh"
-
-[export]
-;
-; Экспорт дополнительных переменных к команде запуска игры
-; Примеры:
-;
-
-; DXVK_HUD=fps
-; DXVK_HUD=1
-; DXVK_HUD=fps,devinfo,memory
-; DXVK_HUD=fps,devinfo,frametimes,memory
-; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
-; GALLIUM_HUD=simple,fps
-; WINEESYNC=1
-; PBA_DISABLE=1
-; MESA_GLTHREAD=true
-; __GL_THREADED_OPTIMIZATIONS=1
-;
-; Если в игре хрипит звук можно попробовать
-; PULSE_LATENCY_MSEC=60
-
-WINEESYNC=1
-PBA_DISABLE=1
-
-[replaces]
-;
-; При создании префикса ищет и заменяет в указанных файлах теги.
-; Путь относительно позиции файла ./start
-; Выполняется ДО регистрации *.reg файлов
-;
-; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
-; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
-; {USER} - имя пользователя
-;
-
-; file[] = "game_info/data/example.conf"
-``` 
-
- ## Полезные ссылки
+ ## Links
  
  * dxvk [GPU driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)
  * dxvk [releases](https://github.com/doitsujin/dxvk/releases)

@@ -393,24 +393,22 @@ resolution = \"800x600\"
 ; Example: dll[name_file.dll] = \"nooverride\"
 ;
 ; Variables:
-; \"builtin\"        - Встроенная
-; \"native\"         - Сторонняя (default)
-; \"builtin,native\" - Встроенная, Сторонняя
-; \"native,builtin\" - Сторонняя, Встроенная
-; \"nooverride\"     - Не заносить в реестр
-; \"register\"       - Зарегистрировать библиотеку через regsvr32
-;
-; Настройки относятся только к папке dlls, которая создаёт симлинки в папку system32
+; \"builtin\"        - Builtin
+; \"native\"         - External (default)
+; \"builtin,native\" - Builtin, External
+; \"native,builtin\" - External, Builtin
+; \"nooverride\"     - Do not register
+; \"register\"       - Register via regsvr32
 ;
 
 ; dll[d3d11.dll] = \"nooverride\"
 ; dll[l3codecx.ax] = \"register\"
 [hooks]
 ;
-; Хуки
-; after_create_prefix - команды выполняются после создания префикса
-; before_run_game - команды выполняются перед запуском игры
-; after_exit_game - команды выполняются после завершения игры
+; Hooks
+; after_create_prefix - commands are executed after prefix creation
+; before_run_game     - commands are executed before the game start
+; after_exit_game     - commands are executed after the game exit
 ;
 
 ; after_create_prefix[] = \"create.sh\"
@@ -422,8 +420,8 @@ resolution = \"800x600\"
 ; gpu_intel[] = \"gpu/intel.sh\"
 [export]
 ;
-; Экспорт дополнительных переменных к команде запуска игры
-; Примеры:
+; Export additional variables
+; Examples:
 ;
 
 ; DXVK_HUD=fps
@@ -437,20 +435,20 @@ resolution = \"800x600\"
 ; MESA_GLTHREAD=true
 ; __GL_THREADED_OPTIMIZATIONS=1
 ;
-; Если в игре хрипит звук можно попробовать
+; If the game wheezing sound, you can try
 ; PULSE_LATENCY_MSEC=60
 
 WINEESYNC=1
 PBA_DISABLE=1
 [replaces]
 ;
-; При создании префикса ищет и заменяет в указанных файлах теги.
-; Путь относительно позиции файла ./start
-; Выполняется ДО регистрации *.reg файлов
+; When creating a prefix, it searches for and replaces tags in the specified files.
+; Path relative to the position of the ./start file
+; Performed BEFORE registering * .reg files
 ;
-; {WIDTH} - ширина монитора по умолчанию в пикселях (число)
-; {HEIGHT} - высота монитора по умолчанию в пикселях (число)
-; {USER} - имя пользователя
+; {WIDTH}  - default monitor width in pixels (number)
+; {HEIGHT} - default monitor height in pixels (number)
+; {USER}   - username
 ;
 
 ; file[] = \"game_info/data/example.conf\"";
