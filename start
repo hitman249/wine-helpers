@@ -5941,7 +5941,7 @@ class WinePrefix {
                 $isChange = true;
                 $dlls[$fileName] = 'native';
                 $dll32 = $this->fs->relativePath($this->config->getDllsDir());
-                $this->command->run("ln -sfr \"{$dll32}/{$fileName}\" " . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/system32'));
+                $this->command->run('ln -sfr ' . Text::quoteArgs("{$dll32}/{$fileName}") . ' ' . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/system32/'));
                 $result[] = "Add system32/{$fileName}";
                 $this->log("Add system32/{$fileName}");
             }
@@ -5975,7 +5975,7 @@ class WinePrefix {
                 $isChange = true;
                 $dlls[$fileName] = 'native';
                 $dll64 = $this->fs->relativePath($this->config->getDlls64Dir());
-                $this->command->run("ln -sfr \"{$dll64}/{$fileName}\" \" " . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/syswow64'));
+                $this->command->run('ln -sfr ' . Text::quoteArgs("{$dll64}/{$fileName}") . ' ' . Text::quoteArgs($this->config->wine('DRIVE_C') . '/windows/syswow64/'));
                 $result[] = "Add system64/{$fileName}";
                 $this->log("Add system64/{$fileName}");
             }
