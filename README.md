@@ -24,7 +24,7 @@
 - Graphics card must support vulkan.
 - Drivers:
     - AMD driver:  
-        - AMD RADV, Mesa 18.3 or newer
+        - AMD RADV, Mesa 18.3 or newer (recommended)
         - AMDGPU PRO 18.50 or newer
     - NVIDIA driver:  
         - 415.22 or newer
