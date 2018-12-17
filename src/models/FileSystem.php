@@ -152,7 +152,7 @@ class FileSystem {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
     }
 
-    public function unpackXz($inFile, $outDir)
+    public function unpackXz($inFile, $outDir, $type = 'xf')
     {
         if (!app('start')->getSystem()->isXz()) {
             return false;
@@ -178,7 +178,7 @@ class FileSystem {
         $fileName = basename($inFile);
         $mvFile   = "{$tmpDir}/{$fileName}";
         $this->mv($inFile, $mvFile);
-        $this->command->run("cd \"{$tmpDir}\" && tar xf \"./{$fileName}\"");
+        $this->command->run("cd \"{$tmpDir}\" && tar {$type} \"./{$fileName}\"");
         $this->rm($mvFile);
 
         $find = glob("{$tmpDir}/*");
@@ -196,5 +196,22 @@ class FileSystem {
         }
 
         return true;
+    }
+
+    public function unpackGz($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, '-xzf');
+    }
+
+    public function unpack($inFile, $outDir)
+    {
+        if (Text::endsWith($inFile, '.tar.xz')) {
+            return $this->unpackXz($inFile, $outDir);
+        }
+        if (Text::endsWith($inFile, '.tar.gz')) {
+            return $this->unpackGz($inFile, $outDir);
+        }
+
+        return false;
     }
 }

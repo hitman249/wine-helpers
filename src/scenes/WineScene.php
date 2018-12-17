@@ -31,9 +31,10 @@ class WineScene extends AbstractScene {
             ['id' => 'winecfg',     'name' => 'Config',          'wine' => 'WINECFG'],
             ['id' => 'filemanager', 'name' => 'File Manager',    'wine' => 'WINEFILE'],
             ['id' => 'regedit',     'name' => 'Regedit',         'wine' => 'REGEDIT'],
-            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
-            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
-            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
+            ['id' => 'change',      'name' => 'Change Version' ],
+//            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
+//            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
+//            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -58,6 +59,10 @@ class WineScene extends AbstractScene {
                     ->logName($item['id'])
                     ->cmd(Text::quoteArgs($config->wine($item['wine'])))
                     ->run();
+            }
+            if ('change' === $item['id']) {
+                $wineDownloader = new WineDownloader(app('start')->getConfig(), app('start')->getCommand(), app('start')->getFileSystem(), app('start')->getPack());
+                $wineDownloader->wizard();
             }
         });
 

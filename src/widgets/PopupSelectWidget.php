@@ -66,7 +66,7 @@ class PopupSelectWidget extends AbstractWidget {
 
     public function setItems($items)
     {
-        $this->items = $items;
+        $this->items = array_values($items);
         return $this;
     }
 

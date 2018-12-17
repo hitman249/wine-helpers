@@ -179,7 +179,7 @@ class Start
     }
 
     /**
-     * @return array[Mount]
+     * @return Mount[]
      */
     public function getMountes()
     {

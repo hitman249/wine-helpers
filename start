@@ -3108,7 +3108,7 @@ class FileSystem {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
     }
 
-    public function unpackXz($inFile, $outDir)
+    public function unpackXz($inFile, $outDir, $type = 'xf')
     {
         if (!app('start')->getSystem()->isXz()) {
             return false;
@@ -3134,7 +3134,7 @@ class FileSystem {
         $fileName = basename($inFile);
         $mvFile   = "{$tmpDir}/{$fileName}";
         $this->mv($inFile, $mvFile);
-        $this->command->run("cd \"{$tmpDir}\" && tar xf \"./{$fileName}\"");
+        $this->command->run("cd \"{$tmpDir}\" && tar {$type} \"./{$fileName}\"");
         $this->rm($mvFile);
 
         $find = glob("{$tmpDir}/*");
@@ -3152,6 +3152,23 @@ class FileSystem {
         }
 
         return true;
+    }
+
+    public function unpackGz($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, '-xzf');
+    }
+
+    public function unpack($inFile, $outDir)
+    {
+        if (Text::endsWith($inFile, '.tar.xz')) {
+            return $this->unpackXz($inFile, $outDir);
+        }
+        if (Text::endsWith($inFile, '.tar.gz')) {
+            return $this->unpackGz($inFile, $outDir);
+        }
+
+        return false;
     }
 }
 
@@ -6514,7 +6531,11 @@ users/--REPLACE_WITH_USERNAME--/Documents"
 
             app()->getCurrentScene()->setProgress(10);
 
-            $this->downloadWineWizard();
+            $wineDownloader = new WineDownloader($this->config, $this->command, app('start')->getFileSystem(), app('start')->getPack());
+
+            if ($wineDownloader->isWineEmpty()) {
+                $wineDownloader->wizard();
+            }
         }
     }
 
@@ -6538,127 +6559,6 @@ users/--REPLACE_WITH_USERNAME--/Documents"
     public function isCreated()
     {
         return $this->created;
-    }
-
-    public function selectWine($urlOrYa, $id = null, $name = null)
-    {
-        $scene = app()->getCurrentScene();
-
-        $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
-        $popup
-            ->setTitle('Request')
-            ->setText('Wait ...')
-            ->show();
-
-        $ya = null;
-
-        if ($urlOrYa instanceof YandexDisk) {
-            if (null !== $id) {
-                $ya = $urlOrYa->getFolder($id);
-            } else {
-                $ya = $urlOrYa;
-            }
-        } else {
-            $ya = new YandexDisk($urlOrYa);
-        }
-
-        $result = null;
-
-        $items = [];
-
-        if ($ya->getParent()) {
-            $items[] = ['id' => '..', 'name' => '..'];
-        }
-
-        foreach ($ya->getList() as $key => $value) {
-            $items[] = ['id' => $key, 'name' => $value];
-        }
-
-        $scene->removeWidget($popup->hide());
-
-        $select = $scene->addWidget(new PopupSelectWidget($scene->getWindow()));
-        $select
-            ->setTitle($name ?: 'Select Wine')
-            ->setItems($items)
-            ->border()
-            ->setFullMode()
-            ->maxSize(null, 6)
-            ->setActive(true)
-            ->show();
-        $select->onEscEvent(function () use (&$select, &$scene) { $scene->removeWidget($select->hide()); });
-        $select->onEnterEvent(function ($item) use (&$select, &$ya, &$scene, &$result) {
-            $scene->removeWidget($select->hide());
-            if ($ya->isDir($item['id'])) {
-                $result = $this->selectWine($ya, $item['id'], $item['name']);
-            } elseif ($item['id'] === '..') {
-                $result = $this->selectWine($ya->getParent());
-            } else {
-                app()->press(false);
-                $item['ya'] = $ya;
-                $result = $item;
-
-                $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
-                $popup
-                    ->setTitle('Download wine')
-                    ->setText('Wait ...')
-                    ->show();
-
-                $archive = $this->config->getRootDir() . '/archive.tar.xz';
-                $ya->download($item['id'], $archive);
-
-                $scene->removeWidget($popup->hide());
-
-                if (file_exists($archive)) {
-                    $popup = $scene->addWidget(new PopupInfoWidget($scene->getWindow()));
-                    $popup
-                        ->setTitle('Extract wine')
-                        ->setText('Wait ...')
-                        ->show();
-
-                    app('start')->getFileSystem()->unpackXz($archive, $this->config->getWineDir());
-
-                    $wine = new Wine($this->config, $this->command);
-
-                    app('start')->setWine($wine);
-                    app('start')->getWinePrefix()->setWine($wine);
-                    $this->config->updateWine();
-
-                    $scene->removeWidget($popup->hide());
-                }
-            }
-        });
-
-        return $result;
-    }
-
-    public function downloadWineWizard()
-    {
-        $wine       = $this->config->getWineDir();
-        $wineSquash = $this->config->getWineFile();
-
-        if (file_exists($wineSquash) || file_exists($wine) || !app('start')->getSystem()->isXz()) {
-            return false;
-        }
-
-        $scene = app()->getCurrentScene();
-
-        $popup = $scene->addWidget(new PopupYesNoWidget($scene->getWindow()));
-        $popup
-            ->setTitle('Wine download Wizard')
-            ->setText([
-                'Download wine?',
-            ])
-            ->setActive(true)
-            ->show();
-        $popup->onEscEvent(function () use (&$popup, &$scene) { $scene->removeWidget($popup->hide()); });
-        $popup->onEnterEvent(function ($flag) use (&$popup, &$scene) {
-            $scene->removeWidget($popup->hide());
-
-            if ($flag) {
-                $this->selectWine('https://yadi.sk/d/IrofgqFSqHsPu/wine_builds');
-            }
-        });
-        app()->press();
     }
 }
 
@@ -8137,15 +8037,21 @@ class YandexDisk
         return '';
     }
 
-    public function download($id, $pathFile)
+    public function download($id, $path)
     {
         try {
             ini_set('memory_limit', '-1');
             $request = new \Rakit\Curl\Curl($this->getFileLink($id));
             $request->autoRedirect(5);
             $response = $request->get();
+            $fileName = $this->getFileData($id);
+            $pathFile = "{$path}/{$fileName['name']}";
             file_put_contents($pathFile, $response->getBody());
+
+            return $pathFile;
         } catch (ErrorException $e) {}
+
+        return '';
     }
 
     public function getFolder($id)
@@ -8173,10 +8079,388 @@ class YandexDisk
 
 
 
+class Lutris
+{
+    private $url;
+    private $data;
+
+    /**
+     * Lutris constructor.
+     * @param string $url
+     */
+    public function __construct()
+    {
+        $this->url = 'https://lutris.net/api/runners?format=json&search=wine';
+        $this->data = [];
+
+        try {
+            $request  = new \Rakit\Curl\Curl($this->url);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            try {
+                sleep(1);
+                $response = $request->get();
+            } catch (ErrorException $e) {
+                try {
+                    sleep(3);
+                    $response = $request->get();
+                } catch (ErrorException $e) {
+                    return;
+                }
+            }
+        }
+
+        if ($request && !$response->error()) {
+
+            $result = json_decode($response->getBody(), true);
+            $result = reset($result['results']);
+
+            foreach ($result['versions'] ?: [] as $item) {
+                if (!isset($this->data[$item['architecture']])) {
+                    $this->data[$item['architecture']] = [];
+                }
+
+                $this->data[$item['architecture']][] = $item['url'];
+            }
+
+            foreach ($this->data?:[] as $key => $value) {
+                natsort($this->data[$key]);
+            }
+        }
+    }
+
+    public function getList($type = null)
+    {
+        return null === $type ? array_keys($this->data) : $this->data[$type];
+    }
+
+    public function download($url, $path)
+    {
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($url);
+            $request->autoRedirect(5);
+            $response = $request->get();
+            $fileName = basename($url);
+            $pathFile = "{$path}/{$fileName}";
+            file_put_contents($pathFile, $response->getBody());
+
+            return $pathFile;
+        } catch (ErrorException $e) {}
+
+        return '';
+    }
+}
+
+
+
+class WineDownloader
+{
+    private $command;
+    private $config;
+    private $fs;
+    private $pack;
+    private $isPress;
+    private $result = '';
+
+    /** @var AbstractScene */
+    private $scene;
+
+    /**
+     * WineDownloader constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Pack $pack
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Pack $pack)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->fs      = $fs;
+        $this->pack    = $pack;
+    }
+
+    public function isWineEmpty()
+    {
+        $wine       = $this->config->getWineDir();
+        $wineSquash = $this->config->getWineFile();
+
+        if (file_exists($wineSquash) || file_exists($wine)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function wizard()
+    {
+        if (!app('start')->getSystem()->isXz()) {
+            return false;
+        }
+
+        $this->isPress = app()->isPress();
+        $this->scene = app()->getCurrentScene();
+
+        $popup = $this->scene->addWidget(new PopupYesNoWidget($this->scene->getWindow()));
+        $popup
+            ->setTitle('Wine download Wizard')
+            ->setText([
+                'Download wine?',
+            ])
+            ->setActive(true)
+            ->show();
+        $popup->onEscEvent(function () use (&$popup) { $this->scene->removeWidget($popup->hide()); });
+        $popup->onEnterEvent(function ($flag) use (&$popup) {
+            $this->scene->removeWidget($popup->hide());
+
+            if ($flag) {
+                $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+                $select
+                    ->setItems([
+                        ['id' => 'kron4ek', 'name' => 'Kron4ek'],
+                        ['id' => 'lutris',  'name' => 'Lutris'],
+                    ])
+                    ->setTitle('Repository')
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($repo) use (&$select) {
+                    $this->scene->removeWidget($select->hide());
+
+                    if ('kron4ek' === $repo['id']) {
+                        $this->downloadYandexDisk('https://yadi.sk/d/IrofgqFSqHsPu/wine_builds');
+                    }
+                    if ('lutris' === $repo['id']) {
+                        $this->downloadLutris();
+                    }
+                });
+            }
+        });
+
+        if (!$this->isPress) {
+            app()->press();
+        }
+
+        return true;
+    }
+
+    private function onSuccessDownload()
+    {
+        if ($this->result) {
+            $this->clear();
+            $this->extract($this->result);
+        }
+    }
+
+    public function clear()
+    {
+        $mount = $this->pack->getMount($this->config->getWineDir());
+
+        if ($mount && $mount->isMounted()) {
+            $mount->umount();
+        }
+
+        if (file_exists($this->config->getWineFile())) {
+            $this->fs->rm($this->config->getWineFile());
+        }
+
+        if (file_exists($this->config->getWineDir() . '.zip')) {
+            $this->fs->rm($this->config->getWineDir() . '.zip');
+        }
+
+        if (file_exists($this->config->getWineDir())) {
+            $this->fs->rm($this->config->getWineDir());
+        }
+    }
+
+    public function extract($pathFile)
+    {
+        if (file_exists($pathFile)) {
+            $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+            $popup
+                ->setTitle('Extract wine')
+                ->setText('Wait ...')
+                ->setActive(true)
+                ->show();
+
+            $result = $this->fs->unpack($pathFile, $this->config->getWineDir());
+
+            $wine = new Wine($this->config, $this->command);
+            app('start')->setWine($wine);
+            app('start')->getWinePrefix()->setWine($wine);
+            $this->config->updateWine();
+
+            $this->scene->removeWidget($popup->hide());
+
+            return $result;
+        }
+
+        return false;
+    }
+
+    public function downloadLutris($_lutris = null)
+    {
+        $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->setActive(true)
+            ->show();
+
+        $lutris = (null === $_lutris ? new Lutris() : $_lutris);
+
+        $this->scene->removeWidget($popup->hide());
+
+        $this->result = '';
+
+        $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+        $select
+            ->setItems(array_map(function ($item) { return ['id' => $item, 'name' => $item]; }, $lutris->getList()))
+            ->setTitle('Select arch')
+            ->border()
+            ->setFullMode()
+            ->backAccess()
+            ->maxSize(null, 4)
+            ->setActive(true)
+            ->show();
+        $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($arch) use (&$select, &$lutris) {
+            $this->scene->removeWidget($select->hide());
+
+            $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+            $select
+                ->setItems(
+                    array_merge(
+                        [['id' => '..', 'name' => '..']],
+                        array_map(function ($item) { return ['id' => $item, 'name' => basename($item)]; },
+                            $lutris->getList($arch['id']))
+                    )
+                )
+                ->setTitle($arch['name'])
+                ->border()
+                ->setFullMode()
+                ->backAccess()
+                ->maxSize(null, 6)
+                ->setActive(true)
+                ->show();
+            $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+            $select->onEnterEvent(function ($item) use (&$select, &$lutris) {
+                $this->scene->removeWidget($select->hide());
+
+                if ('..' === $item['id']) {
+                    $this->downloadLutris($lutris);
+                } else {
+                    if (!$this->isPress) {
+                        app()->press(false);
+                    }
+
+                    $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+                    $popup
+                        ->setTitle('Download wine')
+                        ->setText('Wait ...')
+                        ->setActive(true)
+                        ->show();
+
+                    $this->result = $lutris->download($item['id'], $this->config->getRootDir());
+
+                    $this->scene->removeWidget($popup->hide());
+
+                    $this->onSuccessDownload();
+                }
+            });
+        });
+
+        return $this->result;
+    }
+
+    public function downloadYandexDisk($urlOrYa, $id = null, $name = null)
+    {
+        $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->setActive(true)
+            ->show();
+
+        $ya = null;
+
+        if ($urlOrYa instanceof YandexDisk) {
+            if (null !== $id) {
+                $ya = $urlOrYa->getFolder($id);
+            } else {
+                $ya = $urlOrYa;
+            }
+        } else {
+            $ya = new YandexDisk($urlOrYa);
+        }
+
+        $this->result = '';
+
+        $items = [];
+
+        if ($ya->getParent()) {
+            $items[] = ['id' => '..', 'name' => '..'];
+        }
+
+        foreach ($ya->getList() as $key => $value) {
+            $items[] = ['id' => $key, 'name' => $value];
+        }
+
+        $this->scene->removeWidget($popup->hide());
+
+        $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+        $select
+            ->setTitle($name ?: 'Select Wine')
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 6)
+            ->setActive(true)
+            ->show();
+        $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($item) use (&$select, &$ya) {
+            $this->scene->removeWidget($select->hide());
+
+            if ($ya->isDir($item['id'])) {
+                $this->downloadYandexDisk($ya, $item['id'], $item['name']);
+            } elseif ($item['id'] === '..') {
+                $this->downloadYandexDisk($ya->getParent());
+            } else {
+                if (!$this->isPress) {
+                    app()->press(false);
+                }
+
+                $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+                $popup
+                    ->setTitle('Download wine')
+                    ->setText('Wait ...')
+                    ->setActive(true)
+                    ->show();
+
+                $this->result = $ya->download($item['id'], $this->config->getRootDir());
+
+                $this->scene->removeWidget($popup->hide());
+
+                $this->onSuccessDownload();
+            }
+        });
+
+        return $this->result;
+    }
+}
+
+
+
 class ControllerGUI {
 
     private $ncurses;
     private $scenes;
+    private $initPress = false;
 
     /**
      * ControllerGUI constructor.
@@ -8239,19 +8523,22 @@ class ControllerGUI {
 
     public function press($flag = true)
     {
-        static $init = false;
-
         if (false === $flag) {
-            $init = false;
+            $this->initPress = false;
             return;
         }
 
-        if ($init === false) {
-            $init = true;
-            while ($init) {
+        if ($this->initPress === false) {
+            $this->initPress = true;
+            while ($this->initPress) {
                 $this->pressKey(ncurses_getch());
             }
         }
+    }
+
+    public function isPress()
+    {
+        return $this->initPress;
     }
 
     public function pressKey($key)
@@ -9514,9 +9801,10 @@ class WineScene extends AbstractScene {
             ['id' => 'winecfg',     'name' => 'Config',          'wine' => 'WINECFG'],
             ['id' => 'filemanager', 'name' => 'File Manager',    'wine' => 'WINEFILE'],
             ['id' => 'regedit',     'name' => 'Regedit',         'wine' => 'REGEDIT'],
-            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
-            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
-            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
+            ['id' => 'change',      'name' => 'Change Version' ],
+//            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
+//            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
+//            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -9541,6 +9829,10 @@ class WineScene extends AbstractScene {
                     ->logName($item['id'])
                     ->cmd(Text::quoteArgs($config->wine($item['wine'])))
                     ->run();
+            }
+            if ('change' === $item['id']) {
+                $wineDownloader = new WineDownloader(app('start')->getConfig(), app('start')->getCommand(), app('start')->getFileSystem(), app('start')->getPack());
+                $wineDownloader->wizard();
             }
         });
 
@@ -10314,6 +10606,18 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('change' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Change Wine version.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             }
         };
 
@@ -10732,7 +11036,7 @@ class PopupSelectWidget extends AbstractWidget {
 
     public function setItems($items)
     {
-        $this->items = $items;
+        $this->items = array_values($items);
         return $this;
     }
 
@@ -11162,7 +11466,7 @@ class Start
     }
 
     /**
-     * @return array[Mount]
+     * @return Mount[]
      */
     public function getMountes()
     {

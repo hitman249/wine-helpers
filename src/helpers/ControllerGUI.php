@@ -4,6 +4,7 @@ class ControllerGUI {
 
     private $ncurses;
     private $scenes;
+    private $initPress = false;
 
     /**
      * ControllerGUI constructor.
@@ -66,19 +67,22 @@ class ControllerGUI {
 
     public function press($flag = true)
     {
-        static $init = false;
-
         if (false === $flag) {
-            $init = false;
+            $this->initPress = false;
             return;
         }
 
-        if ($init === false) {
-            $init = true;
-            while ($init) {
+        if ($this->initPress === false) {
+            $this->initPress = true;
+            while ($this->initPress) {
                 $this->pressKey(ncurses_getch());
             }
         }
+    }
+
+    public function isPress()
+    {
+        return $this->initPress;
     }
 
     public function pressKey($key)

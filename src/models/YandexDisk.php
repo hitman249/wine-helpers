@@ -155,15 +155,21 @@ class YandexDisk
         return '';
     }
 
-    public function download($id, $pathFile)
+    public function download($id, $path)
     {
         try {
             ini_set('memory_limit', '-1');
             $request = new \Rakit\Curl\Curl($this->getFileLink($id));
             $request->autoRedirect(5);
             $response = $request->get();
+            $fileName = $this->getFileData($id);
+            $pathFile = "{$path}/{$fileName['name']}";
             file_put_contents($pathFile, $response->getBody());
+
+            return $pathFile;
         } catch (ErrorException $e) {}
+
+        return '';
     }
 
     public function getFolder($id)
