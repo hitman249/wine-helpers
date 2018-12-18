@@ -152,7 +152,7 @@ class FileSystem {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
     }
 
-    public function unpackXz($inFile, $outDir, $type = 'xf')
+    public function unpackXz($inFile, $outDir, $type = 'xf', $glob = '')
     {
         if (!app('start')->getSystem()->isXz()) {
             return false;
@@ -181,7 +181,7 @@ class FileSystem {
         $this->command->run("cd \"{$tmpDir}\" && tar {$type} \"./{$fileName}\"");
         $this->rm($mvFile);
 
-        $find = glob("{$tmpDir}/*");
+        $find = glob("{$tmpDir}/{$glob}*");
 
         $path = $tmpDir;
 
@@ -203,6 +203,11 @@ class FileSystem {
         return $this->unpackXz($inFile, $outDir, '-xzf');
     }
 
+    public function unpackPol($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, '-xjf', 'wineversion/');
+    }
+
     public function unpack($inFile, $outDir)
     {
         if (Text::endsWith($inFile, '.tar.xz')) {
@@ -210,6 +215,9 @@ class FileSystem {
         }
         if (Text::endsWith($inFile, '.tar.gz')) {
             return $this->unpackGz($inFile, $outDir);
+        }
+        if (Text::endsWith($inFile, '.pol')) {
+            return $this->unpackPol($inFile, $outDir);
         }
 
         return false;

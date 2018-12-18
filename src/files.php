@@ -42,6 +42,7 @@ return [
         'models/Dialog.php',
         'models/YandexDisk.php',
         'models/Lutris.php',
+        'models/PlayOnLinux.php',
         'models/WineDownloader.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',

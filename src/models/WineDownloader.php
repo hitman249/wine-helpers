@@ -66,6 +66,7 @@ class WineDownloader
                     ->setItems([
                         ['id' => 'kron4ek', 'name' => 'Kron4ek'],
                         ['id' => 'lutris',  'name' => 'Lutris'],
+                        ['id' => 'pol',     'name' => 'PlayOnLinux'],
                     ])
                     ->setTitle('Repository')
                     ->border()
@@ -83,6 +84,9 @@ class WineDownloader
                     }
                     if ('lutris' === $repo['id']) {
                         $this->downloadLutris();
+                    }
+                    if ('pol' === $repo['id']) {
+                        $this->downloadPol();
                     }
                 });
             }
@@ -147,6 +151,87 @@ class WineDownloader
         }
 
         return false;
+    }
+
+    public function downloadPol($_pol = null)
+    {
+        $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+        $popup
+            ->setTitle('Request')
+            ->setText('Wait ...')
+            ->setActive(true)
+            ->show();
+
+        $pol = (null === $_pol ? new PlayOnLinux() : $_pol);
+
+        $items = $pol->getList();
+
+        $this->scene->removeWidget($popup->hide());
+
+        $this->result = '';
+
+        $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+        $select
+            ->setItems($items)
+            ->setTitle('Select arch')
+            ->border()
+            ->setFullMode()
+            ->backAccess()
+            ->maxSize(null, 4)
+            ->setActive(true)
+            ->show();
+
+        $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+        $select->onEnterEvent(function ($arch) use (&$select, &$pol) {
+            $this->scene->removeWidget($select->hide());
+
+            $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+            $popup
+                ->setTitle('Request')
+                ->setText('Wait ...')
+                ->setActive(true)
+                ->show();
+            $items = $pol->getList($arch);
+            $this->scene->removeWidget($popup->hide());
+
+            $select = $this->scene->addWidget(new PopupSelectWidget($this->scene->getWindow()));
+            $select
+                ->setItems(array_merge([['id' => '..', 'name' => '..']], $items))
+                ->setTitle($arch['name'])
+                ->border()
+                ->setFullMode()
+                ->backAccess()
+                ->maxSize(null, 6)
+                ->setActive(true)
+                ->show();
+            $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
+            $select->onEnterEvent(function ($item) use (&$select, &$pol) {
+                $this->scene->removeWidget($select->hide());
+
+                if ('..' === $item['id']) {
+                    $this->downloadPol($pol);
+                } else {
+                    if (!$this->isPress) {
+                        app()->press(false);
+                    }
+
+                    $popup = $this->scene->addWidget(new PopupInfoWidget($this->scene->getWindow()));
+                    $popup
+                        ->setTitle('Download wine')
+                        ->setText('Wait ...')
+                        ->setActive(true)
+                        ->show();
+
+                    $this->result = $pol->download($item['id'], $this->config->getRootDir());
+
+                    $this->scene->removeWidget($popup->hide());
+
+                    $this->onSuccessDownload();
+                }
+            });
+        });
+
+        return $this->result;
     }
 
     public function downloadLutris($_lutris = null)
@@ -267,6 +352,7 @@ class WineDownloader
             ->setFullMode()
             ->maxSize(null, 6)
             ->setActive(true)
+            ->backAccess()
             ->show();
         $select->onEscEvent(function () use (&$select) { $this->scene->removeWidget($select->hide()); });
         $select->onEnterEvent(function ($item) use (&$select, &$ya) {

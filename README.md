@@ -167,6 +167,7 @@ Help:
  * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
  * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
  * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
- * [Управление тактовой частотой процессора под Linux](http://www.michurin.net/tools/cpu-frequency.html)
+ * [CPU clock control for Linux](http://www.michurin.net/tools/cpu-frequency.html)
  * [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
  * [Performance Tweaks](https://github.com/lutris/lutris/wiki/Performance-Tweaks)
+ * [AntiMicro (gamepad)](https://github.com/AntiMicro/antimicro) - [YouTube](https://www.youtube.com/watch?v=HgX-pDXlF5Q)

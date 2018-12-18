@@ -46,6 +46,7 @@ class Lutris
 
             foreach ($this->data?:[] as $key => $value) {
                 natsort($this->data[$key]);
+                $this->data[$key] = array_reverse($this->data[$key]);
             }
         }
     }
