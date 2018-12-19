@@ -122,7 +122,22 @@ class WinePrefix {
              * Copy required dlls and override them
              */
             $this->updateDlls();
+            app()->getCurrentScene()->setProgress(50);
+
+
+            /**
+             * Update dumbxinputemu
+             */
+            (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            app()->getCurrentScene()->setProgress(55);
+
+
+            /**
+             * Update FAudio
+             */
+            (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
             app()->getCurrentScene()->setProgress(60);
+
 
             /**
              * Sandbox the prefix; Borrowed from winetricks scripts
@@ -257,6 +272,18 @@ class WinePrefix {
 
 
         /**
+         * Update dumbxinputemu
+         */
+        (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
+         * Update FAudio
+         */
+        (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
          * Copy required dlls and override them
          */
         $this->updateDlls();
@@ -334,8 +361,8 @@ class WinePrefix {
          * Copy required dlls and override them
          */
         $dlls     = [];
-        $isDll32  = file_exists($this->config->getDllsDir()) && file_exists($this->config->wine('DRIVE_C') . "/windows/system32/");
-        $isDll64  = file_exists($this->config->getDlls64Dir()) && file_exists($this->config->wine('DRIVE_C') . "/windows/syswow64/");
+        $isDll32  = file_exists($this->config->getDllsDir()) && file_exists($this->config->getWineSystem32Folder());
+        $isDll64  = file_exists($this->config->getDlls64Dir()) && file_exists($this->config->getWineSyswow64Folder());
         $isChange = false;
         $result   = [];
 

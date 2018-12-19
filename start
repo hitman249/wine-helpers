@@ -4183,6 +4183,21 @@ class Config {
         return $this->wine('DRIVE_C') . '/' . $this->getGamePath();
     }
 
+    public function getPrefixFolder()
+    {
+        return $this->wine('WINEPREFIX');
+    }
+
+    public function getWineSystem32Folder()
+    {
+        return $this->wine('DRIVE_C') . '/windows/system32';
+    }
+
+    public function getWineSyswow64Folder()
+    {
+        return $this->wine('DRIVE_C') . '/windows/syswow64';
+    }
+
     public function getGameAdditionalPath()
     {
         return $this->get('game', 'additional_path');
@@ -4362,28 +4377,45 @@ class Config {
 
     public function getDefaultConfig()
     {
-        return "[game]
-path = \"Games\"
-additional_path = \"The Super Game/bin\"
-exe = \"Game.exe\"
-cmd = \"-language=russian\"
-name = \"The Super Game: Deluxe Edition\"
-version = \"1.0.0\"
+        return '[game]
+path = "Games"
+additional_path = "The Super Game/bin"
+exe = "Game.exe"
+cmd = "-language=russian"
+name = "The Super Game: Deluxe Edition"
+version = "1.0.0"
 [script]
 autoupdate = 1
 
-; Download latest d3d11.dll and dxgi.dll
+;
+; Download the latest DXVK.
+; https://github.com/doitsujin/dxvk
+;
 dxvk = 0
 dxvk_autoupdate = 1
 
 ; Required for determining display manner FPS
 dxvk_d3d10 = 0
 
-; winetricks_to_install = \"d3dx9 xact\"
-winetricks_to_install = \"\"
+;
+; Download the latest dumbxinputemu.
+; https://github.com/kozec/dumbxinputemu
+;
+dumbxinputemu = 0
+dumbxinputemu_autoupdate = 1
+
+;
+; Download the latest FAudio.
+; https://github.com/FNA-XNA/FAudio
+;
+faudio = 0
+faudio_autoupdate = 1
+
+; winetricks_to_install = "d3dx9 xact"
+winetricks_to_install = ""
 
 ; Windows version (win7, winxp, win2k)
-winver = \"win7\"
+winver = "win7"
 
 csmt = 1
 
@@ -4396,29 +4428,29 @@ pulse = 1
 ; Auto fixed resolution, brightness, gamma for all monitors
 fixres = 1
 [wine]
-WINEDEBUG = \"-all\"
-WINEARCH = \"win32\"
-WINEDLLOVERRIDES = \"\"
+WINEDEBUG = "-all"
+WINEARCH = "win32"
+WINEDLLOVERRIDES = ""
 [window]
 enable = 0
-title = \"Wine\"
-resolution = \"800x600\"
+title = "Wine"
+resolution = "800x600"
 [dlls]
 ;
 ; Additional dlls folder logic
-; Example: dll[name_file.dll] = \"nooverride\"
+; Example: dll[name_file.dll] = "nooverride"
 ;
 ; Variables:
-; \"builtin\"        - Builtin
-; \"native\"         - External (default)
-; \"builtin,native\" - Builtin, External
-; \"native,builtin\" - External, Builtin
-; \"nooverride\"     - Do not register
-; \"register\"       - Register via regsvr32
+; "builtin"        - Builtin
+; "native"         - External (default)
+; "builtin,native" - Builtin, External
+; "native,builtin" - External, Builtin
+; "nooverride"     - Do not register
+; "register"       - Register via regsvr32
 ;
 
-; dll[d3d11.dll] = \"nooverride\"
-; dll[l3codecx.ax] = \"register\"
+; dll[d3d11.dll] = "nooverride"
+; dll[l3codecx.ax] = "register"
 [hooks]
 ;
 ; Hooks
@@ -4427,13 +4459,13 @@ resolution = \"800x600\"
 ; after_exit_game     - commands are executed after the game exit
 ;
 
-; after_create_prefix[] = \"create.sh\"
-; before_run_game[] = \"before.sh\"
-; after_exit_game[] = \"after.sh\"
-; after_exit_game[] = \"after2.sh\"
-; gpu_amd[] = \"gpu/amd.sh\"
-; gpu_nvidia[] = \"gpu/nvidia.sh\"
-; gpu_intel[] = \"gpu/intel.sh\"
+; after_create_prefix[] = "create.sh"
+; before_run_game[] = "before.sh"
+; after_exit_game[] = "after.sh"
+; after_exit_game[] = "after2.sh"
+; gpu_amd[] = "gpu/amd.sh"
+; gpu_nvidia[] = "gpu/nvidia.sh"
+; gpu_intel[] = "gpu/intel.sh"
 [export]
 ;
 ; Export additional variables
@@ -4467,7 +4499,7 @@ PBA_DISABLE=1
 ; {USER}   - username
 ;
 
-; file[] = \"game_info/data/example.conf\"";
+; file[] = "game_info/data/example.conf"';
     }
 
     public function getDefaultDxvkConfig()
@@ -5721,7 +5753,22 @@ class WinePrefix {
              * Copy required dlls and override them
              */
             $this->updateDlls();
+            app()->getCurrentScene()->setProgress(50);
+
+
+            /**
+             * Update dumbxinputemu
+             */
+            (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            app()->getCurrentScene()->setProgress(55);
+
+
+            /**
+             * Update FAudio
+             */
+            (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
             app()->getCurrentScene()->setProgress(60);
+
 
             /**
              * Sandbox the prefix; Borrowed from winetricks scripts
@@ -5856,6 +5903,18 @@ class WinePrefix {
 
 
         /**
+         * Update dumbxinputemu
+         */
+        (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
+         * Update FAudio
+         */
+        (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
          * Copy required dlls and override them
          */
         $this->updateDlls();
@@ -5933,8 +5992,8 @@ class WinePrefix {
          * Copy required dlls and override them
          */
         $dlls     = [];
-        $isDll32  = file_exists($this->config->getDllsDir()) && file_exists($this->config->wine('DRIVE_C') . "/windows/system32/");
-        $isDll64  = file_exists($this->config->getDlls64Dir()) && file_exists($this->config->wine('DRIVE_C') . "/windows/syswow64/");
+        $isDll32  = file_exists($this->config->getDllsDir()) && file_exists($this->config->getWineSystem32Folder());
+        $isDll64  = file_exists($this->config->getDlls64Dir()) && file_exists($this->config->getWineSyswow64Folder());
         $isChange = false;
         $result   = [];
 
@@ -8687,6 +8746,337 @@ class WineDownloader
         });
 
         return $this->result;
+    }
+}
+
+
+
+class Dumbxinputemu
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/71.0.3578.80 Chrome/71.0.3578.80 Safari/537.36';
+    private $url;
+    private $data;
+
+    /**
+     * Dumbxinputemu constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->fs      = $fs;
+        $this->wine    = $wine;
+
+        $this->url  = 'https://api.github.com/repos/kozec/dumbxinputemu/releases/latest';
+        $this->data = [];
+
+        try {
+            $request  = new \Rakit\Curl\Curl($this->url);
+            $request->header('User-Agent', $this->userAgent);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            try {
+                sleep(1);
+                $response = $request->get();
+            } catch (ErrorException $e) {
+                try {
+                    sleep(3);
+                    $response = $request->get();
+                } catch (ErrorException $e) {
+                    return;
+                }
+            }
+        }
+
+        if ($request && !$response->error()) {
+            $result = json_decode($response->getBody(), true);
+
+            if ($result) {
+                $this->data = $result;
+            }
+        }
+    }
+
+    public function version()
+    {
+        $version = $this->config->wine('DRIVE_C') . '/dumbxinputemu';
+
+        if (file_exists($version)) {
+            return trim(file_get_contents($version));
+        }
+
+        return '';
+    }
+
+    public function versionRemote()
+    {
+        return $this->data ? $this->data['tag_name'] : '';
+    }
+
+    private function getLatestUrlFile()
+    {
+        if (!$this->data || !$this->data['assets']) {
+            return null;
+        }
+
+        $asset = reset($this->data['assets']);
+
+        if ($asset) {
+            return $asset['browser_download_url'];
+        }
+
+        return null;
+    }
+
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    public function download($path)
+    {
+        $url = $this->getLatestUrlFile();
+
+        if (!$url) {
+            return '';
+        }
+
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($url);
+            $request->header('User-Agent', $this->userAgent);
+            $request->autoRedirect(5);
+            $response = $request->get();
+            $fileName = basename($url);
+            $pathFile = "{$path}/{$fileName}";
+            file_put_contents($pathFile, $response->getBody());
+
+            return $pathFile;
+        } catch (ErrorException $e) {}
+
+        return '';
+    }
+
+    /**
+     * @param callable|null $logCallback
+     * @return bool
+     */
+    public function update($logCallback = null)
+    {
+        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
+        if ($this->version() && !$this->config->getBool('script', 'dumbxinputemu_autoupdate')) {
+            return false;
+        }
+
+        if ($this->version() !== $this->versionRemote()) {
+            if ($filePath = $this->download($this->config->getCacheDir())) {
+                $dir = $this->config->getCacheDir() . '/dumbxinputemu';
+
+                if ($logCallback) {
+                    $logCallback('Update dumbxinputemu.');
+                }
+
+                $this->fs->unpack($filePath, $dir);
+
+                if (file_exists($this->config->getWineSystem32Folder())) {
+                    foreach (glob("{$dir}/32/*.dll") as $path) {
+                        $fileName = basename($path);
+                        $out = $this->config->getWineSystem32Folder() . "/{$fileName}";
+                        if (file_exists($out)) {
+                            $this->fs->rm($out);
+                        }
+                        $this->fs->cp($path, $out);
+                        $this->register($fileName);
+                        if ($logCallback) {
+                            $logCallback("Register x86 {$fileName}");
+                        }
+                    }
+                }
+                if (file_exists($this->config->getWineSyswow64Folder())) {
+                    foreach (glob("{$dir}/64/*.dll") as $path) {
+                        $fileName = basename($path);
+                        $out = $this->config->getWineSyswow64Folder() . "/{$fileName}";
+                        if (file_exists($out)) {
+                            $this->fs->rm($out);
+                        }
+                        $this->fs->cp($path, $out);
+                        $this->register($fileName);
+                        if ($logCallback) {
+                            $logCallback("Register x86_64 {$fileName}");
+                        }
+                    }
+                }
+
+                if (file_exists($dir)) {
+                    $this->fs->rm($dir);
+                }
+
+                file_put_contents($this->config->wine('DRIVE_C') . '/dumbxinputemu', $this->versionRemote());
+
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    public function register($fileName)
+    {
+        $this->wine->regsvr32([$fileName]);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $fileName, '/d', 'native', '/f']);
+    }
+}
+
+
+
+class FAudio
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $disk;
+    private $data;
+
+    /**
+     * FAudio constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->fs      = $fs;
+        $this->wine    = $wine;
+    }
+
+    private function init()
+    {
+        if (null === $this->disk) {
+            $this->disk = new YandexDisk('https://yadi.sk/d/IrofgqFSqHsPu/faudio_builds');
+            $this->data = array_filter($this->disk->getList(), function ($path) { return !Text::endsWith($path, '/'); });
+        }
+    }
+
+    private function getFileLatest()
+    {
+        $this->init();
+
+        $value = end($this->data);
+        $key   = key($this->data);
+
+        return ['id' => $key, 'path' => $value];
+    }
+
+    public function version()
+    {
+        $version = $this->config->wine('DRIVE_C') . '/faudio';
+
+        if (file_exists($version)) {
+            return trim(file_get_contents($version));
+        }
+
+        return '';
+    }
+
+    public function versionRemote()
+    {
+        $file = $this->getFileLatest();
+        $fileName = explode('.', basename($file['path']));
+
+        return reset($fileName);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     * @return bool
+     */
+    public function update($logCallback = null)
+    {
+        $this->init();
+
+        if (!$this->config->getBool('script', 'faudio') || !file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
+        if ($this->version() && !$this->config->getBool('script', 'faudio_autoupdate')) {
+            return false;
+        }
+
+        if ($this->version() !== $this->versionRemote()) {
+            $file = $this->getFileLatest();
+            if ($filePath = $this->disk->download($file['id'], $this->config->getCacheDir())) {
+                $dir = $this->config->getCacheDir() . '/faudio';
+
+                if ($logCallback) {
+                    $logCallback('Update FAudio.');
+                }
+
+                $this->fs->unpack($filePath, $dir);
+
+                if (file_exists($this->config->getWineSystem32Folder())) {
+                    foreach (glob("{$dir}/x32/*.dll") as $path) {
+                        $fileName = basename($path);
+                        $out = $this->config->getWineSystem32Folder() . "/{$fileName}";
+                        if (file_exists($out)) {
+                            $this->fs->rm($out);
+                        }
+                        $this->fs->cp($path, $out);
+                        $this->register($fileName);
+                        if ($logCallback) {
+                            $logCallback("Register x86 {$fileName}");
+                        }
+                    }
+                }
+                if (file_exists($this->config->getWineSyswow64Folder())) {
+                    foreach (glob("{$dir}/x64/*.dll") as $path) {
+                        $fileName = basename($path);
+                        $out = $this->config->getWineSyswow64Folder() . "/{$fileName}";
+                        if (file_exists($out)) {
+                            $this->fs->rm($out);
+                        }
+                        $this->fs->cp($path, $out);
+                        $this->register($fileName);
+                        if ($logCallback) {
+                            $logCallback("Register x86_64 {$fileName}");
+                        }
+                    }
+                }
+
+                if (file_exists($dir)) {
+                    $this->fs->rm($dir);
+                }
+
+                file_put_contents($this->config->wine('DRIVE_C') . '/faudio', $this->versionRemote());
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    public function register($fileName)
+    {
+        $this->wine->regsvr32([$fileName]);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $fileName, '/d', 'native', '/f']);
     }
 }
 

@@ -167,6 +167,21 @@ class Config {
         return $this->wine('DRIVE_C') . '/' . $this->getGamePath();
     }
 
+    public function getPrefixFolder()
+    {
+        return $this->wine('WINEPREFIX');
+    }
+
+    public function getWineSystem32Folder()
+    {
+        return $this->wine('DRIVE_C') . '/windows/system32';
+    }
+
+    public function getWineSyswow64Folder()
+    {
+        return $this->wine('DRIVE_C') . '/windows/syswow64';
+    }
+
     public function getGameAdditionalPath()
     {
         return $this->get('game', 'additional_path');
@@ -346,28 +361,45 @@ class Config {
 
     public function getDefaultConfig()
     {
-        return "[game]
-path = \"Games\"
-additional_path = \"The Super Game/bin\"
-exe = \"Game.exe\"
-cmd = \"-language=russian\"
-name = \"The Super Game: Deluxe Edition\"
-version = \"1.0.0\"
+        return '[game]
+path = "Games"
+additional_path = "The Super Game/bin"
+exe = "Game.exe"
+cmd = "-language=russian"
+name = "The Super Game: Deluxe Edition"
+version = "1.0.0"
 [script]
 autoupdate = 1
 
-; Download latest d3d11.dll and dxgi.dll
+;
+; Download the latest DXVK.
+; https://github.com/doitsujin/dxvk
+;
 dxvk = 0
 dxvk_autoupdate = 1
 
 ; Required for determining display manner FPS
 dxvk_d3d10 = 0
 
-; winetricks_to_install = \"d3dx9 xact\"
-winetricks_to_install = \"\"
+;
+; Download the latest dumbxinputemu.
+; https://github.com/kozec/dumbxinputemu
+;
+dumbxinputemu = 0
+dumbxinputemu_autoupdate = 1
+
+;
+; Download the latest FAudio.
+; https://github.com/FNA-XNA/FAudio
+;
+faudio = 0
+faudio_autoupdate = 1
+
+; winetricks_to_install = "d3dx9 xact"
+winetricks_to_install = ""
 
 ; Windows version (win7, winxp, win2k)
-winver = \"win7\"
+winver = "win7"
 
 csmt = 1
 
@@ -380,29 +412,29 @@ pulse = 1
 ; Auto fixed resolution, brightness, gamma for all monitors
 fixres = 1
 [wine]
-WINEDEBUG = \"-all\"
-WINEARCH = \"win32\"
-WINEDLLOVERRIDES = \"\"
+WINEDEBUG = "-all"
+WINEARCH = "win32"
+WINEDLLOVERRIDES = ""
 [window]
 enable = 0
-title = \"Wine\"
-resolution = \"800x600\"
+title = "Wine"
+resolution = "800x600"
 [dlls]
 ;
 ; Additional dlls folder logic
-; Example: dll[name_file.dll] = \"nooverride\"
+; Example: dll[name_file.dll] = "nooverride"
 ;
 ; Variables:
-; \"builtin\"        - Builtin
-; \"native\"         - External (default)
-; \"builtin,native\" - Builtin, External
-; \"native,builtin\" - External, Builtin
-; \"nooverride\"     - Do not register
-; \"register\"       - Register via regsvr32
+; "builtin"        - Builtin
+; "native"         - External (default)
+; "builtin,native" - Builtin, External
+; "native,builtin" - External, Builtin
+; "nooverride"     - Do not register
+; "register"       - Register via regsvr32
 ;
 
-; dll[d3d11.dll] = \"nooverride\"
-; dll[l3codecx.ax] = \"register\"
+; dll[d3d11.dll] = "nooverride"
+; dll[l3codecx.ax] = "register"
 [hooks]
 ;
 ; Hooks
@@ -411,13 +443,13 @@ resolution = \"800x600\"
 ; after_exit_game     - commands are executed after the game exit
 ;
 
-; after_create_prefix[] = \"create.sh\"
-; before_run_game[] = \"before.sh\"
-; after_exit_game[] = \"after.sh\"
-; after_exit_game[] = \"after2.sh\"
-; gpu_amd[] = \"gpu/amd.sh\"
-; gpu_nvidia[] = \"gpu/nvidia.sh\"
-; gpu_intel[] = \"gpu/intel.sh\"
+; after_create_prefix[] = "create.sh"
+; before_run_game[] = "before.sh"
+; after_exit_game[] = "after.sh"
+; after_exit_game[] = "after2.sh"
+; gpu_amd[] = "gpu/amd.sh"
+; gpu_nvidia[] = "gpu/nvidia.sh"
+; gpu_intel[] = "gpu/intel.sh"
 [export]
 ;
 ; Export additional variables
@@ -451,7 +483,7 @@ PBA_DISABLE=1
 ; {USER}   - username
 ;
 
-; file[] = \"game_info/data/example.conf\"";
+; file[] = "game_info/data/example.conf"';
     }
 
     public function getDefaultDxvkConfig()

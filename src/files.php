@@ -44,6 +44,8 @@ return [
         'models/Lutris.php',
         'models/PlayOnLinux.php',
         'models/WineDownloader.php',
+        'models/Dumbxinputemu.php',
+        'models/FAudio.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',
