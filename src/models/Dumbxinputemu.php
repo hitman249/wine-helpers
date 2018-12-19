@@ -9,6 +9,7 @@ class Dumbxinputemu
     private $userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/71.0.3578.80 Chrome/71.0.3578.80 Safari/537.36';
     private $url;
     private $data;
+    private $init;
 
     /**
      * Dumbxinputemu constructor.
@@ -23,33 +24,40 @@ class Dumbxinputemu
         $this->config  = $config;
         $this->fs      = $fs;
         $this->wine    = $wine;
+    }
 
-        $this->url  = 'https://api.github.com/repos/kozec/dumbxinputemu/releases/latest';
-        $this->data = [];
+    public function init()
+    {
+        if (null === $this->init) {
+            $this->init = true;
 
-        try {
-            $request  = new \Rakit\Curl\Curl($this->url);
-            $request->header('User-Agent', $this->userAgent);
-            $response = $request->get();
-        } catch (ErrorException $e) {
+            $this->url  = 'https://api.github.com/repos/kozec/dumbxinputemu/releases/latest';
+            $this->data = [];
+
             try {
-                sleep(1);
+                $request  = new \Rakit\Curl\Curl($this->url);
+                $request->header('User-Agent', $this->userAgent);
                 $response = $request->get();
             } catch (ErrorException $e) {
                 try {
-                    sleep(3);
+                    sleep(1);
                     $response = $request->get();
                 } catch (ErrorException $e) {
-                    return;
+                    try {
+                        sleep(3);
+                        $response = $request->get();
+                    } catch (ErrorException $e) {
+                        return;
+                    }
                 }
             }
-        }
 
-        if ($request && !$response->error()) {
-            $result = json_decode($response->getBody(), true);
+            if ($request && !$response->error()) {
+                $result = json_decode($response->getBody(), true);
 
-            if ($result) {
-                $this->data = $result;
+                if ($result) {
+                    $this->data = $result;
+                }
             }
         }
     }
@@ -67,11 +75,14 @@ class Dumbxinputemu
 
     public function versionRemote()
     {
+        $this->init();
         return $this->data ? $this->data['tag_name'] : '';
     }
 
     private function getLatestUrlFile()
     {
+        $this->init();
+
         if (!$this->data || !$this->data['assets']) {
             return null;
         }
@@ -87,11 +98,14 @@ class Dumbxinputemu
 
     public function getData()
     {
+        $this->init();
         return $this->data;
     }
 
     public function download($path)
     {
+        $this->init();
+
         $url = $this->getLatestUrlFile();
 
         if (!$url) {
@@ -127,6 +141,8 @@ class Dumbxinputemu
         if ($this->version() && !$this->config->getBool('script', 'dumbxinputemu_autoupdate')) {
             return false;
         }
+
+        $this->init();
 
         if ($this->version() !== $this->versionRemote()) {
             if ($filePath = $this->download($this->config->getCacheDir())) {
