@@ -4385,7 +4385,12 @@ cmd = "-language=russian"
 name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
 [script]
+;
+; Autoupdate this script the latest version.
+; https://github.com/hitman249/wine-helpers
+;
 autoupdate = 1
+
 
 ;
 ; Download the latest DXVK.
@@ -4394,8 +4399,12 @@ autoupdate = 1
 dxvk = 0
 dxvk_autoupdate = 1
 
-; Required for determining display manner FPS
+
+;
+; Required for determining display manner FPS.
+;
 dxvk_d3d10 = 0
+
 
 ;
 ; Download the latest dumbxinputemu.
@@ -4404,6 +4413,7 @@ dxvk_d3d10 = 0
 dumbxinputemu = 0
 dumbxinputemu_autoupdate = 1
 
+
 ;
 ; Download the latest FAudio.
 ; https://github.com/FNA-XNA/FAudio
@@ -4411,21 +4421,38 @@ dumbxinputemu_autoupdate = 1
 faudio = 0
 faudio_autoupdate = 1
 
+
+;
 ; winetricks_to_install = "d3dx9 xact"
+;
 winetricks_to_install = ""
 
-; Windows version (win7, winxp, win2k)
+
+;
+; Windows version (win7, winxp, win2k).
+;
 winver = "win7"
 
+
+;
+; CSMT (Commandstream multithreading) for better graphic performance.
+;
 csmt = 1
 
-; Not use /home/user directory
+
+;
+; Not use /home/user directory.
+;
 sandbox = 1
 
-; Set sound driver to PulseAudio or ALSA
+;
+; Set sound driver to PulseAudio or ALSA.
+;
 pulse = 1
 
-; Auto fixed resolution, brightness, gamma for all monitors
+;
+; Auto fixed resolution, brightness, gamma for all monitors.
+;
 fixres = 1
 [wine]
 WINEDEBUG = "-all"
