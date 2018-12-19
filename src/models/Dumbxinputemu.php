@@ -120,7 +120,7 @@ class Dumbxinputemu
      */
     public function update($logCallback = null)
     {
-        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder())) {
+        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder()) || !$this->data) {
             return false;
         }
 

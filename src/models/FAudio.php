@@ -67,9 +67,13 @@ class FAudio
      */
     public function update($logCallback = null)
     {
+        if (!$this->config->getBool('script', 'faudio') || !file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
         $this->init();
 
-        if (!$this->config->getBool('script', 'faudio') || !file_exists($this->config->getPrefixFolder())) {
+        if (!$this->data) {
             return false;
         }
 
