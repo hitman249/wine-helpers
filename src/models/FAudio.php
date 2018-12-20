@@ -92,6 +92,8 @@ class FAudio
 
                 $this->fs->unpack($filePath, $dir);
 
+                $dlls = [];
+
                 if (file_exists($this->config->getWineSystem32Folder())) {
                     foreach (glob("{$dir}/x32/*.dll") as $path) {
                         $fileName = basename($path);
@@ -99,10 +101,11 @@ class FAudio
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
                     }
                 }
@@ -113,10 +116,21 @@ class FAudio
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
+                        }
+                    }
+                }
+
+                if ($dlls) {
+                    foreach ($dlls as $dll) {
+                        $this->register($dll);
+
                         if ($logCallback) {
-                            $logCallback("Register x86_64 {$fileName}");
+                            $logCallback("Register {$dll}");
                         }
                     }
                 }

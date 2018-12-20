@@ -134,7 +134,13 @@ class Dumbxinputemu
      */
     public function update($logCallback = null)
     {
-        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder()) || !$this->data) {
+        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
+        $this->init();
+
+        if (!$this->data) {
             return false;
         }
 
@@ -154,6 +160,8 @@ class Dumbxinputemu
 
                 $this->fs->unpack($filePath, $dir);
 
+                $dlls = [];
+
                 if (file_exists($this->config->getWineSystem32Folder())) {
                     foreach (glob("{$dir}/32/*.dll") as $path) {
                         $fileName = basename($path);
@@ -161,10 +169,11 @@ class Dumbxinputemu
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
                     }
                 }
@@ -175,11 +184,22 @@ class Dumbxinputemu
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86_64 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
+                    }
+                }
+
+                if ($dlls) {
+                    foreach ($dlls as $dll) {
+                        if ($logCallback) {
+                            $logCallback("Register {$dll}");
+                        }
+
+                        $this->register($dll);
                     }
                 }
 

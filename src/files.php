@@ -46,6 +46,7 @@ return [
         'models/WineDownloader.php',
         'models/Dumbxinputemu.php',
         'models/FAudio.php',
+        'models/Fixes.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

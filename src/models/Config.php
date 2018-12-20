@@ -368,7 +368,9 @@ exe = "Game.exe"
 cmd = "-language=russian"
 name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
+
 [script]
+
 ;
 ; Autoupdate this script the latest version.
 ; https://github.com/hitman249/wine-helpers
@@ -438,15 +440,83 @@ pulse = 1
 ; Auto fixed resolution, brightness, gamma for all monitors.
 ;
 fixres = 1
+
+[fixes]
+
+;
+; Fix ddraw \ ddrawex
+; Bug render menu
+; Games: Cossacks, Olympus 2207
+;
+ddraw = 0
+
+
+;
+; Fix installers
+; Add gdiplus.dll, mfc42.dll, mfc42u.dll
+;
+installers = 0
+
+
+;
+; Install d3dx9_24.dll ... d3dx9_43.dll, d3dcompiler_43.dll
+; Games: Mafia II, Vietcong, S.T.A.L.K.E.R, GTAIV, Painkiller, others.
+;
+d3dx9 = 0
+
+
+;
+; Fix internet support
+; Install winhttp wininet directplay
+; Games: Stronghold Crusader
+;
+internet = 0
+
+
+;
+; Fix intro
+; Install quartz allcodecs wmp9
+; Games: Lost Planet
+;
+intro = 0
+
+
+;
+; Fix sound problems
+; Install xact
+;
+; Not compatible with DXVK.
+; Try FAudio first! [script] > faudio = 1
+;
+xact = 0
+
+
+;
+; Install physx
+;
+physx = 0
+
+
+;
+; Fix font incorrect
+; Install allfonts
+;
+font = 0
+
 [wine]
+
 WINEDEBUG = "-all"
 WINEARCH = "win32"
 WINEDLLOVERRIDES = ""
+
 [window]
+
 enable = 0
 title = "Wine"
 resolution = "800x600"
+
 [dlls]
+
 ;
 ; Additional dlls folder logic
 ; Example: dll[name_file.dll] = "nooverride"
@@ -462,7 +532,9 @@ resolution = "800x600"
 
 ; dll[d3d11.dll] = "nooverride"
 ; dll[l3codecx.ax] = "register"
+
 [hooks]
+
 ;
 ; Hooks
 ; after_create_prefix - commands are executed after prefix creation
@@ -477,7 +549,9 @@ resolution = "800x600"
 ; gpu_amd[] = "gpu/amd.sh"
 ; gpu_nvidia[] = "gpu/nvidia.sh"
 ; gpu_intel[] = "gpu/intel.sh"
+
 [export]
+
 ;
 ; Export additional variables
 ; Examples:
@@ -500,6 +574,7 @@ resolution = "800x600"
 WINEESYNC=1
 PBA_DISABLE=1
 [replaces]
+
 ;
 ; When creating a prefix, it searches for and replaces tags in the specified files.
 ; Path relative to the position of the ./start file

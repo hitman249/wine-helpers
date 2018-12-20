@@ -2993,22 +2993,26 @@ class FileSystem {
 
     public function rm($dir)
     {
-        if (file_exists($dir) && !is_dir($dir)) {
+        if (!file_exists($dir)) {
+            return false;
+        }
+
+        if (!is_dir($dir)) {
             unlink($dir);
             return true;
         }
 
-        if (is_dir($dir)) {
-            $objects = scandir($dir, SCANDIR_SORT_NONE);
-            foreach ($objects as $object) {
-                if ($object !== '.' && $object !== '..') {
-                    if (is_dir("{$dir}/{$object}")) {
-                        $this->rm("{$dir}/{$object}");
-                    } else {
-                        unlink("{$dir}/{$object}");
-                    }
+        foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {
+            if ($object !== '.' && $object !== '..') {
+                if (is_dir("{$dir}/{$object}")) {
+                    $this->rm("{$dir}/{$object}");
+                } else {
+                    unlink("{$dir}/{$object}");
                 }
             }
+        }
+
+        if (file_exists($dir)) {
             rmdir($dir);
         }
 
@@ -3108,7 +3112,7 @@ class FileSystem {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
     }
 
-    public function unpackXz($inFile, $outDir, $type = 'xf', $glob = '')
+    public function unpackXz($inFile, $outDir, $type = 'xf', $glob = '', $archiver = 'tar')
     {
         if (!app('start')->getSystem()->isXz()) {
             return false;
@@ -3134,7 +3138,7 @@ class FileSystem {
         $fileName = basename($inFile);
         $mvFile   = "{$tmpDir}/{$fileName}";
         $this->mv($inFile, $mvFile);
-        $this->command->run("cd \"{$tmpDir}\" && tar {$type} \"./{$fileName}\"");
+        $this->command->run("cd \"{$tmpDir}\" && {$archiver} {$type} \"./{$fileName}\"");
         $this->rm($mvFile);
 
         $find = glob("{$tmpDir}/{$glob}*");
@@ -3164,6 +3168,16 @@ class FileSystem {
         return $this->unpackXz($inFile, $outDir, '-xjf', 'wineversion/');
     }
 
+    public function unpackRar($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, 'x', '', 'unrar');
+    }
+
+    public function unpackZip($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, '', '', 'unzip');
+    }
+
     public function unpack($inFile, $outDir)
     {
         if (Text::endsWith($inFile, '.tar.xz')) {
@@ -3175,8 +3189,32 @@ class FileSystem {
         if (Text::endsWith($inFile, '.pol')) {
             return $this->unpackPol($inFile, $outDir);
         }
+        if (Text::endsWith($inFile, ['.exe', '.rar'])) {
+            return $this->unpackRar($inFile, $outDir);
+        }
+        if (Text::endsWith($inFile, '.zip')) {
+            return $this->unpackZip($inFile, $outDir);
+        }
 
         return false;
+    }
+
+    public function download($url, $path)
+    {
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($url);
+            $request->autoRedirect(5);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            return '';
+        }
+
+        $fileName = basename($url);
+        $pathFile = "{$path}/{$fileName}";
+        file_put_contents($pathFile, $response->getBody());
+
+        return $pathFile;
     }
 }
 
@@ -4384,7 +4422,9 @@ exe = "Game.exe"
 cmd = "-language=russian"
 name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
+
 [script]
+
 ;
 ; Autoupdate this script the latest version.
 ; https://github.com/hitman249/wine-helpers
@@ -4454,15 +4494,83 @@ pulse = 1
 ; Auto fixed resolution, brightness, gamma for all monitors.
 ;
 fixres = 1
+
+[fixes]
+
+;
+; Fix ddraw \ ddrawex
+; Bug render menu 
+; Games: Cossacks, Olympus 2207
+;
+ddraw = 0
+
+
+;
+; Fix installers
+; Add gdiplus.dll, mfc42.dll, mfc42u.dll
+;
+installers = 0
+
+
+;
+; Install d3dx9_24.dll ... d3dx9_43.dll, d3dcompiler_43.dll
+; Games: Mafia II, Vietcong, S.T.A.L.K.E.R, GTAIV, Painkiller, others.
+;
+d3dx9 = 0
+
+
+;
+; Fix internet support
+; Install winhttp wininet directplay
+; Games: Stronghold Crusader
+;
+internet = 0
+
+
+;
+; Fix intro
+; Install quartz allcodecs wmp9 
+; Games: Lost Planet
+;
+intro = 0
+
+
+;
+; Fix sound problems
+; Install xact
+;
+; Not compatible with DXVK.
+; Try FAudio first! [script] > faudio = 1
+;
+xact = 0
+
+
+;
+; Install physx
+;
+physx = 0
+
+
+;
+; Fix font incorrect
+; Install allfonts
+;
+font = 0
+
 [wine]
+
 WINEDEBUG = "-all"
 WINEARCH = "win32"
 WINEDLLOVERRIDES = ""
+
 [window]
+
 enable = 0
 title = "Wine"
 resolution = "800x600"
+
 [dlls]
+
 ;
 ; Additional dlls folder logic
 ; Example: dll[name_file.dll] = "nooverride"
@@ -4478,7 +4586,9 @@ resolution = "800x600"
 
 ; dll[d3d11.dll] = "nooverride"
 ; dll[l3codecx.ax] = "register"
+
 [hooks]
+
 ;
 ; Hooks
 ; after_create_prefix - commands are executed after prefix creation
@@ -4493,7 +4603,9 @@ resolution = "800x600"
 ; gpu_amd[] = "gpu/amd.sh"
 ; gpu_nvidia[] = "gpu/nvidia.sh"
 ; gpu_intel[] = "gpu/intel.sh"
+
 [export]
+
 ;
 ; Export additional variables
 ; Examples:
@@ -4516,6 +4628,7 @@ resolution = "800x600"
 WINEESYNC=1
 PBA_DISABLE=1
 [replaces]
+
 ;
 ; When creating a prefix, it searches for and replaces tags in the specified files.
 ; Path relative to the position of the ./start file
@@ -5777,24 +5890,31 @@ class WinePrefix {
 
 
             /**
-             * Copy required dlls and override them
-             */
-            $this->updateDlls();
-            app()->getCurrentScene()->setProgress(50);
-
-
-            /**
              * Update dumbxinputemu
              */
             (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
-            app()->getCurrentScene()->setProgress(55);
+            app()->getCurrentScene()->setProgress(40);
 
 
             /**
              * Update FAudio
              */
             (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
-            app()->getCurrentScene()->setProgress(60);
+            app()->getCurrentScene()->setProgress(45);
+
+
+            /**
+             * Apply fixes
+             */
+            (new Fixes($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            app()->getCurrentScene()->setProgress(50);
+
+
+            /**
+             * Copy required dlls and override them
+             */
+            $this->updateDlls();
+            app()->getCurrentScene()->setProgress(55);
 
 
             /**
@@ -5939,6 +6059,12 @@ class WinePrefix {
          * Update FAudio
          */
         (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
+         * Apply fixes
+         */
+        (new Fixes($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
 
 
         /**
@@ -8912,7 +9038,13 @@ class Dumbxinputemu
      */
     public function update($logCallback = null)
     {
-        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder()) || !$this->data) {
+        if (!$this->config->getBool('script', 'dumbxinputemu') || !file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
+        $this->init();
+
+        if (!$this->data) {
             return false;
         }
 
@@ -8932,6 +9064,8 @@ class Dumbxinputemu
 
                 $this->fs->unpack($filePath, $dir);
 
+                $dlls = [];
+
                 if (file_exists($this->config->getWineSystem32Folder())) {
                     foreach (glob("{$dir}/32/*.dll") as $path) {
                         $fileName = basename($path);
@@ -8939,10 +9073,11 @@ class Dumbxinputemu
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
                     }
                 }
@@ -8953,11 +9088,22 @@ class Dumbxinputemu
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86_64 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
+                    }
+                }
+
+                if ($dlls) {
+                    foreach ($dlls as $dll) {
+                        if ($logCallback) {
+                            $logCallback("Register {$dll}");
+                        }
+
+                        $this->register($dll);
                     }
                 }
 
@@ -9077,6 +9223,8 @@ class FAudio
 
                 $this->fs->unpack($filePath, $dir);
 
+                $dlls = [];
+
                 if (file_exists($this->config->getWineSystem32Folder())) {
                     foreach (glob("{$dir}/x32/*.dll") as $path) {
                         $fileName = basename($path);
@@ -9084,10 +9232,11 @@ class FAudio
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
-                        if ($logCallback) {
-                            $logCallback("Register x86 {$fileName}");
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
                         }
                     }
                 }
@@ -9098,10 +9247,21 @@ class FAudio
                         if (file_exists($out)) {
                             $this->fs->rm($out);
                         }
+
                         $this->fs->cp($path, $out);
-                        $this->register($fileName);
+
+                        if (!in_array($fileName, $dlls, true)) {
+                            $dlls[] = $fileName;
+                        }
+                    }
+                }
+
+                if ($dlls) {
+                    foreach ($dlls as $dll) {
+                        $this->register($dll);
+
                         if ($logCallback) {
-                            $logCallback("Register x86_64 {$fileName}");
+                            $logCallback("Register {$dll}");
                         }
                     }
                 }
@@ -9124,6 +9284,245 @@ class FAudio
     {
         $this->wine->regsvr32([$fileName]);
         $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $fileName, '/d', 'native', '/f']);
+    }
+}
+
+
+
+class Fixes
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $version;
+
+    /**
+     * Fixes constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->fs      = $fs;
+        $this->wine    = $wine;
+
+        $this->version = $this->config->wine('DRIVE_C') . '/fixes';
+    }
+
+    /**
+     * @param callable|null $logCallback
+     * @return bool
+     */
+    public function update($logCallback = null)
+    {
+        if (!file_exists($this->config->getPrefixFolder())) {
+            return false;
+        }
+
+        $isUpdated = false;
+        $versions  = $this->versions();
+
+        $fixes = [
+            'ddraw',
+            'installers',
+            'd3dx9',
+            'internet',
+            'intro',
+            'xact',
+            'physx',
+            'font',
+        ];
+
+        foreach ($fixes as $fix) {
+            if ($this->config->getBool('fixes', $fix)) {
+                if (!in_array($fix, $versions, true)) {
+                    $versions[] = $fix;
+                    $isUpdated = true;
+
+                    if ($logCallback) {
+                        $logCallback("Apply fix {$fix}");
+                    }
+
+                    if (method_exists($this, "{$fix}Up")) {
+                        $this->{"{$fix}Up"}($logCallback);
+                    }
+                }
+            } else {
+                if (in_array($fix, $versions, true)) {
+                    $versions  = array_diff($versions, [$fix]);
+                    $isUpdated = true;
+
+                    if (method_exists($this, "{$fix}Down")) {
+                        $this->{"{$fix}Down"}($logCallback);
+
+                        if ($logCallback) {
+                            $logCallback("Rollback fix {$fix}");
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($isUpdated) {
+            file_put_contents($this->version, implode("\n", $versions));
+        }
+
+        return $isUpdated;
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrawUp($logCallback = null)
+    {
+        $this->register('dciman32', 'native', $logCallback);
+        $this->register('ddrawex', 'native,builtin', $logCallback);
+        $this->register('devenum', 'native', $logCallback);
+
+        if (!file_exists($this->config->getDllsDir() . '/ddraw.dll')) {
+            if ($path = $this->fs->download('http://files.gsc-game.com/cs-dd-patch/cs-dd-patch.exe', $this->config->getCacheDir())) {
+                $this->fs->unpack($path, $this->config->getCacheDir() . '/ddraw');
+                $this->fs->cp($this->config->getCacheDir() . '/ddraw/ddraw.dll', $this->config->getWineSystem32Folder() . '/ddraw.dll');
+                $this->fs->rm($this->config->getCacheDir() . '/ddraw');
+            }
+        }
+        $this->register('ddraw', 'native,builtin', $logCallback);
+
+        if ($logCallback) {
+            $logCallback("Install devenum");
+        }
+        $this->wine->winetricks(['devenum']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrawDown($logCallback = null)
+    {
+        $this->unregister('dciman32', $logCallback);
+        $this->unregister('ddraw', $logCallback);
+        $this->unregister('ddrawex', $logCallback);
+        $this->unregister('devenum', $logCallback);
+        $this->fs->rm($this->config->getDllsDir() . '/ddraw.dll');
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function installersUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install gdiplus, mfc42");
+        }
+        $this->wine->winetricks(['gdiplus', 'mfc42']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function d3dx9Up($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install d3dx9, d3dcompiler_43");
+        }
+        $this->wine->winetricks(['d3dx9', 'd3dcompiler_43']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function internetUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install winhttp, wininet, directplay");
+        }
+        $this->wine->winetricks(['winhttp', 'wininet', 'directplay']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function introUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install quartz, allcodecs, wmp9");
+        }
+        $this->wine->winetricks(['quartz', 'allcodecs', 'wmp9']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function xactUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install xact");
+        }
+        $this->wine->winetricks(['xact']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function physxUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install physx");
+        }
+        $this->wine->winetricks(['physx']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function fontUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Install allfonts");
+        }
+        $this->wine->winetricks(['allfonts']);
+    }
+
+
+    /**
+     * @param $file
+     * @param string $type
+     * @param callable|null $logCallback
+     */
+    public function register($file, $type = 'native', $logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $file, '/d', $type, '/f']);
+
+        if ($logCallback) {
+            $logCallback("Register {$file}={$type}");
+        }
+    }
+
+    /**
+     * @param $file
+     * @param callable|null $logCallback
+     */
+    public function unregister($file, $logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $file, '/f']);
+
+        if ($logCallback) {
+            $logCallback("Unregister {$file}");
+        }
+    }
+
+    public function versions()
+    {
+        if (file_exists($this->version)) {
+            return array_map('trim', explode("\n", trim(file_get_contents($this->version))));
+        }
+
+        return [];
     }
 }
 

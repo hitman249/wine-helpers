@@ -119,24 +119,31 @@ class WinePrefix {
 
 
             /**
-             * Copy required dlls and override them
-             */
-            $this->updateDlls();
-            app()->getCurrentScene()->setProgress(50);
-
-
-            /**
              * Update dumbxinputemu
              */
             (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
-            app()->getCurrentScene()->setProgress(55);
+            app()->getCurrentScene()->setProgress(40);
 
 
             /**
              * Update FAudio
              */
             (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
-            app()->getCurrentScene()->setProgress(60);
+            app()->getCurrentScene()->setProgress(45);
+
+
+            /**
+             * Apply fixes
+             */
+            (new Fixes($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            app()->getCurrentScene()->setProgress(50);
+
+
+            /**
+             * Copy required dlls and override them
+             */
+            $this->updateDlls();
+            app()->getCurrentScene()->setProgress(55);
 
 
             /**
@@ -281,6 +288,12 @@ class WinePrefix {
          * Update FAudio
          */
         (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+
+
+        /**
+         * Apply fixes
+         */
+        (new Fixes($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
 
 
         /**

@@ -37,22 +37,26 @@ class FileSystem {
 
     public function rm($dir)
     {
-        if (file_exists($dir) && !is_dir($dir)) {
+        if (!file_exists($dir)) {
+            return false;
+        }
+
+        if (!is_dir($dir)) {
             unlink($dir);
             return true;
         }
 
-        if (is_dir($dir)) {
-            $objects = scandir($dir, SCANDIR_SORT_NONE);
-            foreach ($objects as $object) {
-                if ($object !== '.' && $object !== '..') {
-                    if (is_dir("{$dir}/{$object}")) {
-                        $this->rm("{$dir}/{$object}");
-                    } else {
-                        unlink("{$dir}/{$object}");
-                    }
+        foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {
+            if ($object !== '.' && $object !== '..') {
+                if (is_dir("{$dir}/{$object}")) {
+                    $this->rm("{$dir}/{$object}");
+                } else {
+                    unlink("{$dir}/{$object}");
                 }
             }
+        }
+
+        if (file_exists($dir)) {
             rmdir($dir);
         }
 
@@ -152,7 +156,7 @@ class FileSystem {
         return $this->command->run("ln -sfr \"{$in}\" \"{$out}\"");
     }
 
-    public function unpackXz($inFile, $outDir, $type = 'xf', $glob = '')
+    public function unpackXz($inFile, $outDir, $type = 'xf', $glob = '', $archiver = 'tar')
     {
         if (!app('start')->getSystem()->isXz()) {
             return false;
@@ -178,7 +182,7 @@ class FileSystem {
         $fileName = basename($inFile);
         $mvFile   = "{$tmpDir}/{$fileName}";
         $this->mv($inFile, $mvFile);
-        $this->command->run("cd \"{$tmpDir}\" && tar {$type} \"./{$fileName}\"");
+        $this->command->run("cd \"{$tmpDir}\" && {$archiver} {$type} \"./{$fileName}\"");
         $this->rm($mvFile);
 
         $find = glob("{$tmpDir}/{$glob}*");
@@ -208,6 +212,16 @@ class FileSystem {
         return $this->unpackXz($inFile, $outDir, '-xjf', 'wineversion/');
     }
 
+    public function unpackRar($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, 'x', '', 'unrar');
+    }
+
+    public function unpackZip($inFile, $outDir)
+    {
+        return $this->unpackXz($inFile, $outDir, '', '', 'unzip');
+    }
+
     public function unpack($inFile, $outDir)
     {
         if (Text::endsWith($inFile, '.tar.xz')) {
@@ -219,7 +233,31 @@ class FileSystem {
         if (Text::endsWith($inFile, '.pol')) {
             return $this->unpackPol($inFile, $outDir);
         }
+        if (Text::endsWith($inFile, ['.exe', '.rar'])) {
+            return $this->unpackRar($inFile, $outDir);
+        }
+        if (Text::endsWith($inFile, '.zip')) {
+            return $this->unpackZip($inFile, $outDir);
+        }
 
         return false;
+    }
+
+    public function download($url, $path)
+    {
+        try {
+            ini_set('memory_limit', '-1');
+            $request = new \Rakit\Curl\Curl($url);
+            $request->autoRedirect(5);
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            return '';
+        }
+
+        $fileName = basename($url);
+        $pathFile = "{$path}/{$fileName}";
+        file_put_contents($pathFile, $response->getBody());
+
+        return $pathFile;
     }
 }
