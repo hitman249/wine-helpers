@@ -24,6 +24,8 @@ class Config {
     private $hooksGpuDir;
     private $symlinksDir;
     private $dataSymlinksDir;
+    private $patchApplyDir;
+    private $patchAutoDir;
 
     public function __construct($path = null)
     {
@@ -43,6 +45,8 @@ class Config {
         $this->regsDir         = "{$this->rootDir}/game_info/regs";
         $this->cacheDir        = "{$this->rootDir}/game_info/cache";
         $this->logsDir         = "{$this->rootDir}/game_info/logs";
+        $this->patchApplyDir   = "{$this->rootDir}/game_info/patches/apply";
+        $this->patchAutoDir    = "{$this->rootDir}/game_info/patches/auto";
         $this->dxvkConfFile    = "{$this->rootDir}/game_info/dxvk.conf";
         $this->libsDir         = "{$this->rootDir}/libs/i386";
         $this->libs64Dir       = "{$this->rootDir}/libs/x86-64";
@@ -225,6 +229,16 @@ class Config {
         }
     }
 
+    public function getPrefixDosdeviceDir()
+    {
+        return $this->getPrefixFolder() . '/dosdevices';
+    }
+
+    public function getPrefixDriveC()
+    {
+        return $this->wine('DRIVE_C');
+    }
+
     /**
      * @return string
      */
@@ -335,6 +349,16 @@ class Config {
         return $this->cacheDir;
     }
 
+    public function getPatchApplyDir()
+    {
+        return $this->patchApplyDir;
+    }
+
+    public function getPatchAutoDir()
+    {
+        return $this->patchAutoDir;
+    }
+
     public function getLogsDir()
     {
         if (!file_exists($this->logsDir) && !mkdir($this->logsDir, 0775, true) && !is_dir($this->logsDir)) {
@@ -370,6 +394,18 @@ name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
 
 [script]
+
+;
+; Automatic patch generation MODE.
+;
+; See folder ./game_info/patches/auto
+;
+; To apply, move the patches to the folder ./game_info/patches/apply
+;
+; When enabled, patches do not apply (only creates)!
+;
+generation_patches_mode = 0
+
 
 ;
 ; Autoupdate this script the latest version.
@@ -415,7 +451,7 @@ winetricks_to_install = ""
 
 
 ;
-; Windows version (win7, winxp, win2k).
+; Windows version (win10, win7, winxp, win2k).
 ;
 winver = "win7"
 
@@ -580,9 +616,12 @@ PBA_DISABLE=1
 ; Path relative to the position of the ./start file
 ; Performed BEFORE registering * .reg files
 ;
-; {WIDTH}  - default monitor width in pixels (number)
-; {HEIGHT} - default monitor height in pixels (number)
-; {USER}   - username
+; {WIDTH}        - default monitor width in pixels (number)
+; {HEIGHT}       - default monitor height in pixels (number)
+; {USER}         - username
+; {DOSDEVICES}   - Full path to "/.../prefix/dosdevice"
+; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
+; {PREFIX}       - Full path to "/.../prefix"
 ;
 
 ; file[] = "game_info/data/example.conf"';
@@ -783,6 +822,11 @@ PBA_DISABLE=1
     public function isEsync()
     {
         return $this->getBool('export', 'WINEESYNC');
+    }
+
+    public function isGenerationPatchesMode()
+    {
+        return $this->getBool('script', 'generation_patches_mode');
     }
 
     public function getDxvkConfigFile()

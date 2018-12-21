@@ -66,6 +66,7 @@ class Lutris
             $fileName = basename($url);
             $pathFile = "{$path}/{$fileName}";
             file_put_contents($pathFile, $response->getBody());
+            unset($request, $response);
 
             return $pathFile;
         } catch (ErrorException $e) {}

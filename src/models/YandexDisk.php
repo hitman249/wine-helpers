@@ -165,6 +165,7 @@ class YandexDisk
             $fileName = $this->getFileData($id);
             $pathFile = "{$path}/{$fileName['name']}";
             file_put_contents($pathFile, $response->getBody());
+            unset($request, $response);
 
             return $pathFile;
         } catch (ErrorException $e) {}

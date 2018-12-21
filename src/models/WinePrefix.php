@@ -74,6 +74,7 @@ class WinePrefix {
             @file_put_contents($this->config->wine('WINEPREFIX') . '/version', $this->wine->version());
             app()->getCurrentScene()->setProgress(20);
 
+
             /**
              * Apply replace {WIDTH}, {HEIGHT}, {USER} from files
              */
@@ -81,6 +82,69 @@ class WinePrefix {
                 $this->log($replace);
             }
             app()->getCurrentScene()->setProgress(25);
+
+
+            /**
+             * Sandbox the prefix; Borrowed from winetricks scripts
+             */
+            if ($this->config->isSandbox()) {
+                unlink($this->config->wine('WINEPREFIX') . '/dosdevices/z:');
+
+                foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
+                    if (is_link($filePath)) {
+                        unlink($filePath);
+                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
+                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
+                        }
+                    }
+                }
+                $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
+                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
+                $this->log('Set sandbox.');
+            }
+            app()->getCurrentScene()->setProgress(27);
+
+
+            /**
+             * Create symlinks to additional folders
+             */
+            if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
+
+                $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
+
+                if ($folders) {
+                    $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
+                    $isCyrillic = $this->system->isCyrillic();
+
+                    $folderCount = count($folders);
+                    if (count($adds) >= $folderCount) {
+                        foreach ($adds as $i => $path) {
+                            if ($i >= $folderCount) {
+                                break;
+                            }
+
+                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
+
+                            if (!$isCyrillic) {
+                                $add = str_replace('Мои документы', 'My Documents', $add);
+                            }
+
+                            $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
+                            $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
+                            $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
+                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
+                        }
+                    }
+                }
+            }
+            app()->getCurrentScene()->setProgress(30);
+
+
+            /**
+             * Create symlink to game directory
+             */
+            $this->createGameDirectory();
+            app()->getCurrentScene()->setProgress(33);
 
 
             /**
@@ -121,14 +185,22 @@ class WinePrefix {
             /**
              * Update dumbxinputemu
              */
-            (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            if ($this->config->getBool('script', 'dumbxinputemu')) {
+                app('start')->getPatch()->create(function () {
+                    (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+                });
+            }
             app()->getCurrentScene()->setProgress(40);
 
 
             /**
              * Update FAudio
              */
-            (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            if ($this->config->getBool('script', 'faudio')) {
+                app('start')->getPatch()->create(function () {
+                    (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+                });
+            }
             app()->getCurrentScene()->setProgress(45);
 
 
@@ -147,61 +219,6 @@ class WinePrefix {
 
 
             /**
-             * Sandbox the prefix; Borrowed from winetricks scripts
-             */
-            if ($this->config->isSandbox()) {
-                unlink($this->config->wine('WINEPREFIX') . '/dosdevices/z:');
-
-                foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
-                    if (is_link($filePath)) {
-                        unlink($filePath);
-                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
-                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
-                        }
-                    }
-                }
-                $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
-                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
-                $this->log('Set sandbox.');
-            }
-            app()->getCurrentScene()->setProgress(62);
-
-
-            /**
-             * Create symlinks to additional folders
-             */
-            if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
-
-                $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
-
-                if ($folders) {
-                    $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
-                    $isCyrillic = $this->system->isCyrillic();
-
-                    $folderCount = count($folders);
-                    if (count($adds) >= $folderCount) {
-                        foreach ($adds as $i => $path) {
-                            if ($i >= $folderCount) {
-                                break;
-                            }
-
-                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
-
-                            if (!$isCyrillic) {
-                                $add = str_replace('Мои документы', 'My Documents', $add);
-                            }
-
-                            $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
-                            $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
-                            $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
-                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
-                        }
-                    }
-                }
-            }
-            app()->getCurrentScene()->setProgress(66);
-
-            /**
              * Enable or disable CSMT
              */
             $this->updateCsmt();
@@ -216,13 +233,6 @@ class WinePrefix {
 
 
             /**
-             * Create symlink to game directory
-             */
-            $this->createGameDirectory();
-            app()->getCurrentScene()->setProgress(80);
-
-
-            /**
              * Set windows version; Borrowed from winetricks
              */
             $this->updateWinVersion();
@@ -232,9 +242,13 @@ class WinePrefix {
             /**
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
-            if ($this->update->updateDxvk()) {
-                $dxvk = $this->update->versionDxvk();
-                $this->log("DXVK updated to {$dxvk}.");
+            if ($this->config->isDxvk()) {
+                app('start')->getPatch()->create(function () {
+                    if ($this->update->updateDxvk()) {
+                        $dxvk = $this->update->versionDxvk();
+                        $this->log("DXVK updated to {$dxvk}.");
+                    }
+                });
             }
             app()->getCurrentScene()->setProgress(90);
 
@@ -355,9 +369,13 @@ class WinePrefix {
 
             if (file_exists($this->config->getRootDir() . "/{$file}")) {
                 $data = file_get_contents($this->config->getRootDir() . "/{$file}");
-                $data = str_replace(['{WIDTH}', '{HEIGHT}', '{USER}'], [$width, $height, $userName], $data);
+                $data = str_replace(
+                    ['{WIDTH}', '{HEIGHT}', '{USER}', '{DOSDEVICES}', '{PREFIX}', '{DRIVE_C}'],
+                    [$width, $height, $userName, $this->config->getPrefixDosdeviceDir(), $this->config->getPrefixFolder(), $this->config->getPrefixDriveC()],
+                    $data
+                );
                 @file_put_contents($this->config->getRootDir() . "/{$file}", $data);
-                $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" from file \"{$file}\"";
+                $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" ... from file \"{$file}\"";
             }
         }
 
@@ -613,6 +631,21 @@ class WinePrefix {
                         'CSDVersion'         => 'Service Pack 3',
                         'CurrentBuildNumber' => '2600',
                         'CurrentVersion'     => '5.1',
+                    ],
+                    'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Windows'     => [
+                        'CSDVersion' => 'dword:00000300',
+                    ],
+                ];
+                break;
+
+            case 'win10';
+                $this->wine->run(['reg', 'add', 'HKLM\\System\\CurrentControlSet\\Control\\ProductOptions', '/v', 'ProductType', '/d', 'WinNT', '/f']);
+                $defaultWinver = 'win10';
+                $default = [
+                    'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' => [
+                        'CSDVersion'         => '',
+                        'CurrentBuildNumber' => '10240',
+                        'CurrentVersion'     => '10.0',
                     ],
                     'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Windows'     => [
                         'CSDVersion' => 'dword:00000300',

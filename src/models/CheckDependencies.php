@@ -86,6 +86,8 @@ class CheckDependencies {
             'ffmpeg'     => false,
             'sudo'       => false,
             'xz'         => false,
+            'diff'       => false,
+            'patch'      => false,
         ];
 
         ksort($apps);
@@ -210,6 +212,19 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                 $this->log('Add to "/etc/security/limits.conf" file and reboot system:');
                 $this->log("* soft nofile {$recommendedUlimit}");
                 $this->log("* hard nofile {$recommendedUlimit}");
+            }
+        }
+
+        if ($this->config->isGenerationPatchesMode()) {
+            if (!$apps['diff']) {
+                $isOk = false;
+                $this->log('');
+                $this->log('Install "diff" or disable "generation_patches_mode = 0" in config.');
+            }
+            if (!$apps['patch']) {
+                $isOk = false;
+                $this->log('');
+                $this->log('Install "patch" or disable "generation_patches_mode = 0" in config.');
             }
         }
 

@@ -38,7 +38,7 @@ class Network {
 
     public function get($url)
     {
-        return file_get_contents($url, false, stream_context_create($this->config->getContextOptions()));
+        return self::isConnected() ? file_get_contents($url, false, stream_context_create($this->config->getContextOptions())) : '';
     }
 
     public function getRepo($url)

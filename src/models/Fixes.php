@@ -60,7 +60,9 @@ class Fixes
                     }
 
                     if (method_exists($this, "{$fix}Up")) {
-                        $this->{"{$fix}Up"}($logCallback);
+                        app('start')->getPatch()->create(function () use ($fix, $logCallback) {
+                            $this->{"{$fix}Up"}($logCallback);
+                        });
                     }
                 }
             } else {
@@ -100,6 +102,10 @@ class Fixes
                 $this->fs->unpack($path, $this->config->getCacheDir() . '/ddraw');
                 $this->fs->cp($this->config->getCacheDir() . '/ddraw/ddraw.dll', $this->config->getWineSystem32Folder() . '/ddraw.dll');
                 $this->fs->rm($this->config->getCacheDir() . '/ddraw');
+
+                if ($logCallback) {
+                    $logCallback("Add system32 ddraw.dll");
+                }
             }
         }
         $this->register('ddraw', 'native,builtin', $logCallback);

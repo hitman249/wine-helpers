@@ -18,6 +18,8 @@ class Start
     private $build;
     private $wine;
     private $console;
+    private $shapshot;
+    private $patch;
 
     public function __construct()
     {
@@ -43,6 +45,8 @@ class Start
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
+        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine);
+        $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -53,6 +57,8 @@ class Start
 
     private function init()
     {
+        ini_set('memory_limit', '512M');
+
         if (getenv('TERM')) {
             putenv('TERM=xterm');
         }
@@ -232,6 +238,22 @@ class Start
     public function getConsole()
     {
         return $this->console;
+    }
+
+    /**
+     * @return Snapshot
+     */
+    public function getShapshot()
+    {
+        return $this->shapshot;
+    }
+
+    /**
+     * @return Patch
+     */
+    public function getPatch()
+    {
+        return $this->patch;
     }
 }
 

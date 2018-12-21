@@ -47,7 +47,9 @@ class Wine {
         $config->set('wine', 'WINEDEBUG', '');
         $cmd = Text::quoteArgs($args);
 
-        return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}");
+        return app('start')->getPatch()->create(function () use ($config, $cmd) {
+            return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}");
+        });
     }
 
     public function cfg($args)
@@ -84,8 +86,9 @@ class Wine {
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
             $logFile = $this->config->getLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
-
-            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
+            return app('start')->getPatch()->create(function () use (&$config, $cmd, $logFile, $output) {
+                return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
+            });
         }
 
         return '';

@@ -3213,6 +3213,7 @@ class FileSystem {
         $fileName = basename($url);
         $pathFile = "{$path}/{$fileName}";
         file_put_contents($pathFile, $response->getBody());
+        unset($request, $response);
 
         return $pathFile;
     }
@@ -3432,7 +3433,7 @@ class Network {
 
     public function get($url)
     {
-        return file_get_contents($url, false, stream_context_create($this->config->getContextOptions()));
+        return self::isConnected() ? file_get_contents($url, false, stream_context_create($this->config->getContextOptions())) : '';
     }
 
     public function getRepo($url)
@@ -4078,6 +4079,8 @@ class Config {
     private $hooksGpuDir;
     private $symlinksDir;
     private $dataSymlinksDir;
+    private $patchApplyDir;
+    private $patchAutoDir;
 
     public function __construct($path = null)
     {
@@ -4097,6 +4100,8 @@ class Config {
         $this->regsDir         = "{$this->rootDir}/game_info/regs";
         $this->cacheDir        = "{$this->rootDir}/game_info/cache";
         $this->logsDir         = "{$this->rootDir}/game_info/logs";
+        $this->patchApplyDir   = "{$this->rootDir}/game_info/patches/apply";
+        $this->patchAutoDir    = "{$this->rootDir}/game_info/patches/auto";
         $this->dxvkConfFile    = "{$this->rootDir}/game_info/dxvk.conf";
         $this->libsDir         = "{$this->rootDir}/libs/i386";
         $this->libs64Dir       = "{$this->rootDir}/libs/x86-64";
@@ -4279,6 +4284,16 @@ class Config {
         }
     }
 
+    public function getPrefixDosdeviceDir()
+    {
+        return $this->getPrefixFolder() . '/dosdevices';
+    }
+
+    public function getPrefixDriveC()
+    {
+        return $this->wine('DRIVE_C');
+    }
+
     /**
      * @return string
      */
@@ -4389,6 +4404,16 @@ class Config {
         return $this->cacheDir;
     }
 
+    public function getPatchApplyDir()
+    {
+        return $this->patchApplyDir;
+    }
+
+    public function getPatchAutoDir()
+    {
+        return $this->patchAutoDir;
+    }
+
     public function getLogsDir()
     {
         if (!file_exists($this->logsDir) && !mkdir($this->logsDir, 0775, true) && !is_dir($this->logsDir)) {
@@ -4424,6 +4449,18 @@ name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
 
 [script]
+
+;
+; Automatic patch generation MODE.
+;
+; See folder ./game_info/patches/auto
+;
+; To apply, move the patches to the folder ./game_info/patches/apply
+;
+; When enabled, patches do not apply (only creates)!
+;
+generation_patches_mode = 0
+
 
 ;
 ; Autoupdate this script the latest version.
@@ -4469,7 +4506,7 @@ winetricks_to_install = ""
 
 
 ;
-; Windows version (win7, winxp, win2k).
+; Windows version (win10, win7, winxp, win2k).
 ;
 winver = "win7"
 
@@ -4499,7 +4536,7 @@ fixres = 1
 
 ;
 ; Fix ddraw \ ddrawex
-; Bug render menu 
+; Bug render menu
 ; Games: Cossacks, Olympus 2207
 ;
 ddraw = 0
@@ -4529,7 +4566,7 @@ internet = 0
 
 ;
 ; Fix intro
-; Install quartz allcodecs wmp9 
+; Install quartz allcodecs wmp9
 ; Games: Lost Planet
 ;
 intro = 0
@@ -4634,9 +4671,12 @@ PBA_DISABLE=1
 ; Path relative to the position of the ./start file
 ; Performed BEFORE registering * .reg files
 ;
-; {WIDTH}  - default monitor width in pixels (number)
-; {HEIGHT} - default monitor height in pixels (number)
-; {USER}   - username
+; {WIDTH}        - default monitor width in pixels (number)
+; {HEIGHT}       - default monitor height in pixels (number)
+; {USER}         - username
+; {DOSDEVICES}   - Full path to "/.../prefix/dosdevice"
+; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
+; {PREFIX}       - Full path to "/.../prefix"
 ;
 
 ; file[] = "game_info/data/example.conf"';
@@ -4839,6 +4879,11 @@ PBA_DISABLE=1
         return $this->getBool('export', 'WINEESYNC');
     }
 
+    public function isGenerationPatchesMode()
+    {
+        return $this->getBool('script', 'generation_patches_mode');
+    }
+
     public function getDxvkConfigFile()
     {
         $file   = $this->dxvkConfFile;
@@ -4987,7 +5032,9 @@ class Wine {
         $config->set('wine', 'WINEDEBUG', '');
         $cmd = Text::quoteArgs($args);
 
-        return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}");
+        return app('start')->getPatch()->create(function () use ($config, $cmd) {
+            return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}");
+        });
     }
 
     public function cfg($args)
@@ -5024,8 +5071,9 @@ class Wine {
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
             $logFile = $this->config->getLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
-
-            return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
+            return app('start')->getPatch()->create(function () use (&$config, $cmd, $logFile, $output) {
+                return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
+            });
         }
 
         return '';
@@ -5845,6 +5893,7 @@ class WinePrefix {
             @file_put_contents($this->config->wine('WINEPREFIX') . '/version', $this->wine->version());
             app()->getCurrentScene()->setProgress(20);
 
+
             /**
              * Apply replace {WIDTH}, {HEIGHT}, {USER} from files
              */
@@ -5852,6 +5901,69 @@ class WinePrefix {
                 $this->log($replace);
             }
             app()->getCurrentScene()->setProgress(25);
+
+
+            /**
+             * Sandbox the prefix; Borrowed from winetricks scripts
+             */
+            if ($this->config->isSandbox()) {
+                unlink($this->config->wine('WINEPREFIX') . '/dosdevices/z:');
+
+                foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
+                    if (is_link($filePath)) {
+                        unlink($filePath);
+                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
+                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
+                        }
+                    }
+                }
+                $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
+                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
+                $this->log('Set sandbox.');
+            }
+            app()->getCurrentScene()->setProgress(27);
+
+
+            /**
+             * Create symlinks to additional folders
+             */
+            if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
+
+                $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
+
+                if ($folders) {
+                    $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
+                    $isCyrillic = $this->system->isCyrillic();
+
+                    $folderCount = count($folders);
+                    if (count($adds) >= $folderCount) {
+                        foreach ($adds as $i => $path) {
+                            if ($i >= $folderCount) {
+                                break;
+                            }
+
+                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
+
+                            if (!$isCyrillic) {
+                                $add = str_replace('Мои документы', 'My Documents', $add);
+                            }
+
+                            $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
+                            $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
+                            $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
+                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
+                        }
+                    }
+                }
+            }
+            app()->getCurrentScene()->setProgress(30);
+
+
+            /**
+             * Create symlink to game directory
+             */
+            $this->createGameDirectory();
+            app()->getCurrentScene()->setProgress(33);
 
 
             /**
@@ -5892,14 +6004,22 @@ class WinePrefix {
             /**
              * Update dumbxinputemu
              */
-            (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            if ($this->config->getBool('script', 'dumbxinputemu')) {
+                app('start')->getPatch()->create(function () {
+                    (new Dumbxinputemu($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+                });
+            }
             app()->getCurrentScene()->setProgress(40);
 
 
             /**
              * Update FAudio
              */
-            (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+            if ($this->config->getBool('script', 'faudio')) {
+                app('start')->getPatch()->create(function () {
+                    (new FAudio($this->config, $this->command, $this->fs, $this->wine))->update(function ($text) {$this->log($text);});
+                });
+            }
             app()->getCurrentScene()->setProgress(45);
 
 
@@ -5918,61 +6038,6 @@ class WinePrefix {
 
 
             /**
-             * Sandbox the prefix; Borrowed from winetricks scripts
-             */
-            if ($this->config->isSandbox()) {
-                unlink($this->config->wine('WINEPREFIX') . '/dosdevices/z:');
-
-                foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
-                    if (is_link($filePath)) {
-                        unlink($filePath);
-                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
-                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
-                        }
-                    }
-                }
-                $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
-                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
-                $this->log('Set sandbox.');
-            }
-            app()->getCurrentScene()->setProgress(62);
-
-
-            /**
-             * Create symlinks to additional folders
-             */
-            if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
-
-                $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
-
-                if ($folders) {
-                    $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
-                    $isCyrillic = $this->system->isCyrillic();
-
-                    $folderCount = count($folders);
-                    if (count($adds) >= $folderCount) {
-                        foreach ($adds as $i => $path) {
-                            if ($i >= $folderCount) {
-                                break;
-                            }
-
-                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
-
-                            if (!$isCyrillic) {
-                                $add = str_replace('Мои документы', 'My Documents', $add);
-                            }
-
-                            $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
-                            $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
-                            $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
-                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
-                        }
-                    }
-                }
-            }
-            app()->getCurrentScene()->setProgress(66);
-
-            /**
              * Enable or disable CSMT
              */
             $this->updateCsmt();
@@ -5987,13 +6052,6 @@ class WinePrefix {
 
 
             /**
-             * Create symlink to game directory
-             */
-            $this->createGameDirectory();
-            app()->getCurrentScene()->setProgress(80);
-
-
-            /**
              * Set windows version; Borrowed from winetricks
              */
             $this->updateWinVersion();
@@ -6003,9 +6061,13 @@ class WinePrefix {
             /**
              * Install latest dxvk (d3d11.dll and dxgi.dll)
              */
-            if ($this->update->updateDxvk()) {
-                $dxvk = $this->update->versionDxvk();
-                $this->log("DXVK updated to {$dxvk}.");
+            if ($this->config->isDxvk()) {
+                app('start')->getPatch()->create(function () {
+                    if ($this->update->updateDxvk()) {
+                        $dxvk = $this->update->versionDxvk();
+                        $this->log("DXVK updated to {$dxvk}.");
+                    }
+                });
             }
             app()->getCurrentScene()->setProgress(90);
 
@@ -6126,9 +6188,13 @@ class WinePrefix {
 
             if (file_exists($this->config->getRootDir() . "/{$file}")) {
                 $data = file_get_contents($this->config->getRootDir() . "/{$file}");
-                $data = str_replace(['{WIDTH}', '{HEIGHT}', '{USER}'], [$width, $height, $userName], $data);
+                $data = str_replace(
+                    ['{WIDTH}', '{HEIGHT}', '{USER}', '{DOSDEVICES}', '{PREFIX}', '{DRIVE_C}'],
+                    [$width, $height, $userName, $this->config->getPrefixDosdeviceDir(), $this->config->getPrefixFolder(), $this->config->getPrefixDriveC()],
+                    $data
+                );
                 @file_put_contents($this->config->getRootDir() . "/{$file}", $data);
-                $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" from file \"{$file}\"";
+                $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" ... from file \"{$file}\"";
             }
         }
 
@@ -6384,6 +6450,21 @@ class WinePrefix {
                         'CSDVersion'         => 'Service Pack 3',
                         'CurrentBuildNumber' => '2600',
                         'CurrentVersion'     => '5.1',
+                    ],
+                    'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Windows'     => [
+                        'CSDVersion' => 'dword:00000300',
+                    ],
+                ];
+                break;
+
+            case 'win10';
+                $this->wine->run(['reg', 'add', 'HKLM\\System\\CurrentControlSet\\Control\\ProductOptions', '/v', 'ProductType', '/d', 'WinNT', '/f']);
+                $defaultWinver = 'win10';
+                $default = [
+                    'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' => [
+                        'CSDVersion'         => '',
+                        'CurrentBuildNumber' => '10240',
+                        'CurrentVersion'     => '10.0',
                     ],
                     'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Windows'     => [
                         'CSDVersion' => 'dword:00000300',
@@ -6870,6 +6951,8 @@ class CheckDependencies {
             'ffmpeg'     => false,
             'sudo'       => false,
             'xz'         => false,
+            'diff'       => false,
+            'patch'      => false,
         ];
 
         ksort($apps);
@@ -6994,6 +7077,19 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                 $this->log('Add to "/etc/security/limits.conf" file and reboot system:');
                 $this->log("* soft nofile {$recommendedUlimit}");
                 $this->log("* hard nofile {$recommendedUlimit}");
+            }
+        }
+
+        if ($this->config->isGenerationPatchesMode()) {
+            if (!$apps['diff']) {
+                $isOk = false;
+                $this->log('');
+                $this->log('Install "diff" or disable "generation_patches_mode = 0" in config.');
+            }
+            if (!$apps['patch']) {
+                $isOk = false;
+                $this->log('');
+                $this->log('Install "patch" or disable "generation_patches_mode = 0" in config.');
             }
         }
 
@@ -8267,6 +8363,7 @@ class YandexDisk
             $fileName = $this->getFileData($id);
             $pathFile = "{$path}/{$fileName['name']}";
             file_put_contents($pathFile, $response->getBody());
+            unset($request, $response);
 
             return $pathFile;
         } catch (ErrorException $e) {}
@@ -8365,6 +8462,7 @@ class Lutris
             $fileName = basename($url);
             $pathFile = "{$path}/{$fileName}";
             file_put_contents($pathFile, $response->getBody());
+            unset($request, $response);
 
             return $pathFile;
         } catch (ErrorException $e) {}
@@ -9025,6 +9123,7 @@ class Dumbxinputemu
             $fileName = basename($url);
             $pathFile = "{$path}/{$fileName}";
             file_put_contents($pathFile, $response->getBody());
+            unset($request, $response);
 
             return $pathFile;
         } catch (ErrorException $e) {}
@@ -9349,7 +9448,9 @@ class Fixes
                     }
 
                     if (method_exists($this, "{$fix}Up")) {
-                        $this->{"{$fix}Up"}($logCallback);
+                        app('start')->getPatch()->create(function () use ($fix, $logCallback) {
+                            $this->{"{$fix}Up"}($logCallback);
+                        });
                     }
                 }
             } else {
@@ -9389,6 +9490,10 @@ class Fixes
                 $this->fs->unpack($path, $this->config->getCacheDir() . '/ddraw');
                 $this->fs->cp($this->config->getCacheDir() . '/ddraw/ddraw.dll', $this->config->getWineSystem32Folder() . '/ddraw.dll');
                 $this->fs->rm($this->config->getCacheDir() . '/ddraw');
+
+                if ($logCallback) {
+                    $logCallback("Add system32 ddraw.dll");
+                }
             }
         }
         $this->register('ddraw', 'native,builtin', $logCallback);
@@ -9523,6 +9628,399 @@ class Fixes
         }
 
         return [];
+    }
+}
+
+
+
+class Snapshot
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $folders;
+    private $shapshotFile;
+    private $driveC;
+    private $shapshotDir;
+    private $shapshotBeforeDir;
+    private $patchDir;
+
+    /**
+     * Snapshot constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->fs      = $fs;
+        $this->wine    = $wine;
+
+        $this->folders = [
+            'Program Files',
+            'ProgramData',
+            'users',
+            'windows',
+        ];
+        $this->shapshotFile      = $this->config->getCacheDir() . '/filelist.shapshot';
+        $this->shapshotDir       = $this->config->getCacheDir() . '/shapshot';
+        $this->shapshotBeforeDir = $this->config->getCacheDir() . '/before';
+        $this->patchDir          = $this->config->getCacheDir() . '/patch';
+        $this->driveC            = $this->config->wine('DRIVE_C');
+    }
+
+    private function create()
+    {
+        $this->fs->rm($this->shapshotFile);
+        $this->fs->rm($this->shapshotDir);
+
+        foreach ($this->folders as $folder) {
+            $this->read("{$this->driveC}/{$folder}");
+        }
+        foreach (glob("{$this->driveC}/*") as $item) {
+            if (!is_dir($item)) {
+                $relativePath = $this->fs->relativePath($item, $this->driveC);
+                file_put_contents($this->shapshotFile, "{$relativePath};file;;\n", FILE_APPEND);
+            }
+        }
+
+        $this->fs->mkdirs([$this->shapshotDir]);
+        $this->fs->mv($this->shapshotFile, "{$this->shapshotDir}/filelist.shapshot");
+
+        $this->wine->reg(['/E', "{$this->driveC}/regedit.reg"]);
+        $this->fs->mv("{$this->driveC}/regedit.reg", "{$this->shapshotDir}/regedit.reg");
+
+        return true;
+    }
+
+    private function read($dir)
+    {
+        $relativePath = $this->fs->relativePath($dir, $this->driveC);
+        file_put_contents($this->shapshotFile, "{$relativePath};dir;;\n", FILE_APPEND);
+
+        foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {
+            if ($object !== '.' && $object !== '..') {
+                $path = "{$dir}/{$object}";
+                $relativePath = $this->fs->relativePath($path, $this->driveC);
+
+                if (is_dir($path)) {
+                    $this->read($path);
+                } else {
+                    $md5  = md5_file($path);
+                    $size = filesize($path);
+                    file_put_contents($this->shapshotFile, "{$relativePath};file;{$md5};{$size}\n", FILE_APPEND);
+                }
+            }
+        }
+    }
+
+    public function createBefore()
+    {
+        if ($this->create()) {
+            $this->fs->rm($this->shapshotBeforeDir);
+            $this->fs->mv($this->shapshotDir, $this->shapshotBeforeDir);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function createAfter()
+    {
+        if ($this->create()) {
+            $this->fs->rm($this->patchDir);
+            $this->fs->mkdirs([$this->patchDir]);
+
+            foreach (glob("{$this->shapshotBeforeDir}/*.reg") as $i => $before) {
+
+                $fileName = basename($before);
+
+                $after = "{$this->shapshotDir}/{$fileName}";
+
+                if (file_exists($after)) {
+                    $prefix = $i === 0 ? '' : $i;
+                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $this->getRegeditChanges($before, $after));
+                }
+            }
+
+            $changes = $this->getFilesChanges("{$this->shapshotBeforeDir}/filelist.shapshot", "{$this->shapshotDir}/filelist.shapshot");
+
+            foreach ($changes as $file) {
+                $in  = "{$this->driveC}/{$file}";
+                $out = "{$this->patchDir}/files/{$file}";
+
+                $dir = dirname($out);
+                $this->fs->mkdirs([$dir]);
+                $this->fs->cp($in, $out);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getPatchDir()
+    {
+        return $this->patchDir;
+    }
+
+    public function getRegeditChanges($file1, $file2)
+    {
+        $diff        = new Diff($this->config, $this->command);
+        $compare     = $diff->compareFiles($file1, $file2, 'UTF-16LE');
+        $allSections = array_filter($diff->getFile2Data(), function ($line) { return Text::startsWith($line[0], '['); });
+        unset($diff);
+        $changes     = array_filter($compare[Diff::INSERTED], function ($line) { return !Text::startsWith($line, '['); });
+
+        $result      = [];
+        $new         = null;
+        $old         = null;
+        $prevChange  = null;
+        $findSection = null;
+
+        foreach ($changes as $lineNumber => $line) {
+            if (!$prevChange || ($prevChange + 1) !== $lineNumber) {
+                $prevChange = $lineNumber;
+                $findSection = array_filter($allSections, function ($key) use ($lineNumber) {return $lineNumber > $key;}, ARRAY_FILTER_USE_KEY);
+                $findSection = end($findSection);
+            }
+
+            if (!isset($result[$findSection])) {
+                $result[$findSection] = [];
+            }
+
+            $result[$findSection][] = $line;
+        }
+
+        if (!$result) {
+            return '';
+        }
+
+        $text = "Windows Registry Editor Version 5.00\n";
+
+        foreach ($result as $section => $lines) {
+            $text .= "\n{$section}\n" . implode("\n", $lines) . "\n";
+        }
+
+        return $text;
+    }
+
+    public function getFilesChanges($file1, $file2)
+    {
+        $diff    = new Diff($this->config, $this->command);
+        $compare = $diff->compareFiles($file1, $file2);
+        unset($diff);
+
+        $result = [];
+
+        foreach ($compare[Diff::INSERTED] as $lineNumber => $line) {
+            list($path, $type, $size) = explode(';', $line);
+            if ($type === 'file') {
+                $result[] = $path;
+            }
+        }
+
+        return $result;
+    }
+}
+
+
+
+class Patch
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $index = 0;
+    private $snapshot;
+    private $runnable = false;
+
+    /**
+     * Patch constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Snapshot $snapshot)
+    {
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->fs       = $fs;
+        $this->wine     = $wine;
+        $this->snapshot = $snapshot;
+
+        $this->fs->rm($this->config->getPatchAutoDir());
+    }
+
+    public function isEnabled()
+    {
+        return false === $this->runnable && $this->config->isGenerationPatchesMode();
+    }
+
+    /**
+     * @param callable $callback
+     * @return string|null
+     */
+    public function create($callback)
+    {
+        gc_collect_cycles();
+
+        if (!$callback) {
+            return null;
+        }
+
+        if ($this->isEnabled()) {
+            $this->runnable = true;
+            if (!file_exists($this->config->getPatchAutoDir())) {
+                $this->fs->mkdirs([$this->config->getPatchAutoDir()]);
+            }
+            if (!file_exists($this->config->getPatchApplyDir())) {
+                $this->fs->mkdirs([$this->config->getPatchApplyDir()]);
+            }
+
+            $this->snapshot->createBefore();
+            $result = $callback();
+            $this->snapshot->createAfter();
+            $this->movePatch($this->snapshot->getPatchDir());
+
+            $this->runnable = false;
+            gc_collect_cycles();
+
+            return $result;
+        }
+
+        return $callback();
+    }
+
+    private function movePatch($path)
+    {
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        $auto   = $this->config->getPatchAutoDir();
+        $result = $this->fs->mv($path, "{$auto}/{$this->index}");
+        $this->index++;
+
+        return $result;
+    }
+}
+
+
+
+class Diff
+{
+    const UNMODIFIED = 0;
+    const DELETED    = 1;
+    const INSERTED   = 2;
+
+    private $config;
+    private $command;
+    private $file1Path;
+    private $file2Path;
+    private $file1Data;
+    private $file2Data;
+
+    /**
+     * Diff constructor.
+     * @param Config $config
+     * @param Command $command
+     */
+    public function __construct(Config $config, Command $command)
+    {
+        $this->command  = $command;
+        $this->config   = $config;
+    }
+
+    public function compareFiles($file1, $file2, $encoding = 'UTF-8')
+    {
+        $this->file1Path = $file1;
+        $this->file2Path = $file2;
+
+        $this->file1Data = $encoding === 'UTF-8' ? file_get_contents($file1) : iconv($encoding, 'UTF-8', file_get_contents($file1));
+        $this->file1Data = preg_split('/\R/', $this->file1Data);
+
+        $this->file2Data = $encoding === 'UTF-8' ? file_get_contents($file2) : iconv($encoding, 'UTF-8', file_get_contents($file2));
+        $this->file2Data = preg_split('/\R/', $this->file2Data);
+
+        return $this->diff($this->file1Path, $this->file2Path);
+    }
+
+    public function getFile1Data()
+    {
+        return $this->file1Data;
+    }
+
+    public function getFile2Data()
+    {
+        return $this->file2Data;
+    }
+
+    private function parse($diff)
+    {
+        $result = [
+            self::DELETED  => [],
+            self::INSERTED => [],
+        ];
+
+        $from = 0;
+        $to   = 0;
+
+        $sectionType = self::DELETED;
+
+        foreach (explode("\n", $diff) as $line) {
+            if (strpos($line, '*** ') !== false && strpos($line, ' ****') === false) {
+                continue;
+            }
+            if (strpos($line, '--- ') !== false && strpos($line, ' ----') === false) {
+                continue;
+            }
+            if (strpos($line, '***************') !== false) {
+                $sectionType = self::DELETED;
+                continue;
+            }
+            if (strpos($line, '--- ') !== false && strpos($line, ' ----') !== false) {
+                $sectionType = self::INSERTED;
+                list($from, $to) = explode(',', trim($line, "-* \t\n\r\0\x0B"));
+                continue;
+            }
+            if (strpos($line, '*** ') !== false && strpos($line, ' ****') !== false) {
+                $sectionType = self::DELETED;
+                list($from, $to) = explode(',', trim($line, "-* \t\n\r\0\x0B"));
+                continue;
+            }
+
+            if (Text::startsWith($line, ['!', '+', '-'])) {
+                if (self::DELETED === $sectionType) {
+                    $result[self::DELETED][(int)$from - 1] = $this->file1Data[(int)$from - 1];
+                } elseif (self::INSERTED === $sectionType) {
+                    $result[self::INSERTED][(int)$from - 1] = $this->file2Data[(int)$from - 1];
+                }
+            }
+
+            $from = (int)$from + 1;
+        }
+
+        return $result;
+    }
+
+    private function diff($file1, $file2)
+    {
+        $diff = $this->command->run("diff --text -c \"{$file1}\" \"{$file2}\"");
+        return $this->parse($diff);
+    }
+
+    private function patch($file, $path, $result)
+    {
+        return $this->command->run("patch \"{$file}\" -i \"{$path}\" -o \"{$result}\" -t");
     }
 }
 
@@ -12377,6 +12875,8 @@ class Start
     private $build;
     private $wine;
     private $console;
+    private $shapshot;
+    private $patch;
 
     public function __construct()
     {
@@ -12402,6 +12902,8 @@ class Start
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
+        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine);
+        $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -12412,6 +12914,8 @@ class Start
 
     private function init()
     {
+        ini_set('memory_limit', '512M');
+
         if (getenv('TERM')) {
             putenv('TERM=xterm');
         }
@@ -12591,6 +13095,22 @@ class Start
     public function getConsole()
     {
         return $this->console;
+    }
+
+    /**
+     * @return Snapshot
+     */
+    public function getShapshot()
+    {
+        return $this->shapshot;
+    }
+
+    /**
+     * @return Patch
+     */
+    public function getPatch()
+    {
+        return $this->patch;
     }
 }
 
