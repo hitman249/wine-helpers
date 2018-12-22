@@ -152,36 +152,21 @@ class WinePrefix {
             /**
              * Apply reg files
              */
-            if (file_exists($this->config->getRegsDir())) {
-                $regs      = ['Windows Registry Editor Version 5.00', ''];
-                $filesPath = glob($this->config->getRegsDir() . '/*.reg');
-                $files     = array_map('file_get_contents', $filesPath);
-
-                foreach ($filesPath as $path) {
-                    $this->log('Apply reg file "' . $this->fs->relativePath($path) . '"');
-                }
-
-                foreach ($files as $file) {
-                    $file = Text::normalize($file);
-                    $file = $this->replaces->replaceByString(trim($file));
-                    $file = explode("\n", $file);
-                    if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
-                        unset($file[0]);
-                    }
-                    foreach ($file as $line) {
-                        if ($line !== null) {
-                            $regs[] = $line;
-                        }
-                    }
-                }
-
-                if (count($regs) > 2) {
-                    file_put_contents($this->config->wine('DRIVE_C') . '/tmp.reg', implode("\n", $regs));
-                    $this->wine->reg([$this->config->wine('DRIVE_C') . '/tmp.reg']);
-                    unset($regs);
-                }
-            }
+            $regs = array_merge(
+                app('start')->getPatch()->getRegistryFiles(),
+                $this->config->getRegistryFiles()
+            );
+            app('start')->getRegistry()->apply($regs, function ($text) {$this->log($text);});
             app()->getCurrentScene()->setProgress(35);
+
+
+            /**
+             * Apply patches
+             */
+            if (app('start')->getPatch()->apply()) {
+                $this->log('Apply patches');
+            }
+            app()->getCurrentScene()->setProgress(37);
 
 
             /**

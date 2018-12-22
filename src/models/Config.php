@@ -335,9 +335,21 @@ class Config {
         return $this->hooksGpuDir;
     }
 
-    public function getRegsDir()
+    public function getRegistryDir()
     {
         return $this->regsDir;
+    }
+
+    public function getRegistryFiles()
+    {
+        if (!file_exists($this->getRegistryDir())) {
+            return [];
+        }
+
+        $regs = glob($this->getRegistryDir() . '/*.reg');
+        natsort($regs);
+
+        return $regs;
     }
 
     public function getCacheDir()

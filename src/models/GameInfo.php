@@ -63,7 +63,7 @@ class GameInfo {
                 $this->config->getDlls64Dir(),
                 $this->config->getHooksDir(),
                 $this->config->getHooksGpuDir(),
-                $this->config->getRegsDir(),
+                $this->config->getRegistryDir(),
             ];
 
             foreach ($folders as $path) {
@@ -138,10 +138,10 @@ regs - файлы реестра windows (необязательная дире�
              * game_info/regs/readme.txt
              */
             file_put_contents(
-                $this->config->getRegsDir() . "/{$readme}",
+                $this->config->getRegistryDir() . "/{$readme}",
                 "Здесь должны находиться .reg файлы."
             );
-            $this->log('Create file   "' . $this->config->getRegsDir() . "/{$readme}" . '"');
+            $this->log('Create file   "' . $this->config->getRegistryDir() . "/{$readme}" . '"');
 
 
             /**

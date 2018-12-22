@@ -73,7 +73,13 @@ class Snapshot
 
     private function read($dir)
     {
+        $gameFolder   = $this->fs->relativePath($this->config->getPrefixGameFolder(), $this->driveC);
         $relativePath = $this->fs->relativePath($dir, $this->driveC);
+
+        if ($gameFolder === $relativePath) {
+            return;
+        }
+
         file_put_contents($this->shapshotFile, "{$relativePath};dir;;\n", FILE_APPEND);
 
         foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {

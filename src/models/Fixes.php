@@ -60,7 +60,8 @@ class Fixes
                     }
 
                     if (method_exists($this, "{$fix}Up")) {
-                        app('start')->getPatch()->create(function () use ($fix, $logCallback) {
+                        app('start')->getPatch()->create(function () use ($fix, $logCallback, $versions) {
+                            file_put_contents($this->version, implode("\n", $versions));
                             $this->{"{$fix}Up"}($logCallback);
                         });
                     }

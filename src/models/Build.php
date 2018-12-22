@@ -48,19 +48,19 @@ class Build
         foreach (glob("{$gameInfo}/*") as $item) {
             $name = basename($item);
             if ($name !== 'data.squashfs') {
-                $this->command->run("rm -rf \"{$item}\"");
+                $this->command->run("\\rm -rf \"{$item}\"");
             }
         }
 
         foreach (glob("{$root}/*") as $item) {
             $name = basename($item);
             if (!in_array($name, ['game_info', 'extract.sh', 'static.tar.gz'], true)) {
-                $this->command->run("rm -rf \"{$item}\"");
+                $this->command->run("\\rm -rf \"{$item}\"");
             }
         }
 
         if (file_exists("{$root}/libs")) {
-            $this->command->run("rm -rf \"{$root}/libs\"");
+            $this->command->run("\\rm -rf \"{$root}/libs\"");
         }
 
         return true;
@@ -75,7 +75,7 @@ class Build
         $gameData = $this->config->getDataDir();
 
         if (file_exists("{$root}/build")) {
-            $this->command->run("rm -rf \"{$root}/build\"");
+            $this->command->run("\\rm -rf \"{$root}/build\"");
         }
 
         if (!mkdir("{$root}/build/{$gameDir}/static/game_info", 0775, true) && !is_dir("{$root}/build/{$gameDir}/static/game_info")) {
@@ -86,39 +86,39 @@ class Build
         }
 
         foreach (glob("{$root}/*.png") as $path) {
-            $this->command->run("cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/\"");
         }
 
         if (file_exists("{$root}/wine.squashfs")) {
-            $this->command->run("cp -a --link \"{$root}/wine.squashfs\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/wine.squashfs\" \"{$root}/build/{$gameDir}/static/\"");
         } elseif (file_exists("{$root}/wine")) {
-            $this->command->run("cp -ra --link \"{$root}/wine\" \"{$root}/build/{$gameDir}/static/wine\"");
+            $this->command->run("\\cp -ra --link \"{$root}/wine\" \"{$root}/build/{$gameDir}/static/wine\"");
         }
 
         if (file_exists("{$root}/libs")) {
-            $this->command->run("cp -ra --link \"{$root}/libs\" \"{$root}/build/{$gameDir}/static/libs\"");
+            $this->command->run("\\cp -ra --link \"{$root}/libs\" \"{$root}/build/{$gameDir}/static/libs\"");
         }
         if (file_exists("{$root}/README.md")) {
-            $this->command->run("cp -a --link \"{$root}/README.md\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/README.md\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/php")) {
-            $this->command->run("cp -a --link \"{$root}/php\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/php\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/squashfuse")) {
-            $this->command->run("cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/fuse-zip")) {
-            $this->command->run("cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/start")) {
-            $this->command->run("cp -a --link \"{$root}/start\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/start\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if ($isPrefix && file_exists("{$root}/prefix")) {
-            $this->command->run("cp -ra --link \"{$root}/prefix\" \"{$root}/build/{$gameDir}/static/prefix\"");
+            $this->command->run("\\cp -ra --link \"{$root}/prefix\" \"{$root}/build/{$gameDir}/static/prefix\"");
             if ($userName) {
                 $userFolder = "{$root}/build/{$gameDir}/static/prefix/drive_c/users/{$userName}";
                 if (file_exists($userFolder)) {
-                    $this->command->run("rm -rf \"{$userFolder}\"");
+                    $this->command->run("\\rm -rf \"{$userFolder}\"");
                 }
             }
         }
@@ -164,22 +164,22 @@ class Build
             }
 
             if (is_dir($path)) {
-                $this->command->run("cp -ra --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/{$file}\"");
+                $this->command->run("\\cp -ra --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/{$file}\"");
             } else {
-                $this->command->run("cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/\"");
+                $this->command->run("\\cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/\"");
             }
         }
 
         if (file_exists("{$gameInfo}/data.squashfs")) {
-            $this->command->run("cp -a --link \"{$gameInfo}/data.squashfs\" \"{$root}/build/{$gameDir}/game_info/\"");
+            $this->command->run("\\cp -a --link \"{$gameInfo}/data.squashfs\" \"{$root}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists("{$gameInfo}/data.zip")) {
-            $this->command->run("cp -a --link \"{$gameInfo}/data.zip\" \"{$root}/build/{$gameDir}/game_info/\"");
+            $this->command->run("\\cp -a --link \"{$gameInfo}/data.zip\" \"{$root}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists($gameData)) {
-            $this->command->run("cp -rav --link \"{$gameData}\" \"{$root}/build/{$gameDir}/game_info/data\"");
+            $this->command->run("\\cp -rav --link \"{$gameData}\" \"{$root}/build/{$gameDir}/game_info/data\"");
         }
 
-        $this->command->run("tar -cvzf \"{$root}/build/{$gameDir}/static.tar.gz\" -C \"{$root}/build/{$gameDir}/static\" .");
-        $this->command->run("rm -rf \"{$root}/build/{$gameDir}/static/\"");
+        $this->command->run("\\tar -cvzf \"{$root}/build/{$gameDir}/static.tar.gz\" -C \"{$root}/build/{$gameDir}/static\" .");
+        $this->command->run("\\rm -rf \"{$root}/build/{$gameDir}/static/\"");
 
         /**
          * build/extract.sh

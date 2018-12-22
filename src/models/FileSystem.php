@@ -63,7 +63,7 @@ class FileSystem {
         return true;
     }
 
-    public function cp($in, $out)
+    public function cp($in, $out, $overwrite = false)
     {
         if (file_exists($in) && !is_dir($in)) {
             copy($in, $out);
@@ -76,8 +76,10 @@ class FileSystem {
 
         $mode = 0775;
 
-        if (!mkdir($out, $mode, true) && !is_dir($out)) {
-            throw new \RuntimeException(sprintf('Directory "%s" was not created', $out));
+        if (false === $overwrite || ($overwrite && !file_exists($out))) {
+            if (!mkdir($out, $mode, true) && !is_dir($out)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $out));
+            }
         }
 
         foreach (
@@ -86,11 +88,20 @@ class FileSystem {
                 \RecursiveIteratorIterator::SELF_FIRST) as $item
         ) {
             if ($item->isDir()) {
-                if (!mkdir($concurrentDirectory = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName(), $mode) && !is_dir($concurrentDirectory)) {
+                $pathOut = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
+                if ($overwrite && file_exists($pathOut)) {
+                    continue;
+                }
+                if (!mkdir($concurrentDirectory = $pathOut, $mode) && !is_dir($concurrentDirectory)) {
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
                 }
             } else {
-                copy($item, $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
+                $pathOut  = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
+                $fileName = basename((string)$item);
+                if ($overwrite && file_exists("{$pathOut}/{$fileName}")) {
+                    unlink("{$pathOut}/{$fileName}");
+                }
+                copy($item, $pathOut);
             }
         }
 

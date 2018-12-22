@@ -21,6 +21,7 @@ class Start
     private $shapshot;
     private $patch;
     private $replaces;
+    private $registry;
 
     public function __construct()
     {
@@ -49,6 +50,7 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -264,6 +266,14 @@ class Start
     public function getReplaces()
     {
         return $this->replaces;
+    }
+
+    /**
+     * @return Registry
+     */
+    public function getRegistry()
+    {
+        return $this->registry;
     }
 }
 

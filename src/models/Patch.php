@@ -80,4 +80,84 @@ class Patch
 
         return $result;
     }
+
+    public function apply()
+    {
+        if ($this->config->isGenerationPatchesMode() || !file_exists($this->config->getPrefixFolder()) || !file_exists($this->config->getPatchApplyDir())) {
+            return false;
+        }
+
+        $dirs = glob($this->config->getPatchApplyDir() . '/*');
+        natsort($dirs);
+
+        foreach ($dirs as $path) {
+            if (is_dir($path) && file_exists("{$path}/files")) {
+                $files = glob("{$path}/files/*");
+                $trim = "{$path}/files/";
+                foreach ($files as $patchItem) {
+                    $name = basename($patchItem);
+                    $fileRelativePath = $this->fs->relativePath($patchItem, $trim);
+
+                    if (!is_dir($patchItem)) {
+                        $out = $this->config->getPrefixDriveC() . "/{$fileRelativePath}";
+                        if (file_exists($out)) {
+                            unlink($out);
+                        }
+                        $this->fs->cp($patchItem, $out, true);
+
+                    } elseif ('users' === $name) {
+                        $users = glob("{$patchItem}/*");
+                        foreach ($users as $user) {
+                            $name = basename($user);
+                            $userRelativePath = $this->fs->relativePath($user, $trim);
+                            if (!is_dir($user)) {
+                                $out = $this->config->getPrefixDriveC() . "/{$userRelativePath}";
+                                if (file_exists($out)) {
+                                    unlink($out);
+                                }
+                                $this->fs->cp($user, $out, true);
+                            } elseif ('default' === $name) {
+                                $userName = app('start')->getSystem()->getUserName();
+                                $out = $this->config->getPrefixDriveC() . "/users/{$userName}";
+                                $this->fs->cp($user, $out, true);
+                            } else {
+                                $out = $this->config->getPrefixDriveC() . "/{$userRelativePath}";
+                                $this->fs->cp($user, $out, true);
+                            }
+                        }
+                    } else {
+                        $out = $this->config->getPrefixDriveC() . "/{$fileRelativePath}";
+                        $this->fs->cp($patchItem, $out, true);
+                    }
+                }
+            }
+        }
+
+        return $dirs ? true : false;
+    }
+
+    public function getRegistryFiles()
+    {
+        if ($this->config->isGenerationPatchesMode() || !file_exists($this->config->getPatchApplyDir())) {
+            return [];
+        }
+
+        $result = [];
+
+        $dirs = glob($this->config->getPatchApplyDir() . '/*');
+        natsort($dirs);
+
+        foreach ($dirs as $path) {
+            if (is_dir($path)) {
+                $regs = glob("{$path}/*.reg");
+                natsort($regs);
+
+                foreach ($regs as $reg) {
+                    $result[] = $reg;
+                }
+            }
+        }
+
+        return $result;
+    }
 }

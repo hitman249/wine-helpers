@@ -3019,7 +3019,7 @@ class FileSystem {
         return true;
     }
 
-    public function cp($in, $out)
+    public function cp($in, $out, $overwrite = false)
     {
         if (file_exists($in) && !is_dir($in)) {
             copy($in, $out);
@@ -3032,8 +3032,10 @@ class FileSystem {
 
         $mode = 0775;
 
-        if (!mkdir($out, $mode, true) && !is_dir($out)) {
-            throw new \RuntimeException(sprintf('Directory "%s" was not created', $out));
+        if (false === $overwrite || ($overwrite && !file_exists($out))) {
+            if (!mkdir($out, $mode, true) && !is_dir($out)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $out));
+            }
         }
 
         foreach (
@@ -3042,11 +3044,20 @@ class FileSystem {
                 \RecursiveIteratorIterator::SELF_FIRST) as $item
         ) {
             if ($item->isDir()) {
-                if (!mkdir($concurrentDirectory = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName(), $mode) && !is_dir($concurrentDirectory)) {
+                $pathOut = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
+                if ($overwrite && file_exists($pathOut)) {
+                    continue;
+                }
+                if (!mkdir($concurrentDirectory = $pathOut, $mode) && !is_dir($concurrentDirectory)) {
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
                 }
             } else {
-                copy($item, $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
+                $pathOut  = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
+                $fileName = basename((string)$item);
+                if ($overwrite && file_exists("{$pathOut}/{$fileName}")) {
+                    unlink("{$pathOut}/{$fileName}");
+                }
+                copy($item, $pathOut);
             }
         }
 
@@ -4390,9 +4401,21 @@ class Config {
         return $this->hooksGpuDir;
     }
 
-    public function getRegsDir()
+    public function getRegistryDir()
     {
         return $this->regsDir;
+    }
+
+    public function getRegistryFiles()
+    {
+        if (!file_exists($this->getRegistryDir())) {
+            return [];
+        }
+
+        $regs = glob($this->getRegistryDir() . '/*.reg');
+        natsort($regs);
+
+        return $regs;
     }
 
     public function getCacheDir()
@@ -5972,36 +5995,21 @@ class WinePrefix {
             /**
              * Apply reg files
              */
-            if (file_exists($this->config->getRegsDir())) {
-                $regs      = ['Windows Registry Editor Version 5.00', ''];
-                $filesPath = glob($this->config->getRegsDir() . '/*.reg');
-                $files     = array_map('file_get_contents', $filesPath);
-
-                foreach ($filesPath as $path) {
-                    $this->log('Apply reg file "' . $this->fs->relativePath($path) . '"');
-                }
-
-                foreach ($files as $file) {
-                    $file = Text::normalize($file);
-                    $file = $this->replaces->replaceByString(trim($file));
-                    $file = explode("\n", $file);
-                    if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
-                        unset($file[0]);
-                    }
-                    foreach ($file as $line) {
-                        if ($line !== null) {
-                            $regs[] = $line;
-                        }
-                    }
-                }
-
-                if (count($regs) > 2) {
-                    file_put_contents($this->config->wine('DRIVE_C') . '/tmp.reg', implode("\n", $regs));
-                    $this->wine->reg([$this->config->wine('DRIVE_C') . '/tmp.reg']);
-                    unset($regs);
-                }
-            }
+            $regs = array_merge(
+                app('start')->getPatch()->getRegistryFiles(),
+                $this->config->getRegistryFiles()
+            );
+            app('start')->getRegistry()->apply($regs, function ($text) {$this->log($text);});
             app()->getCurrentScene()->setProgress(35);
+
+
+            /**
+             * Apply patches
+             */
+            if (app('start')->getPatch()->apply()) {
+                $this->log('Apply patches');
+            }
+            app()->getCurrentScene()->setProgress(37);
 
 
             /**
@@ -6611,7 +6619,7 @@ class GameInfo {
                 $this->config->getDlls64Dir(),
                 $this->config->getHooksDir(),
                 $this->config->getHooksGpuDir(),
-                $this->config->getRegsDir(),
+                $this->config->getRegistryDir(),
             ];
 
             foreach ($folders as $path) {
@@ -6686,10 +6694,10 @@ regs - файлы реестра windows (необязательная дире�
              * game_info/regs/readme.txt
              */
             file_put_contents(
-                $this->config->getRegsDir() . "/{$readme}",
+                $this->config->getRegistryDir() . "/{$readme}",
                 "Здесь должны находиться .reg файлы."
             );
-            $this->log('Create file   "' . $this->config->getRegsDir() . "/{$readme}" . '"');
+            $this->log('Create file   "' . $this->config->getRegistryDir() . "/{$readme}" . '"');
 
 
             /**
@@ -7542,19 +7550,19 @@ class Build
         foreach (glob("{$gameInfo}/*") as $item) {
             $name = basename($item);
             if ($name !== 'data.squashfs') {
-                $this->command->run("rm -rf \"{$item}\"");
+                $this->command->run("\\rm -rf \"{$item}\"");
             }
         }
 
         foreach (glob("{$root}/*") as $item) {
             $name = basename($item);
             if (!in_array($name, ['game_info', 'extract.sh', 'static.tar.gz'], true)) {
-                $this->command->run("rm -rf \"{$item}\"");
+                $this->command->run("\\rm -rf \"{$item}\"");
             }
         }
 
         if (file_exists("{$root}/libs")) {
-            $this->command->run("rm -rf \"{$root}/libs\"");
+            $this->command->run("\\rm -rf \"{$root}/libs\"");
         }
 
         return true;
@@ -7569,7 +7577,7 @@ class Build
         $gameData = $this->config->getDataDir();
 
         if (file_exists("{$root}/build")) {
-            $this->command->run("rm -rf \"{$root}/build\"");
+            $this->command->run("\\rm -rf \"{$root}/build\"");
         }
 
         if (!mkdir("{$root}/build/{$gameDir}/static/game_info", 0775, true) && !is_dir("{$root}/build/{$gameDir}/static/game_info")) {
@@ -7580,39 +7588,39 @@ class Build
         }
 
         foreach (glob("{$root}/*.png") as $path) {
-            $this->command->run("cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/\"");
         }
 
         if (file_exists("{$root}/wine.squashfs")) {
-            $this->command->run("cp -a --link \"{$root}/wine.squashfs\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/wine.squashfs\" \"{$root}/build/{$gameDir}/static/\"");
         } elseif (file_exists("{$root}/wine")) {
-            $this->command->run("cp -ra --link \"{$root}/wine\" \"{$root}/build/{$gameDir}/static/wine\"");
+            $this->command->run("\\cp -ra --link \"{$root}/wine\" \"{$root}/build/{$gameDir}/static/wine\"");
         }
 
         if (file_exists("{$root}/libs")) {
-            $this->command->run("cp -ra --link \"{$root}/libs\" \"{$root}/build/{$gameDir}/static/libs\"");
+            $this->command->run("\\cp -ra --link \"{$root}/libs\" \"{$root}/build/{$gameDir}/static/libs\"");
         }
         if (file_exists("{$root}/README.md")) {
-            $this->command->run("cp -a --link \"{$root}/README.md\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/README.md\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/php")) {
-            $this->command->run("cp -a --link \"{$root}/php\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/php\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/squashfuse")) {
-            $this->command->run("cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/fuse-zip")) {
-            $this->command->run("cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/start")) {
-            $this->command->run("cp -a --link \"{$root}/start\" \"{$root}/build/{$gameDir}/static/\"");
+            $this->command->run("\\cp -a --link \"{$root}/start\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if ($isPrefix && file_exists("{$root}/prefix")) {
-            $this->command->run("cp -ra --link \"{$root}/prefix\" \"{$root}/build/{$gameDir}/static/prefix\"");
+            $this->command->run("\\cp -ra --link \"{$root}/prefix\" \"{$root}/build/{$gameDir}/static/prefix\"");
             if ($userName) {
                 $userFolder = "{$root}/build/{$gameDir}/static/prefix/drive_c/users/{$userName}";
                 if (file_exists($userFolder)) {
-                    $this->command->run("rm -rf \"{$userFolder}\"");
+                    $this->command->run("\\rm -rf \"{$userFolder}\"");
                 }
             }
         }
@@ -7658,22 +7666,22 @@ class Build
             }
 
             if (is_dir($path)) {
-                $this->command->run("cp -ra --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/{$file}\"");
+                $this->command->run("\\cp -ra --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/{$file}\"");
             } else {
-                $this->command->run("cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/\"");
+                $this->command->run("\\cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/\"");
             }
         }
 
         if (file_exists("{$gameInfo}/data.squashfs")) {
-            $this->command->run("cp -a --link \"{$gameInfo}/data.squashfs\" \"{$root}/build/{$gameDir}/game_info/\"");
+            $this->command->run("\\cp -a --link \"{$gameInfo}/data.squashfs\" \"{$root}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists("{$gameInfo}/data.zip")) {
-            $this->command->run("cp -a --link \"{$gameInfo}/data.zip\" \"{$root}/build/{$gameDir}/game_info/\"");
+            $this->command->run("\\cp -a --link \"{$gameInfo}/data.zip\" \"{$root}/build/{$gameDir}/game_info/\"");
         } elseif (file_exists($gameData)) {
-            $this->command->run("cp -rav --link \"{$gameData}\" \"{$root}/build/{$gameDir}/game_info/data\"");
+            $this->command->run("\\cp -rav --link \"{$gameData}\" \"{$root}/build/{$gameDir}/game_info/data\"");
         }
 
-        $this->command->run("tar -cvzf \"{$root}/build/{$gameDir}/static.tar.gz\" -C \"{$root}/build/{$gameDir}/static\" .");
-        $this->command->run("rm -rf \"{$root}/build/{$gameDir}/static/\"");
+        $this->command->run("\\tar -cvzf \"{$root}/build/{$gameDir}/static.tar.gz\" -C \"{$root}/build/{$gameDir}/static\" .");
+        $this->command->run("\\rm -rf \"{$root}/build/{$gameDir}/static/\"");
 
         /**
          * build/extract.sh
@@ -9432,7 +9440,8 @@ class Fixes
                     }
 
                     if (method_exists($this, "{$fix}Up")) {
-                        app('start')->getPatch()->create(function () use ($fix, $logCallback) {
+                        app('start')->getPatch()->create(function () use ($fix, $logCallback, $versions) {
+                            file_put_contents($this->version, implode("\n", $versions));
                             $this->{"{$fix}Up"}($logCallback);
                         });
                     }
@@ -9690,7 +9699,13 @@ class Snapshot
 
     private function read($dir)
     {
+        $gameFolder   = $this->fs->relativePath($this->config->getPrefixGameFolder(), $this->driveC);
         $relativePath = $this->fs->relativePath($dir, $this->driveC);
+
+        if ($gameFolder === $relativePath) {
+            return;
+        }
+
         file_put_contents($this->shapshotFile, "{$relativePath};dir;;\n", FILE_APPEND);
 
         foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {
@@ -9905,6 +9920,86 @@ class Patch
         $auto   = $this->config->getPatchAutoDir();
         $result = $this->fs->mv($path, "{$auto}/{$this->index}");
         $this->index++;
+
+        return $result;
+    }
+
+    public function apply()
+    {
+        if ($this->config->isGenerationPatchesMode() || !file_exists($this->config->getPrefixFolder()) || !file_exists($this->config->getPatchApplyDir())) {
+            return false;
+        }
+
+        $dirs = glob($this->config->getPatchApplyDir() . '/*');
+        natsort($dirs);
+
+        foreach ($dirs as $path) {
+            if (is_dir($path) && file_exists("{$path}/files")) {
+                $files = glob("{$path}/files/*");
+                $trim = "{$path}/files/";
+                foreach ($files as $patchItem) {
+                    $name = basename($patchItem);
+                    $fileRelativePath = $this->fs->relativePath($patchItem, $trim);
+
+                    if (!is_dir($patchItem)) {
+                        $out = $this->config->getPrefixDriveC() . "/{$fileRelativePath}";
+                        if (file_exists($out)) {
+                            unlink($out);
+                        }
+                        $this->fs->cp($patchItem, $out, true);
+
+                    } elseif ('users' === $name) {
+                        $users = glob("{$patchItem}/*");
+                        foreach ($users as $user) {
+                            $name = basename($user);
+                            $userRelativePath = $this->fs->relativePath($user, $trim);
+                            if (!is_dir($user)) {
+                                $out = $this->config->getPrefixDriveC() . "/{$userRelativePath}";
+                                if (file_exists($out)) {
+                                    unlink($out);
+                                }
+                                $this->fs->cp($user, $out, true);
+                            } elseif ('default' === $name) {
+                                $userName = app('start')->getSystem()->getUserName();
+                                $out = $this->config->getPrefixDriveC() . "/users/{$userName}";
+                                $this->fs->cp($user, $out, true);
+                            } else {
+                                $out = $this->config->getPrefixDriveC() . "/{$userRelativePath}";
+                                $this->fs->cp($user, $out, true);
+                            }
+                        }
+                    } else {
+                        $out = $this->config->getPrefixDriveC() . "/{$fileRelativePath}";
+                        $this->fs->cp($patchItem, $out, true);
+                    }
+                }
+            }
+        }
+
+        return $dirs ? true : false;
+    }
+
+    public function getRegistryFiles()
+    {
+        if ($this->config->isGenerationPatchesMode() || !file_exists($this->config->getPatchApplyDir())) {
+            return [];
+        }
+
+        $result = [];
+
+        $dirs = glob($this->config->getPatchApplyDir() . '/*');
+        natsort($dirs);
+
+        foreach ($dirs as $path) {
+            if (is_dir($path)) {
+                $regs = glob("{$path}/*.reg");
+                natsort($regs);
+
+                foreach ($regs as $reg) {
+                    $result[] = $reg;
+                }
+            }
+        }
 
         return $result;
     }
@@ -10177,6 +10272,76 @@ class Replaces
     {
         $this->init();
         return $this->userName;
+    }
+}
+
+
+
+class Registry
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $wine;
+    private $replaces;
+
+    /**
+     * Registry constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param Wine $wine
+     * @param Replaces $replaces
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Replaces $replaces)
+    {
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->fs       = $fs;
+        $this->wine     = $wine;
+        $this->replaces = $replaces;
+    }
+
+    /**
+     * @param array $files
+     * @param callable|null $callbackLog
+     * @return bool
+     */
+    public function apply($files, $callbackLog = null)
+    {
+        $regs  = ['Windows Registry Editor Version 5.00', ''];
+
+        if ($callbackLog) {
+            foreach ($files as $path) {
+                $callbackLog('Apply reg file "' . $this->fs->relativePath($path) . '"');
+            }
+        }
+
+        $files = array_map('file_get_contents', $files);
+
+        foreach ($files as $file) {
+            $file = Text::normalize($file);
+            $file = $this->replaces->replaceByString(trim($file));
+            $file = explode("\n", $file);
+            if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
+                unset($file[0]);
+            }
+            foreach ($file as $line) {
+                if ($line !== null) {
+                    $regs[] = $line;
+                }
+            }
+        }
+
+        if (count($regs) > 2) {
+            file_put_contents($this->config->getPrefixDriveC() . '/tmp.reg', implode("\n", $regs));
+            $this->wine->reg([$this->config->getPrefixDriveC() . '/tmp.reg']);
+            unset($regs);
+
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -13034,6 +13199,7 @@ class Start
     private $shapshot;
     private $patch;
     private $replaces;
+    private $registry;
 
     public function __construct()
     {
@@ -13062,6 +13228,7 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -13277,6 +13444,14 @@ class Start
     public function getReplaces()
     {
         return $this->replaces;
+    }
+
+    /**
+     * @return Registry
+     */
+    public function getRegistry()
+    {
+        return $this->registry;
     }
 }
 
