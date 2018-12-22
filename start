@@ -4677,6 +4677,7 @@ PBA_DISABLE=1
 ; {DOSDEVICES}   - Full path to "/.../prefix/dosdevice"
 ; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
 ; {PREFIX}       - Full path to "/.../prefix"
+; {ROOT_DIR}     - Full path to game folder
 ;
 
 ; file[] = "game_info/data/example.conf"';
@@ -5829,6 +5830,7 @@ class WinePrefix {
     private $fs;
     private $update;
     private $event;
+    private $replaces;
     private $log;
     private $buffer;
     private $created = false;
@@ -5840,14 +5842,15 @@ class WinePrefix {
      */
     public function __construct(Config $config, Command $command)
     {
-        $this->command = $command;
-        $this->config  = $config;
-        $this->wine    = new Wine($this->config, $this->command);
-        $this->monitor = new Monitor($this->config, $this->command);
-        $this->system  = new System($this->config, $this->command);
-        $this->fs      = new FileSystem($this->config, $this->command);
-        $this->update  = new Update($this->config, $this->command);
-        $this->event   = new Event($this->config, $this->command);
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->wine     = new Wine($this->config, $this->command);
+        $this->monitor  = new Monitor($this->config, $this->command);
+        $this->system   = new System($this->config, $this->command);
+        $this->fs       = new FileSystem($this->config, $this->command);
+        $this->update   = new Update($this->config, $this->command);
+        $this->event    = new Event($this->config, $this->command);
+        $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
     }
 
     public function log($text)
@@ -5980,7 +5983,7 @@ class WinePrefix {
 
                 foreach ($files as $file) {
                     $file = Text::normalize($file);
-                    $file = trim($file);
+                    $file = $this->replaces->replaceByString(trim($file));
                     $file = explode("\n", $file);
                     if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
                         unset($file[0]);
@@ -6164,36 +6167,17 @@ class WinePrefix {
             return [];
         }
 
-        $userName = $this->system->getUserName();
-        $result = [];
-        $width  = '';
-        $height = '';
-
-        foreach ($this->monitor->resolutions() as $output => $monitor) {
-            if (!$width || !$height) {
-                list($w, $h) = explode('x', $monitor['resolution']);
-                $width  = $w;
-                $height = $h;
-            }
-            if ($monitor['default']) {
-                list($w, $h) = explode('x', $monitor['resolution']);
-                $width  = $w;
-                $height = $h;
-            }
-        }
+        $result   = [];
+        $userName = $this->replaces->getUserName();
+        $width    = $this->replaces->getWidth();
+        $height   = $this->replaces->getHeight();
 
         foreach ((array)$this->config->get('replaces', 'file') as $file) {
 
             $file = trim($file, " \t\n\r\0\x0B/");
 
             if (file_exists($this->config->getRootDir() . "/{$file}")) {
-                $data = file_get_contents($this->config->getRootDir() . "/{$file}");
-                $data = str_replace(
-                    ['{WIDTH}', '{HEIGHT}', '{USER}', '{DOSDEVICES}', '{PREFIX}', '{DRIVE_C}'],
-                    [$width, $height, $userName, $this->config->getPrefixDosdeviceDir(), $this->config->getPrefixFolder(), $this->config->getPrefixDriveC()],
-                    $data
-                );
-                @file_put_contents($this->config->getRootDir() . "/{$file}", $data);
+                $this->replaces->replaceByFile($this->config->getRootDir() . "/{$file}", true);
                 $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" ... from file \"{$file}\"";
             }
         }
@@ -9639,6 +9623,8 @@ class Snapshot
     private $command;
     private $fs;
     private $wine;
+    private $replaces;
+    private $system;
     private $folders;
     private $shapshotFile;
     private $driveC;
@@ -9646,19 +9632,24 @@ class Snapshot
     private $shapshotBeforeDir;
     private $patchDir;
 
+
     /**
      * Snapshot constructor.
      * @param Config $config
      * @param Command $command
      * @param FileSystem $fs
      * @param Wine $wine
+     * @param Replaces $replaces
+     * @param System $system
      */
-    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Replaces $replaces, System $system)
     {
-        $this->command = $command;
-        $this->config  = $config;
-        $this->fs      = $fs;
-        $this->wine    = $wine;
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->fs       = $fs;
+        $this->wine     = $wine;
+        $this->replaces = $replaces;
+        $this->system   = $system;
 
         $this->folders = [
             'Program Files',
@@ -9743,16 +9734,21 @@ class Snapshot
                 $after = "{$this->shapshotDir}/{$fileName}";
 
                 if (file_exists($after)) {
-                    $prefix = $i === 0 ? '' : $i;
-                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $this->getRegeditChanges($before, $after));
+                    $prefix  = $i === 0 ? '' : $i;
+                    $regedit = $this->replaces->replaceToTemplateByString($this->getRegeditChanges($before, $after));
+                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $regedit);
                 }
             }
+
+            $userFolder        = 'users/' . $this->system->getUserName();
+            $userFolderReplace = 'users/default';
 
             $changes = $this->getFilesChanges("{$this->shapshotBeforeDir}/filelist.shapshot", "{$this->shapshotDir}/filelist.shapshot");
 
             foreach ($changes as $file) {
-                $in  = "{$this->driveC}/{$file}";
-                $out = "{$this->patchDir}/files/{$file}";
+                $in   = "{$this->driveC}/{$file}";
+                $file = (Text::startsWith($file, $userFolder) ? str_replace($userFolder, $userFolderReplace, $file) : $file);
+                $out  = "{$this->patchDir}/files/{$file}";
 
                 $dir = dirname($out);
                 $this->fs->mkdirs([$dir]);
@@ -10021,6 +10017,166 @@ class Diff
     private function patch($file, $path, $result)
     {
         return $this->command->run("patch \"{$file}\" -i \"{$path}\" -o \"{$result}\" -t");
+    }
+}
+
+
+
+class Replaces
+{
+    private $config;
+    private $command;
+    private $fs;
+    private $system;
+    private $monitor;
+    private $finds;
+    private $replaces;
+    private $width;
+    private $height;
+    private $userName;
+
+    /**
+     * Replaces constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param System $system
+     * @param Monitor $monitor
+     */
+    public function __construct(Config $config, Command $command, FileSystem $fs, System $system, Monitor $monitor)
+    {
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->fs       = $fs;
+        $this->system   = $system;
+        $this->monitor  = $monitor;
+        $this->finds    = [
+            '{WIDTH}',
+            '{HEIGHT}',
+            '{USER}',
+            '{DOSDEVICES}',
+            '{PREFIX}',
+            '{DRIVE_C}',
+            '{ROOT_DIR}',
+        ];
+    }
+
+    private function init()
+    {
+        if (null === $this->replaces) {
+
+            $this->userName = $this->system->getUserName();
+
+            $this->width  = '';
+            $this->height = '';
+
+            foreach ($this->monitor->resolutions() as $output => $monitor) {
+                if (!$this->width || !$this->height) {
+                    list($w, $h) = explode('x', $monitor['resolution']);
+                    $this->width  = $w;
+                    $this->height = $h;
+                }
+                if ($monitor['default']) {
+                    list($w, $h) = explode('x', $monitor['resolution']);
+                    $this->width  = $w;
+                    $this->height = $h;
+                }
+            }
+
+            $this->replaces = [
+                $this->width,
+                $this->height,
+                $this->userName,
+                $this->config->getPrefixDosdeviceDir(),
+                $this->config->getPrefixFolder(),
+                $this->config->getPrefixDriveC(),
+                $this->config->getRootDir(),
+            ];
+        }
+    }
+
+    public function replaceByFile($path, $backup = false)
+    {
+        $this->init();
+
+        if ($backup) {
+            if (!file_exists("{$path}.backup")) {
+                $this->fs->cp($path, "{$path}.backup");
+            }
+            if (file_exists("{$path}.backup")) {
+                $file = file_get_contents("{$path}.backup");
+                $file = $this->replaceByString($file);
+                file_put_contents($path, $file);
+
+                return true;
+            }
+        } else if (file_exists($path)) {
+            $file = file_get_contents($path);
+            $file = $this->replaceByString($file);
+            file_put_contents($path, $file);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function replaceByString($text)
+    {
+        $this->init();
+        return str_replace($this->finds, $this->replaces, $text);
+    }
+
+    public function replaceToTemplateByString($text)
+    {
+        $this->init();
+
+        $userName = $this->system->getUserName();
+
+        return str_replace(
+            [
+                $this->config->getRootDir(),
+                "'{$userName}'",
+                "\"{$userName}\"",
+                "/{$userName}/",
+                "\\{$userName}\\",
+            ],
+            [
+                '{ROOT_DIR}',
+                "'{USER}'",
+                '"{USER}"',
+                '/{USER}/',
+                "\\{USER}\\",
+            ],
+            $text
+        );
+    }
+
+    /**
+     * @return int
+     */
+    public function getHeight()
+    {
+        $this->init();
+        return $this->height;
+    }
+
+    /**
+     * @return int
+     */
+    public function getWidth()
+    {
+        $this->init();
+        return $this->width;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUserName()
+    {
+        $this->init();
+        return $this->userName;
     }
 }
 
@@ -12877,6 +13033,7 @@ class Start
     private $console;
     private $shapshot;
     private $patch;
+    private $replaces;
 
     public function __construct()
     {
@@ -12902,7 +13059,8 @@ class Start
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
-        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine);
+        $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
+        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
@@ -13111,6 +13269,14 @@ class Start
     public function getPatch()
     {
         return $this->patch;
+    }
+
+    /**
+     * @return Replaces
+     */
+    public function getReplaces()
+    {
+        return $this->replaces;
     }
 }
 

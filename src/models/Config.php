@@ -622,6 +622,7 @@ PBA_DISABLE=1
 ; {DOSDEVICES}   - Full path to "/.../prefix/dosdevice"
 ; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
 ; {PREFIX}       - Full path to "/.../prefix"
+; {ROOT_DIR}     - Full path to game folder
 ;
 
 ; file[] = "game_info/data/example.conf"';

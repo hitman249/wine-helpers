@@ -20,6 +20,7 @@ class Start
     private $console;
     private $shapshot;
     private $patch;
+    private $replaces;
 
     public function __construct()
     {
@@ -45,7 +46,8 @@ class Start
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
-        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine);
+        $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
+        $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
@@ -254,6 +256,14 @@ class Start
     public function getPatch()
     {
         return $this->patch;
+    }
+
+    /**
+     * @return Replaces
+     */
+    public function getReplaces()
+    {
+        return $this->replaces;
     }
 }
 

@@ -6,6 +6,8 @@ class Snapshot
     private $command;
     private $fs;
     private $wine;
+    private $replaces;
+    private $system;
     private $folders;
     private $shapshotFile;
     private $driveC;
@@ -13,19 +15,24 @@ class Snapshot
     private $shapshotBeforeDir;
     private $patchDir;
 
+
     /**
      * Snapshot constructor.
      * @param Config $config
      * @param Command $command
      * @param FileSystem $fs
      * @param Wine $wine
+     * @param Replaces $replaces
+     * @param System $system
      */
-    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine)
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Replaces $replaces, System $system)
     {
-        $this->command = $command;
-        $this->config  = $config;
-        $this->fs      = $fs;
-        $this->wine    = $wine;
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->fs       = $fs;
+        $this->wine     = $wine;
+        $this->replaces = $replaces;
+        $this->system   = $system;
 
         $this->folders = [
             'Program Files',
@@ -110,16 +117,21 @@ class Snapshot
                 $after = "{$this->shapshotDir}/{$fileName}";
 
                 if (file_exists($after)) {
-                    $prefix = $i === 0 ? '' : $i;
-                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $this->getRegeditChanges($before, $after));
+                    $prefix  = $i === 0 ? '' : $i;
+                    $regedit = $this->replaces->replaceToTemplateByString($this->getRegeditChanges($before, $after));
+                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $regedit);
                 }
             }
+
+            $userFolder        = 'users/' . $this->system->getUserName();
+            $userFolderReplace = 'users/default';
 
             $changes = $this->getFilesChanges("{$this->shapshotBeforeDir}/filelist.shapshot", "{$this->shapshotDir}/filelist.shapshot");
 
             foreach ($changes as $file) {
-                $in  = "{$this->driveC}/{$file}";
-                $out = "{$this->patchDir}/files/{$file}";
+                $in   = "{$this->driveC}/{$file}";
+                $file = (Text::startsWith($file, $userFolder) ? str_replace($userFolder, $userFolderReplace, $file) : $file);
+                $out  = "{$this->patchDir}/files/{$file}";
 
                 $dir = dirname($out);
                 $this->fs->mkdirs([$dir]);

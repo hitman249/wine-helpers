@@ -10,6 +10,7 @@ class WinePrefix {
     private $fs;
     private $update;
     private $event;
+    private $replaces;
     private $log;
     private $buffer;
     private $created = false;
@@ -21,14 +22,15 @@ class WinePrefix {
      */
     public function __construct(Config $config, Command $command)
     {
-        $this->command = $command;
-        $this->config  = $config;
-        $this->wine    = new Wine($this->config, $this->command);
-        $this->monitor = new Monitor($this->config, $this->command);
-        $this->system  = new System($this->config, $this->command);
-        $this->fs      = new FileSystem($this->config, $this->command);
-        $this->update  = new Update($this->config, $this->command);
-        $this->event   = new Event($this->config, $this->command);
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->wine     = new Wine($this->config, $this->command);
+        $this->monitor  = new Monitor($this->config, $this->command);
+        $this->system   = new System($this->config, $this->command);
+        $this->fs       = new FileSystem($this->config, $this->command);
+        $this->update   = new Update($this->config, $this->command);
+        $this->event    = new Event($this->config, $this->command);
+        $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
     }
 
     public function log($text)
@@ -161,7 +163,7 @@ class WinePrefix {
 
                 foreach ($files as $file) {
                     $file = Text::normalize($file);
-                    $file = trim($file);
+                    $file = $this->replaces->replaceByString(trim($file));
                     $file = explode("\n", $file);
                     if (in_array(trim(reset($file)), ['Windows Registry Editor Version 5.00', 'REGEDIT4'], true)) {
                         unset($file[0]);
@@ -345,36 +347,17 @@ class WinePrefix {
             return [];
         }
 
-        $userName = $this->system->getUserName();
-        $result = [];
-        $width  = '';
-        $height = '';
-
-        foreach ($this->monitor->resolutions() as $output => $monitor) {
-            if (!$width || !$height) {
-                list($w, $h) = explode('x', $monitor['resolution']);
-                $width  = $w;
-                $height = $h;
-            }
-            if ($monitor['default']) {
-                list($w, $h) = explode('x', $monitor['resolution']);
-                $width  = $w;
-                $height = $h;
-            }
-        }
+        $result   = [];
+        $userName = $this->replaces->getUserName();
+        $width    = $this->replaces->getWidth();
+        $height   = $this->replaces->getHeight();
 
         foreach ((array)$this->config->get('replaces', 'file') as $file) {
 
             $file = trim($file, " \t\n\r\0\x0B/");
 
             if (file_exists($this->config->getRootDir() . "/{$file}")) {
-                $data = file_get_contents($this->config->getRootDir() . "/{$file}");
-                $data = str_replace(
-                    ['{WIDTH}', '{HEIGHT}', '{USER}', '{DOSDEVICES}', '{PREFIX}', '{DRIVE_C}'],
-                    [$width, $height, $userName, $this->config->getPrefixDosdeviceDir(), $this->config->getPrefixFolder(), $this->config->getPrefixDriveC()],
-                    $data
-                );
-                @file_put_contents($this->config->getRootDir() . "/{$file}", $data);
+                $this->replaces->replaceByFile($this->config->getRootDir() . "/{$file}", true);
                 $result[] = "Replace {WIDTH}x{HEIGHT} -> {$width}x{$height}, {USER} -> \"{$userName}\" ... from file \"{$file}\"";
             }
         }

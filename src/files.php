@@ -50,6 +50,7 @@ return [
         'models/Snapshot.php',
         'models/Patch.php',
         'models/Diff.php',
+        'models/Replaces.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',
