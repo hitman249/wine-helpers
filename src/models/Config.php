@@ -635,6 +635,7 @@ PBA_DISABLE=1
 ; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
 ; {PREFIX}       - Full path to "/.../prefix"
 ; {ROOT_DIR}     - Full path to game folder
+; {HOSTNAME}     - See command: hostname
 ;
 
 ; file[] = "game_info/data/example.conf"';

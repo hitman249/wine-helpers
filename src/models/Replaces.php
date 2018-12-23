@@ -12,6 +12,7 @@ class Replaces
     private $width;
     private $height;
     private $userName;
+    private $hostname;
 
     /**
      * Replaces constructor.
@@ -36,6 +37,7 @@ class Replaces
             '{PREFIX}',
             '{DRIVE_C}',
             '{ROOT_DIR}',
+            '{HOSTNAME}',
         ];
     }
 
@@ -44,6 +46,7 @@ class Replaces
         if (null === $this->replaces) {
 
             $this->userName = $this->system->getUserName();
+            $this->hostname = $this->system->getHostname();
 
             $this->width  = '';
             $this->height = '';
@@ -69,6 +72,7 @@ class Replaces
                 $this->config->getPrefixFolder(),
                 $this->config->getPrefixDriveC(),
                 $this->config->getRootDir(),
+                $this->hostname,
             ];
         }
     }
@@ -109,15 +113,17 @@ class Replaces
     {
         $this->init();
 
-        $userName = $this->system->getUserName();
-
         return str_replace(
             [
                 $this->config->getRootDir(),
-                "'{$userName}'",
-                "\"{$userName}\"",
-                "/{$userName}/",
-                "\\{$userName}\\",
+                "'{$this->userName}'",
+                "\"{$this->userName}\"",
+                "/{$this->userName}/",
+                "\\{$this->userName}\\",
+                "'{$this->hostname}'",
+                "\"{$this->hostname}\"",
+                "/{$this->hostname}/",
+                "\\{$this->hostname}\\",
             ],
             [
                 '{ROOT_DIR}',
@@ -125,6 +131,10 @@ class Replaces
                 '"{USER}"',
                 '/{USER}/',
                 "\\{USER}\\",
+                "'{HOSTNAME}'",
+                '"{HOSTNAME}"',
+                '/{HOSTNAME}/',
+                "\\{HOSTNAME}\\",
             ],
             $text
         );

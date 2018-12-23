@@ -27,6 +27,17 @@ class System {
         return $userName;
     }
 
+    public function getHostname()
+    {
+        static $hostname = null;
+
+        if ($hostname === null) {
+            $hostname = trim($this->command->run('hostname'));
+        }
+
+        return $hostname;
+    }
+
     public function getDesktopPath()
     {
         $isXdg = (bool)trim($this->command->run('command -v xdg-user-dir'));

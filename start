@@ -3482,6 +3482,17 @@ class System {
         return $userName;
     }
 
+    public function getHostname()
+    {
+        static $hostname = null;
+
+        if ($hostname === null) {
+            $hostname = trim($this->command->run('hostname'));
+        }
+
+        return $hostname;
+    }
+
     public function getDesktopPath()
     {
         $isXdg = (bool)trim($this->command->run('command -v xdg-user-dir'));
@@ -4701,6 +4712,7 @@ PBA_DISABLE=1
 ; {DRIVE_C}      - Full path to "/.../prefix/drive_c"
 ; {PREFIX}       - Full path to "/.../prefix"
 ; {ROOT_DIR}     - Full path to game folder
+; {HOSTNAME}     - See command: hostname
 ;
 
 ; file[] = "game_info/data/example.conf"';
@@ -6945,6 +6957,7 @@ class CheckDependencies {
             'xz'         => false,
             'diff'       => false,
             'patch'      => false,
+            'hostname'   => false,
         ];
 
         ksort($apps);
@@ -10129,6 +10142,7 @@ class Replaces
     private $width;
     private $height;
     private $userName;
+    private $hostname;
 
     /**
      * Replaces constructor.
@@ -10153,6 +10167,7 @@ class Replaces
             '{PREFIX}',
             '{DRIVE_C}',
             '{ROOT_DIR}',
+            '{HOSTNAME}',
         ];
     }
 
@@ -10161,6 +10176,7 @@ class Replaces
         if (null === $this->replaces) {
 
             $this->userName = $this->system->getUserName();
+            $this->hostname = $this->system->getHostname();
 
             $this->width  = '';
             $this->height = '';
@@ -10186,6 +10202,7 @@ class Replaces
                 $this->config->getPrefixFolder(),
                 $this->config->getPrefixDriveC(),
                 $this->config->getRootDir(),
+                $this->hostname,
             ];
         }
     }
@@ -10226,15 +10243,17 @@ class Replaces
     {
         $this->init();
 
-        $userName = $this->system->getUserName();
-
         return str_replace(
             [
                 $this->config->getRootDir(),
-                "'{$userName}'",
-                "\"{$userName}\"",
-                "/{$userName}/",
-                "\\{$userName}\\",
+                "'{$this->userName}'",
+                "\"{$this->userName}\"",
+                "/{$this->userName}/",
+                "\\{$this->userName}\\",
+                "'{$this->hostname}'",
+                "\"{$this->hostname}\"",
+                "/{$this->hostname}/",
+                "\\{$this->hostname}\\",
             ],
             [
                 '{ROOT_DIR}',
@@ -10242,6 +10261,10 @@ class Replaces
                 '"{USER}"',
                 '/{USER}/',
                 "\\{USER}\\",
+                "'{HOSTNAME}'",
+                '"{HOSTNAME}"',
+                '/{HOSTNAME}/',
+                "\\{HOSTNAME}\\",
             ],
             $text
         );
