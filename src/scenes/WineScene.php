@@ -57,8 +57,15 @@ class WineScene extends AbstractScene {
                 $task
                     ->debug()
                     ->logName($item['id'])
-                    ->cmd(Text::quoteArgs($config->wine($item['wine'])))
-                    ->run();
+                    ->cmd(Text::quoteArgs($config->wine($item['wine'])));
+
+                if ('filemanager' === $item['id']) {
+                    $task->run(function () {
+                        (new Wine(app('start')->getConfig(), app('start')->getCommand()))->fm([]);
+                    });
+                } else {
+                    $task->run();
+                }
             }
             if ('change' === $item['id']) {
                 $wineDownloader = new WineDownloader(app('start')->getConfig(), app('start')->getCommand(), app('start')->getFileSystem(), app('start')->getPack());

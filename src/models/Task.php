@@ -109,18 +109,25 @@ class Task
         return $this;
     }
 
-    public function run()
+    /**
+     * @param callable|null $callback
+     */
+    public function run($callback = null)
     {
         $this->beforeRun();
 
-        $logging = null;
+        if ($callback) {
+            $callback();
+        } else {
+            $logging = null;
 
-        if ($this->logfile) {
-            $logging = $this->config->getLogsDir() . "/{$this->logfile}";
-        }
+            if ($this->logfile) {
+                $logging = $this->config->getLogsDir() . "/{$this->logfile}";
+            }
 
-        if ($this->cmd) {
-            $this->command->run("{$this->cmd} {$this->fpsCmd}", $logging);
+            if ($this->cmd) {
+                $this->command->run("{$this->cmd} {$this->fpsCmd}", $logging);
+            }
         }
 
         $this->afterExit();

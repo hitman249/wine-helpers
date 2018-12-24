@@ -7826,18 +7826,25 @@ class Task
         return $this;
     }
 
-    public function run()
+    /**
+     * @param callable|null $callback
+     */
+    public function run($callback = null)
     {
         $this->beforeRun();
 
-        $logging = null;
+        if ($callback) {
+            $callback();
+        } else {
+            $logging = null;
 
-        if ($this->logfile) {
-            $logging = $this->config->getLogsDir() . "/{$this->logfile}";
-        }
+            if ($this->logfile) {
+                $logging = $this->config->getLogsDir() . "/{$this->logfile}";
+            }
 
-        if ($this->cmd) {
-            $this->command->run("{$this->cmd} {$this->fpsCmd}", $logging);
+            if ($this->cmd) {
+                $this->command->run("{$this->cmd} {$this->fpsCmd}", $logging);
+            }
         }
 
         $this->afterExit();
@@ -11743,8 +11750,15 @@ class WineScene extends AbstractScene {
                 $task
                     ->debug()
                     ->logName($item['id'])
-                    ->cmd(Text::quoteArgs($config->wine($item['wine'])))
-                    ->run();
+                    ->cmd(Text::quoteArgs($config->wine($item['wine'])));
+
+                if ('filemanager' === $item['id']) {
+                    $task->run(function () {
+                        (new Wine(app('start')->getConfig(), app('start')->getCommand()))->fm([]);
+                    });
+                } else {
+                    $task->run();
+                }
             }
             if ('change' === $item['id']) {
                 $wineDownloader = new WineDownloader(app('start')->getConfig(), app('start')->getCommand(), app('start')->getFileSystem(), app('start')->getPack());
