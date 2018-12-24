@@ -62,9 +62,11 @@ class InfoWidget extends AbstractWidget {
 
                 $window->erase()->border()->title($config->getGameTitle());
 
+                $fullPath = implode('/', array_filter([$config->getGamePath(), $config->getGameAdditionalPath(), $config->getGameExe()]));
+
                 $items = [
                     'File:    ' . basename($config->getConfigFile()),
-                    'Path:    "C:/' . $config->getGamePath() . '/' . $config->getGameAdditionalPath() . '/' . $config->getGameExe() . '" ' . $config->getGameArgs(),
+                    "Path:    \"C:/{$fullPath}\" ". $config->getGameArgs(),
                     'Version: ' . $config->getGameVersion(),
                     'Windows: ' . $config->getWindowsVersion(),
                     'Sandbox: ' . ($config->isSandbox() ? 'on' : 'off'),

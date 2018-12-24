@@ -163,7 +163,7 @@ class Config {
 
     public function getGamePath()
     {
-        return $this->get('game', 'path');
+        return str_replace('\\', '/', trim($this->get('game', 'path'), '\\/'));
     }
 
     public function getPrefixGameFolder()
@@ -188,7 +188,7 @@ class Config {
 
     public function getGameAdditionalPath()
     {
-        return $this->get('game', 'additional_path');
+        return str_replace('\\', '/', trim($this->get('game', 'additional_path'), '\\/'));
     }
 
     public function getGameExe()
@@ -398,12 +398,43 @@ class Config {
     public function getDefaultConfig()
     {
         return '[game]
+
 path = "Games"
 additional_path = "The Super Game/bin"
 exe = "Game.exe"
 cmd = "-language=russian"
 name = "The Super Game: Deluxe Edition"
 version = "1.0.0"
+
+[wine]
+
+WINEARCH = "win32"
+WINEDLLOVERRIDES = ""
+WINEDEBUG = "-all"
+
+[export]
+
+;
+; Export additional variables
+; Examples:
+;
+
+; DXVK_HUD=fps
+; DXVK_HUD=1
+; DXVK_HUD=fps,devinfo,memory
+; DXVK_HUD=fps,devinfo,frametimes,memory
+; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
+; GALLIUM_HUD=simple,fps
+; WINEESYNC=1
+; PBA_DISABLE=1
+; MESA_GLTHREAD=true
+; __GL_THREADED_OPTIMIZATIONS=1
+;
+; If the game wheezing sound, you can try
+; PULSE_LATENCY_MSEC=60
+
+WINEESYNC=1
+PBA_DISABLE=1
 
 [script]
 
@@ -551,12 +582,6 @@ physx = 0
 ;
 font = 0
 
-[wine]
-
-WINEDEBUG = "-all"
-WINEARCH = "win32"
-WINEDLLOVERRIDES = ""
-
 [window]
 
 enable = 0
@@ -598,29 +623,6 @@ resolution = "800x600"
 ; gpu_nvidia[] = "gpu/nvidia.sh"
 ; gpu_intel[] = "gpu/intel.sh"
 
-[export]
-
-;
-; Export additional variables
-; Examples:
-;
-
-; DXVK_HUD=fps
-; DXVK_HUD=1
-; DXVK_HUD=fps,devinfo,memory
-; DXVK_HUD=fps,devinfo,frametimes,memory
-; DXVK_HUD=fps,devinfo,frametimes,submissions,drawcalls,pipelines,memory
-; GALLIUM_HUD=simple,fps
-; WINEESYNC=1
-; PBA_DISABLE=1
-; MESA_GLTHREAD=true
-; __GL_THREADED_OPTIMIZATIONS=1
-;
-; If the game wheezing sound, you can try
-; PULSE_LATENCY_MSEC=60
-
-WINEESYNC=1
-PBA_DISABLE=1
 [replaces]
 
 ;
