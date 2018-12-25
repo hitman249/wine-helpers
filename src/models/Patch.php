@@ -91,7 +91,9 @@ class Patch
         natsort($dirs);
 
         foreach ($dirs as $path) {
-            if (is_dir($path) && file_exists("{$path}/files")) {
+            if (file_exists("{$path}/files.tar.gz")) {
+                $this->unpack("{$path}/files.tar.gz");
+            } elseif (is_dir($path) && file_exists("{$path}/files")) {
                 $files = glob("{$path}/files/*");
                 $trim = "{$path}/files/";
                 foreach ($files as $patchItem) {
@@ -159,5 +161,20 @@ class Patch
         }
 
         return $result;
+    }
+
+    public function unpack($path)
+    {
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        $parent = dirname($path);
+
+        $driveC = $this->config->getPrefixDriveC();
+
+        $this->command->run("cd \"{$parent}\" && tar -xzf \"{$path}\" -C \"{$driveC}\"");
+
+        return true;
     }
 }

@@ -3210,6 +3210,19 @@ class FileSystem {
         return false;
     }
 
+    public function pack($folder)
+    {
+        $folder = rtrim($folder, '\\/');
+
+        if (!file_exists($folder) || file_exists("{$folder}.tar.gz")) {
+            return false;
+        }
+
+        $this->command->run("cd \"{$folder}\" && tar -zcf \"{$folder}.tar.gz\" -C \"{$folder}\" .");
+
+        return file_exists("{$folder}.tar.gz");
+    }
+
     public function download($url, $path)
     {
         try {
@@ -9792,6 +9805,12 @@ class Snapshot
                 $this->fs->cp($in, $out);
             }
 
+            if ($changes) {
+                if ($this->fs->pack("{$this->patchDir}/files")) {
+                    $this->fs->rm("{$this->patchDir}/files");
+                }
+            }
+
             return true;
         }
 
@@ -9956,7 +9975,9 @@ class Patch
         natsort($dirs);
 
         foreach ($dirs as $path) {
-            if (is_dir($path) && file_exists("{$path}/files")) {
+            if (file_exists("{$path}/files.tar.gz")) {
+                $this->unpack("{$path}/files.tar.gz");
+            } elseif (is_dir($path) && file_exists("{$path}/files")) {
                 $files = glob("{$path}/files/*");
                 $trim = "{$path}/files/";
                 foreach ($files as $patchItem) {
@@ -10024,6 +10045,21 @@ class Patch
         }
 
         return $result;
+    }
+
+    public function unpack($path)
+    {
+        if (!file_exists($path)) {
+            return false;
+        }
+
+        $parent = dirname($path);
+
+        $driveC = $this->config->getPrefixDriveC();
+
+        $this->command->run("cd \"{$parent}\" && tar -xzf \"{$path}\" -C \"{$driveC}\"");
+
+        return true;
     }
 }
 

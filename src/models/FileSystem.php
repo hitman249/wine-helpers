@@ -254,6 +254,19 @@ class FileSystem {
         return false;
     }
 
+    public function pack($folder)
+    {
+        $folder = rtrim($folder, '\\/');
+
+        if (!file_exists($folder) || file_exists("{$folder}.tar.gz")) {
+            return false;
+        }
+
+        $this->command->run("cd \"{$folder}\" && tar -zcf \"{$folder}.tar.gz\" -C \"{$folder}\" .");
+
+        return file_exists("{$folder}.tar.gz");
+    }
+
     public function download($url, $path)
     {
         try {

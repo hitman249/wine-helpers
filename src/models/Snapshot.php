@@ -144,6 +144,12 @@ class Snapshot
                 $this->fs->cp($in, $out);
             }
 
+            if ($changes) {
+                if ($this->fs->pack("{$this->patchDir}/files")) {
+                    $this->fs->rm("{$this->patchDir}/files");
+                }
+            }
+
             return true;
         }
 
