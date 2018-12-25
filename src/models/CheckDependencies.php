@@ -89,6 +89,7 @@ class CheckDependencies {
             'diff'       => false,
             'patch'      => false,
             'hostname'   => false,
+            'locale'     => false,
         ];
 
         ksort($apps);

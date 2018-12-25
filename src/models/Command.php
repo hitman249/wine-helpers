@@ -108,6 +108,10 @@ class Command {
             'export PROTON_LOG'       => $this->config->getLogsDir() . '/proton.log',
         ];
 
+        if ($locale = $this->getLocale()) {
+            $exported['LC_ALL'] = $locale;
+        }
+
         if (!$this->config->isEsync()) {
             $exported['export PROTON_NO_ESYNC'] = 'noesync';
         }
@@ -169,5 +173,38 @@ class Command {
     public function umount($folder)
     {
         return $this->run('fusermount -u ' . Text::quoteArgs($folder));
+    }
+
+    public function getLocale()
+    {
+        static $locale;
+
+        if (null === $locale) {
+            $cmdValue = getenv('LC_ALL');
+
+            if ($cmdValue) {
+                $locale = $cmdValue;
+            } else {
+                exec('locale', $out, $return);
+                $locales = is_array($out) ? $out : explode("\n", $out);
+                $counts  = [];
+
+                foreach ($locales as $loc) {
+                    list($field, $value) = explode('=', $loc);
+                    $value = trim($value, " \t\n\r\0\x0B\"'");
+                    if (!isset($counts[$value])) {
+                        $counts[$value] = 0;
+                    } else {
+                        $counts[$value] += 1;
+                    }
+                }
+
+                asort($counts);
+                end($counts);
+                $locale = key($counts);
+            }
+        }
+
+        return $locale;
     }
 }
