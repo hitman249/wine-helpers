@@ -36,7 +36,6 @@ class Fixes
         }
 
         $isUpdated = false;
-        $versions  = $this->versions();
 
         $fixes = [
             'ddraw',
@@ -47,12 +46,14 @@ class Fixes
             'xact',
             'physx',
             'font',
+            'focus',
         ];
 
         foreach ($fixes as $fix) {
+            $versionPath = $this->config->wine('DRIVE_C') . '/.' . $fix;
+
             if ($this->config->getBool('fixes', $fix)) {
-                if (!in_array($fix, $versions, true)) {
-                    $versions[] = $fix;
+                if (!file_exists($versionPath)) {
                     $isUpdated = true;
 
                     if ($logCallback) {
@@ -60,16 +61,17 @@ class Fixes
                     }
 
                     if (method_exists($this, "{$fix}Up")) {
-                        app('start')->getPatch()->create(function () use ($fix, $logCallback, $versions) {
-                            file_put_contents($this->version, implode("\n", $versions));
+                        app('start')->getPatch()->create(function () use ($fix, $logCallback, $versionPath) {
+                            file_put_contents($versionPath, $fix);
                             $this->{"{$fix}Up"}($logCallback);
                         });
                     }
                 }
             } else {
-                if (in_array($fix, $versions, true)) {
-                    $versions  = array_diff($versions, [$fix]);
+                if (file_exists($versionPath)) {
                     $isUpdated = true;
+
+                    unlink($versionPath);
 
                     if (method_exists($this, "{$fix}Down")) {
                         $this->{"{$fix}Down"}($logCallback);
@@ -80,10 +82,6 @@ class Fixes
                     }
                 }
             }
-        }
-
-        if ($isUpdated) {
-            file_put_contents($this->version, implode("\n", $versions));
         }
 
         return $isUpdated;
@@ -206,6 +204,18 @@ class Fixes
         $this->wine->winetricks(['allfonts']);
     }
 
+    /**
+     * @param callable|null $logCallback
+     */
+    public function focusUp($logCallback = null)
+    {
+        if ($logCallback) {
+            $logCallback("Fixed focus");
+        }
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'GrabFullscreen', '/d', 'Y', '/f']);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/d', 'N', '/f']);
+    }
+
 
     /**
      * @param $file
@@ -232,14 +242,5 @@ class Fixes
         if ($logCallback) {
             $logCallback("Unregister {$file}");
         }
-    }
-
-    public function versions()
-    {
-        if (file_exists($this->version)) {
-            return array_map('trim', explode("\n", trim(file_get_contents($this->version))));
-        }
-
-        return [];
     }
 }

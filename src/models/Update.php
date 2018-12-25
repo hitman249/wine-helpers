@@ -1,8 +1,8 @@
 <?php
 
-class Update {
-
-    private $version = '0.73';
+class Update
+{
+    private $version = '0.74';
     private $command;
     private $config;
     private $network;

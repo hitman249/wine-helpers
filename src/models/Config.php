@@ -523,6 +523,12 @@ fixres = 1
 [fixes]
 
 ;
+; Fix focus
+;
+focus = 0
+
+
+;
 ; Fix ddraw \ ddrawex
 ; Bug render menu
 ; Games: Cossacks, Olympus 2207
