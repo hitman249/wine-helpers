@@ -84,7 +84,6 @@ class CheckDependencies {
             'zip'        => false,
             'binutils'   => false,
             'ffmpeg'     => false,
-            'sudo'       => false,
             'xz'         => false,
             'diff'       => false,
             'patch'      => false,
@@ -177,6 +176,13 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log('');
             $this->log('Please install zenity.');
             $this->log("sudo apt-get install zenity");
+        }
+
+        if (false === $apps['tar']) {
+            $isOk = false;
+            $this->log('');
+            $this->log('Please install tar.');
+            $this->log("sudo apt-get install tar");
         }
 
         if (false === $apps['xrandr']) {
