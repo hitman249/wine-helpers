@@ -109,7 +109,7 @@ class Command {
         ];
 
         if ($locale = $this->getLocale()) {
-            $exported['LC_ALL'] = $locale;
+            $exported['export LC_ALL'] = $locale;
         }
 
         if (!$this->config->isEsync()) {
@@ -191,6 +191,9 @@ class Command {
 
                 foreach ($locales as $loc) {
                     list($field, $value) = explode('=', $loc);
+                    if (!$loc || !$value) {
+                        continue;
+                    }
                     $value = trim($value, " \t\n\r\0\x0B\"'");
                     if (!isset($counts[$value])) {
                         $counts[$value] = 0;
