@@ -165,10 +165,12 @@ class Fixes
      */
     public function introUp($logCallback = null)
     {
+        $items = ['qasf', 'qdvd', 'quartz', 'dirac', 'l3codecx', 'ffdshow', 'cinepak', 'xvid', 'binkw32', 'ogg', 'windowscodecs', 'wmp9', 'quicktime76', 'icodecs'];
+
         if ($logCallback) {
-            $logCallback("Install quartz, allcodecs, wmp9");
+            $logCallback("Install " . implode(', ', $items));
         }
-        $this->wine->winetricks(['quartz', 'allcodecs', 'wmp9']);
+        $this->wine->winetricks($items);
     }
 
     /**
@@ -176,9 +178,6 @@ class Fixes
      */
     public function xactUp($logCallback = null)
     {
-        if ($logCallback) {
-            $logCallback("Install xact");
-        }
         $this->wine->winetricks(['xact']);
     }
 
@@ -187,9 +186,6 @@ class Fixes
      */
     public function physxUp($logCallback = null)
     {
-        if ($logCallback) {
-            $logCallback("Install physx");
-        }
         $this->wine->winetricks(['physx']);
     }
 
@@ -198,9 +194,6 @@ class Fixes
      */
     public function fontUp($logCallback = null)
     {
-        if ($logCallback) {
-            $logCallback("Install allfonts");
-        }
         $this->wine->winetricks(['allfonts']);
     }
 
@@ -209,9 +202,6 @@ class Fixes
      */
     public function focusUp($logCallback = null)
     {
-        if ($logCallback) {
-            $logCallback("Fixed focus");
-        }
         $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'GrabFullscreen', '/d', 'Y', '/f']);
         $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/d', 'N', '/f']);
     }

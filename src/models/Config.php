@@ -560,7 +560,7 @@ internet = 0
 
 ;
 ; Fix intro
-; Install quartz allcodecs wmp9
+; Install qasf, qdvd, quartz, dirac, l3codecx, ffdshow, cinepak, xvid, binkw32, ogg, windowscodecs, wmp9, quicktime76, icodecs
 ; Games: Lost Planet
 ;
 intro = 0
