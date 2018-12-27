@@ -120,7 +120,7 @@ class CheckDependencies {
         }
 
         if ($apps['ldconfig']) {
-            $isVulkan = explode("\n", trim($this->command->run('ldconfig -p | grep libvulkan.so')));
+            $isVulkan = array_filter(array_map('trim', explode("\n", trim($this->command->run('ldconfig -p | grep libvulkan.so')))));
 
             if ($isVulkan <= 1 && $this->system->getArch() === 64) {
                 $isVulkan = false;
