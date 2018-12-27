@@ -120,7 +120,12 @@ class CheckDependencies {
         }
 
         if ($apps['ldconfig']) {
-            $isVulkan = (bool)$this->command->run('ldconfig -p | grep libvulkan.so');
+            $isVulkan = explode("\n", trim($this->command->run('ldconfig -p | grep libvulkan.so')));
+
+            if ($isVulkan <= 1 && $this->system->getArch() === 64) {
+                $isVulkan = false;
+            }
+
             $this->log($this->formattedItem('libvulkan', $isVulkan ? 'ok' : 'fail'));
 
             $progress += $percent;
@@ -196,7 +201,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $isOk = false;
             $this->log('');
             $this->log('Please install libvulkan1.');
-            $this->log("sudo apt-get install libvulkan1");
+            $this->log('https://github.com/lutris/lutris/wiki/How-to:-DXVK#installing-vulkan');
         }
 
         if ($apps['ldconfig'] && !$isFuse) {

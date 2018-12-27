@@ -403,4 +403,27 @@ class System {
 
         return $this->isTar() && $result;
     }
+
+    public function getArch()
+    {
+        static $arch;
+
+        if (null === $arch) {
+            if ((bool)trim($this->command->run('command -v arch'))) {
+                if ($this->command->run('arch') === 'x86_64') {
+                    $arch = 64;
+                } else {
+                    $arch = 32;
+                }
+            } elseif ((bool)trim($this->command->run('command -v getconf'))) {
+                if ($this->command->run('getconf LONG_BIT') === '64') {
+                    $arch = 64;
+                } else {
+                    $arch = 32;
+                }
+            }
+        }
+
+        return $arch;
+    }
 }
