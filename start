@@ -9655,7 +9655,24 @@ class Fixes
      */
     public function introUp($logCallback = null)
     {
-        $items = ['qasf', 'qdvd', 'quartz', 'dirac', 'l3codecx', 'ffdshow', 'cinepak', 'xvid', 'binkw32', 'ogg', 'windowscodecs', 'wmp9', 'quicktime76', 'icodecs'];
+        $items = [
+            'qasf',
+            'qdvd',
+            'quartz',
+            'amstream',
+            'avifil32',
+            'dirac',
+            'l3codecx',
+            'ffdshow',
+            'cinepak',
+            'xvid',
+            'binkw32',
+            'ogg',
+            'windowscodecs',
+            'wmp9',
+            'quicktime76',
+            'icodecs'
+        ];
 
         if ($logCallback) {
             $logCallback("Install " . implode(', ', $items));
