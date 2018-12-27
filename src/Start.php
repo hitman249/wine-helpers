@@ -49,7 +49,7 @@ class Start
         $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
-        $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot);
+        $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),

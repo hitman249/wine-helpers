@@ -6,8 +6,9 @@ class Patch
     private $command;
     private $fs;
     private $wine;
-    private $index = 0;
     private $snapshot;
+    private $prefix;
+    private $index = 0;
     private $runnable = false;
 
     /**
@@ -16,14 +17,17 @@ class Patch
      * @param Command $command
      * @param FileSystem $fs
      * @param Wine $wine
+     * @param Snapshot $snapshot
+     * @param WinePrefix $prefix
      */
-    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Snapshot $snapshot)
+    public function __construct(Config $config, Command $command, FileSystem $fs, Wine $wine, Snapshot $snapshot, WinePrefix $prefix)
     {
         $this->command  = $command;
         $this->config   = $config;
         $this->fs       = $fs;
         $this->wine     = $wine;
         $this->snapshot = $snapshot;
+        $this->prefix   = $prefix;
 
         $this->fs->rm($this->config->getPatchAutoDir());
     }
@@ -56,6 +60,7 @@ class Patch
 
             $this->snapshot->createBefore();
             $result = $callback();
+            $this->prefix->updateSandbox();
             $this->snapshot->createAfter();
             $this->movePatch($this->snapshot->getPatchDir());
 
@@ -65,7 +70,10 @@ class Patch
             return $result;
         }
 
-        return $callback();
+        $result = $callback();
+        $this->prefix->updateSandbox();
+
+        return $result;
     }
 
     private function movePatch($path)

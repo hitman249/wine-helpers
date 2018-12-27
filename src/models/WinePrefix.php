@@ -89,19 +89,8 @@ class WinePrefix {
             /**
              * Sandbox the prefix; Borrowed from winetricks scripts
              */
-            if ($this->config->isSandbox()) {
-                unlink($this->config->wine('WINEPREFIX') . '/dosdevices/z:');
 
-                foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
-                    if (is_link($filePath)) {
-                        unlink($filePath);
-                        if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
-                            throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
-                        }
-                    }
-                }
-                $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
-                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
+            if ($this->updateSandbox()) {
                 $this->log('Set sandbox.');
             }
             app()->getCurrentScene()->setProgress(27);
@@ -198,6 +187,11 @@ class WinePrefix {
             app()->getCurrentScene()->setProgress(50);
 
 
+            if ($winetricksInstall = $this->config->get('script', 'winetricks_to_install')) {
+                $this->log("Winetricks install \"{$winetricksInstall}\".");
+                $this->wine->winetricks(array_filter(explode(' ', $winetricksInstall)));
+            }
+
             /**
              * Copy required dlls and override them
              */
@@ -238,12 +232,6 @@ class WinePrefix {
                 });
             }
             app()->getCurrentScene()->setProgress(90);
-
-
-            if ($winetricksInstall = $this->config->get('script', 'winetricks_to_install')) {
-                $this->log("Winetricks install \"{$winetricksInstall}\".");
-                $this->wine->winetricks(array_filter(explode(' ', $winetricksInstall)));
-            }
 
             /**
              * Fired hooks
@@ -651,6 +639,40 @@ class WinePrefix {
         $this->log("Set Windows {$defaultWinver} version.");
 
         return true;
+    }
+
+    public function updateSandbox()
+    {
+        if ($this->config->isSandbox()) {
+
+            $update = false;
+
+            $z = $this->config->wine('WINEPREFIX') . '/dosdevices/z:';
+
+            if (file_exists($z)) {
+                unlink($z);
+            }
+
+            foreach (glob($this->config->wine('DRIVE_C') . '/users/' . $this->system->getUserName() . '/*') as $filePath) {
+                if (is_link($filePath)) {
+                    $update = true;
+                    unlink($filePath);
+                    if (!mkdir($filePath, 0775, true) && !is_dir($filePath)) {
+                        throw new \RuntimeException(sprintf('Directory "%s" was not created', $filePath));
+                    }
+                }
+            }
+
+            $this->wine->reg(['/d', 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\Namespace\{9D20AAE8-0625-44B0-9CA7-71889C2254D9}']);
+
+            if ($update) {
+                file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
+            }
+
+            return $update;
+        }
+
+        return false;
     }
 
     public function createGameDirectory()
