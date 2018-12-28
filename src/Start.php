@@ -22,6 +22,8 @@ class Start
     private $patch;
     private $replaces;
     private $registry;
+    private $event;
+    private $plugins;
 
     public function __construct()
     {
@@ -34,8 +36,9 @@ class Start
         $this->config     = new Config();
         $this->log        = new Logs();
         $this->command    = new Command($this->config);
+        $this->event      = new Event($this->config, $this->command);
         $this->gameInfo   = new GameInfo($this->config, $this->command);
-        $this->winePrefix = new WinePrefix($this->config, $this->command);
+        $this->winePrefix = new WinePrefix($this->config, $this->command, $this->event);
         $this->system     = new System($this->config, $this->command);
         $this->fs         = new FileSystem($this->config, $this->command);
         $this->update     = new Update($this->config, $this->command);
@@ -50,7 +53,8 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
-        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
+        $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -274,6 +278,22 @@ class Start
     public function getRegistry()
     {
         return $this->registry;
+    }
+
+    /**
+     * @return Event
+     */
+    public function getEvent()
+    {
+        return $this->event;
+    }
+
+    /**
+     * @return Plugins
+     */
+    public function getPlugins()
+    {
+        return $this->plugins;
     }
 }
 

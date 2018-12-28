@@ -18,7 +18,7 @@ class Symlink
         $this->config     = $config;
         $this->command    = $command;
         $this->fs         = $fs;
-        $this->extensions = ['cfg', 'conf', 'ini', 'inf', 'log', 'sav', 'save', 'config', 'con', 'profile'];
+        $this->extensions = ['cfg', 'conf', 'ini', 'inf', 'log', 'sav', 'save', 'config', 'con', 'profile', 'ltx'];
     }
 
     /**

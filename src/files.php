@@ -52,6 +52,8 @@ return [
         'models/Diff.php',
         'models/Replaces.php',
         'models/Registry.php',
+        'models/Plugins.php',
+        'models/AbstractPlugin.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',
         'scenes/MainScene.php',

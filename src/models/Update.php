@@ -300,13 +300,12 @@ class Update
     public function autoupdate()
     {
         if ($this->config->isScriptAutoupdate() && Network::isConnected()) {
-
-            if ($this->versionRemote() === $this->version()) {
-                return false;
+            if ($this->versionRemote() !== $this->version()) {
+                return $this->update();
             }
         }
 
-        return $this->update();
+        return false;
     }
 
     public function update()

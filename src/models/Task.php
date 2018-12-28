@@ -25,7 +25,7 @@ class Task
         $this->command = new Command($this->config);
         $this->wine    = new Wine($this->config, $this->command);
         $this->monitor = new Monitor($this->config, $this->command);
-        $this->event   = new Event($this->config, $this->command);
+        $this->event   = app('start')->getEvent();
         $this->fs      = new FileSystem($this->config, $this->command);
         $this->system  = new System($this->config, $this->command);
         $this->update  = new Update($this->config, $this->command);
@@ -114,6 +114,8 @@ class Task
      */
     public function run($callback = null)
     {
+        app('start')->getPlugins()->setConfig($this->config);
+
         $this->beforeRun();
 
         if ($callback) {

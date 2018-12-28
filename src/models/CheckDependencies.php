@@ -177,7 +177,10 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
         }
 
         if (false === $apps['zenity']) {
-            $isOk = false;
+            if (count($this->config->findConfigsPath()) > 1) {
+                $isOk = false;
+            }
+
             $this->log('');
             $this->log('Please install zenity.');
             $this->log("sudo apt-get install zenity");

@@ -1,9 +1,8 @@
 <?php
 
-class Command {
-
+class Command
+{
     private $config;
-    private $prefix;
 
     /**
      * Command constructor.
@@ -12,7 +11,6 @@ class Command {
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->prefix = new WinePrefix($this->config, $this);
     }
 
 
@@ -90,7 +88,7 @@ class Command {
 
     public function cast($cmd)
     {
-        $this->prefix->createLibsDirectory();
+        $this->createLibsDirectory();
         $dir = $this->config->getRootDir();
 
         $additionalWineLibs = "{$dir}/libs/i386:{$dir}/libs/x86-64";
@@ -209,5 +207,26 @@ class Command {
         }
 
         return $locale;
+    }
+
+    public function createLibsDirectory()
+    {
+        $libs = $this->config->getRootDir() . '/libs';
+
+        if (!file_exists($libs)) {
+            if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
+            }
+
+            if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
+            }
+
+            if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
+            }
+
+            file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
+        }
     }
 }

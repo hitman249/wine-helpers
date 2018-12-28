@@ -3245,10 +3245,9 @@ class FileSystem {
 
 
 
-class Command {
-
+class Command
+{
     private $config;
-    private $prefix;
 
     /**
      * Command constructor.
@@ -3257,7 +3256,6 @@ class Command {
     public function __construct(Config $config)
     {
         $this->config = $config;
-        $this->prefix = new WinePrefix($this->config, $this);
     }
 
 
@@ -3335,7 +3333,7 @@ class Command {
 
     public function cast($cmd)
     {
-        $this->prefix->createLibsDirectory();
+        $this->createLibsDirectory();
         $dir = $this->config->getRootDir();
 
         $additionalWineLibs = "{$dir}/libs/i386:{$dir}/libs/x86-64";
@@ -3454,6 +3452,27 @@ class Command {
         }
 
         return $locale;
+    }
+
+    public function createLibsDirectory()
+    {
+        $libs = $this->config->getRootDir() . '/libs';
+
+        if (!file_exists($libs)) {
+            if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
+            }
+
+            if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
+            }
+
+            if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
+            }
+
+            file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
+        }
     }
 }
 
@@ -4066,10 +4085,16 @@ class Mount
 
 
 
-class Event {
+class Event
+{
+    const EVENT_BEFORE_START_GAME   = 'before-start';
+    const EVENT_AFTER_START_GAME    = 'after-start';
+    const EVENT_AFTER_CREATE_PREFIX = 'after-create-prefix';
 
     private $command;
     private $config;
+
+    protected $events;
 
     /**
      * Event constructor.
@@ -4080,30 +4105,64 @@ class Event {
     {
         $this->command = $command;
         $this->config  = $config;
+
+        if (null === $this->events) {
+            $this->events = [];
+        }
+    }
+
+    public function on($event, $callbackOrNamespaceStaticFunc)
+    {
+        if (!isset($this->events[$event])) {
+            $this->events[$event] = [];
+        }
+
+        $this->events[$event][] = $callbackOrNamespaceStaticFunc;
+    }
+
+    public function fireEvent($event)
+    {
+        if (empty($this->events[$event])) {
+            return;
+        }
+
+        foreach ($this->events[$event] as $item) {
+            $item();
+        }
     }
 
     public function createPrefix($type = 'after_create_prefix')
     {
-        if (!file_exists($this->config->wine('WINEPREFIX')) || !file_exists($this->config->getHooksDir())) {
+        if (!file_exists($this->config->wine('WINEPREFIX'))) {
             return [];
         }
 
-        $result = [];
+        if (file_exists($this->config->getHooksDir())) {
+            $result = [];
 
-        if ($this->config->get('hooks', $type)) {
-            foreach ((array)$this->config->get('hooks', $type) as $hookCmd) {
-                $hookCmd = trim($hookCmd);
-                if (!$hookCmd) {
-                    continue;
-                }
+            if ($this->config->get('hooks', $type)) {
+                foreach ((array)$this->config->get('hooks', $type) as $hookCmd) {
+                    $hookCmd = trim($hookCmd);
+                    if (!$hookCmd) {
+                        continue;
+                    }
 
-                $trimHook = trim($hookCmd, '&');
+                    $trimHook = trim($hookCmd, '&');
 
-                if (file_exists($this->config->getHooksDir() . "/{$trimHook}")) {
-                    $result[] = "Run {$trimHook}";
-                    $result[] = $this->command->run('cd "' . $this->config->getHooksDir() . '"; chmod +x ' . $trimHook . "; ./{$hookCmd}");
+                    if (file_exists($this->config->getHooksDir() . "/{$trimHook}")) {
+                        $result[] = "Run {$trimHook}";
+                        $result[] = $this->command->run('cd "' . $this->config->getHooksDir() . '"; chmod +x ' . $trimHook . "; ./{$hookCmd}");
+                    }
                 }
             }
+        }
+
+        if ('after_create_prefix' === $type) {
+            $this->fireEvent(self::EVENT_AFTER_CREATE_PREFIX);
+        } elseif ('before_run_game' === $type) {
+            $this->fireEvent(self::EVENT_BEFORE_START_GAME);
+        } elseif ('after_exit_game' === $type) {
+            $this->fireEvent(self::EVENT_AFTER_START_GAME);
         }
 
         return $result;
@@ -5558,13 +5617,12 @@ class Update
     public function autoupdate()
     {
         if ($this->config->isScriptAutoupdate() && Network::isConnected()) {
-
-            if ($this->versionRemote() === $this->version()) {
-                return false;
+            if ($this->versionRemote() !== $this->version()) {
+                return $this->update();
             }
         }
 
-        return $this->update();
+        return false;
     }
 
     public function update()
@@ -5958,17 +6016,18 @@ class WinePrefix {
      * WinePrefix constructor.
      * @param Config $config
      * @param Command $command
+     * @param Event $event
      */
-    public function __construct(Config $config, Command $command)
+    public function __construct(Config $config, Command $command, Event $event)
     {
         $this->command  = $command;
         $this->config   = $config;
+        $this->event    = $event;
         $this->wine     = new Wine($this->config, $this->command);
         $this->monitor  = new Monitor($this->config, $this->command);
         $this->system   = new System($this->config, $this->command);
         $this->fs       = new FileSystem($this->config, $this->command);
         $this->update   = new Update($this->config, $this->command);
-        $this->event    = new Event($this->config, $this->command);
         $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
     }
 
@@ -6634,30 +6693,6 @@ class WinePrefix {
         return '';
     }
 
-    public function createLibsDirectory()
-    {
-        $libs = $this->config->getRootDir() . '/libs';
-
-        if (!file_exists($libs)) {
-            if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath($libs)) . '.');
-
-            if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/i386")) . '.');
-
-            if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/x86-64")) . '.');
-
-            file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
-        }
-    }
-
     public function isCreated()
     {
         return $this->created;
@@ -7152,7 +7187,10 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
         }
 
         if (false === $apps['zenity']) {
-            $isOk = false;
+            if (count($this->config->findConfigsPath()) > 1) {
+                $isOk = false;
+            }
+
             $this->log('');
             $this->log('Please install zenity.');
             $this->log("sudo apt-get install zenity");
@@ -7549,7 +7587,7 @@ class Symlink
         $this->config     = $config;
         $this->command    = $command;
         $this->fs         = $fs;
-        $this->extensions = ['cfg', 'conf', 'ini', 'inf', 'log', 'sav', 'save', 'config', 'con', 'profile'];
+        $this->extensions = ['cfg', 'conf', 'ini', 'inf', 'log', 'sav', 'save', 'config', 'con', 'profile', 'ltx'];
     }
 
     /**
@@ -7858,7 +7896,7 @@ class Task
         $this->command = new Command($this->config);
         $this->wine    = new Wine($this->config, $this->command);
         $this->monitor = new Monitor($this->config, $this->command);
-        $this->event   = new Event($this->config, $this->command);
+        $this->event   = app('start')->getEvent();
         $this->fs      = new FileSystem($this->config, $this->command);
         $this->system  = new System($this->config, $this->command);
         $this->update  = new Update($this->config, $this->command);
@@ -7947,6 +7985,8 @@ class Task
      */
     public function run($callback = null)
     {
+        app('start')->getPlugins()->setConfig($this->config);
+
         $this->beforeRun();
 
         if ($callback) {
@@ -10529,6 +10569,229 @@ class Registry
         }
 
         return false;
+    }
+}
+
+
+
+class Plugins
+{
+    /** @var Config */
+    private $config;
+    /** @var Command */
+    private $command;
+    /** @var Event */
+    private $event;
+    /** @var FileSystem */
+    private $fs;
+    /** @var Replaces */
+    private $replaces;
+    /** @var System */
+    private $system;
+    /** @var Monitor */
+    private $monitor;
+    /** @var AbstractPlugin[] */
+    protected $plugins;
+
+    /**
+     * Plugins constructor.
+     * @param Event $event
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param System $system
+     * @param Replaces $replaces
+     * @param Monitor $monitor
+     */
+    public function __construct(Event $event, Config $config, Command $command, FileSystem $fs, System $system, Replaces $replaces, Monitor $monitor)
+    {
+        $this->command  = $command;
+        $this->config   = $config;
+        $this->event    = $event;
+        $this->fs       = $fs;
+        $this->replaces = $replaces;
+        $this->system   = $system;
+        $this->monitor  = $monitor;
+
+        if (null === $this->plugins) {
+            $this->plugins = [];
+        }
+
+        foreach (glob($this->config->getGameInfoDir() . '/plugins/*.php') as $phpFile) {
+            $this->plugins[] = $this->getClassObjectFromFile($phpFile);
+        }
+    }
+
+    public function getPlugins()
+    {
+        return $this->plugins;
+    }
+
+    public function setConfig(Config $config)
+    {
+        foreach ($this->plugins as $plugin) {
+            $plugin->setConfig($config);
+        }
+    }
+
+
+    /**
+     * get the full name (name \ namespace) of a class from its file path
+     * result example: (string) "I\Am\The\Namespace\Of\This\Class"
+     *
+     * @param $filePathName
+     *
+     * @return  string
+     */
+    public function getClassFullNameFromFile($filePathName)
+    {
+        return $this->getClassNamespaceFromFile($filePathName) . '\\' . $this->getClassNameFromFile($filePathName);
+    }
+
+
+    /**
+     * build and return an object of a class from its file path
+     *
+     * @param $filePathName
+     *
+     * @return  mixed
+     */
+    public function getClassObjectFromFile($filePathName)
+    {
+        $classString = $this->getClassFullNameFromFile($filePathName);
+
+        if (!$classString) {
+            return null;
+        }
+
+        if (!class_exists($classString)) {
+            include ($filePathName);
+        }
+
+        if (!class_exists($classString)) {
+            return null;
+        }
+
+        $object = new $classString($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
+
+        return $object;
+    }
+
+
+    /**
+     * get the class namespace form file path using token
+     *
+     * @param $filePathName
+     *
+     * @return  null|string
+     */
+    protected function getClassNamespaceFromFile($filePathName)
+    {
+        $src          = file_get_contents($filePathName);
+        $tokens       = token_get_all($src);
+        $count        = count($tokens);
+        $i            = 0;
+        $namespace    = '';
+        $namespace_ok = false;
+
+        while ($i < $count) {
+            $token = $tokens[$i];
+            if (is_array($token) && $token[0] === T_NAMESPACE) {
+                // Found namespace declaration
+                while (++$i < $count) {
+                    if ($tokens[$i] === ';') {
+                        $namespace_ok = true;
+                        $namespace    = trim($namespace);
+                        break;
+                    }
+                    $namespace .= is_array($tokens[$i]) ? $tokens[$i][1] : $tokens[$i];
+                }
+                break;
+            }
+            $i++;
+        }
+        if (!$namespace_ok) {
+            return null;
+        } else {
+            return $namespace;
+        }
+    }
+
+    /**
+     * get the class name form file path using token
+     *
+     * @param $filePathName
+     *
+     * @return  mixed
+     */
+    protected function getClassNameFromFile($filePathName)
+    {
+        $php_code = file_get_contents($filePathName);
+        $classes  = array();
+        $tokens   = token_get_all($php_code);
+        $count    = count($tokens);
+        for ($i = 2; $i < $count; $i++) {
+            if ($tokens[$i - 2][0] == T_CLASS && $tokens[$i - 1][0] == T_WHITESPACE && $tokens[$i][0] == T_STRING) {
+                $class_name = $tokens[$i][1];
+                $classes[]  = $class_name;
+            }
+        }
+
+        return $classes[0];
+    }
+}
+
+
+
+abstract class AbstractPlugin
+{
+    /** @var Event */
+    protected $event;
+    /** @var Config */
+    protected $config;
+    /** @var Command */
+    protected $command;
+    /** @var FileSystem */
+    protected $fs;
+    /** @var System */
+    protected $system;
+    /** @var Replaces */
+    protected $replaces;
+    /** @var Monitor */
+    protected $monitor;
+    /** @var string */
+    public $title = '';
+    /** @var string */
+    public $description = '';
+
+    /**
+     * AbstractPlugin constructor.
+     * @param Event $event
+     * @param Config $config
+     * @param Command $command
+     * @param FileSystem $fs
+     * @param System $system
+     * @param Replaces $replaces
+     * @param Monitor $monitor
+     */
+    public function __construct(Event $event, Config $config, Command $command, FileSystem $fs, System $system, Replaces $replaces, Monitor $monitor)
+    {
+        $this->event    = $event;
+        $this->config   = $config;
+        $this->command  = $command;
+        $this->fs       = $fs;
+        $this->system   = $system;
+        $this->replaces = $replaces;
+        $this->monitor  = $monitor;
+
+        $this->init();
+    }
+
+    abstract public function init();
+
+    public function setConfig(Config $config)
+    {
+        $this->config = $config;
     }
 }
 
@@ -13396,6 +13659,8 @@ class Start
     private $patch;
     private $replaces;
     private $registry;
+    private $event;
+    private $plugins;
 
     public function __construct()
     {
@@ -13408,8 +13673,9 @@ class Start
         $this->config     = new Config();
         $this->log        = new Logs();
         $this->command    = new Command($this->config);
+        $this->event      = new Event($this->config, $this->command);
         $this->gameInfo   = new GameInfo($this->config, $this->command);
-        $this->winePrefix = new WinePrefix($this->config, $this->command);
+        $this->winePrefix = new WinePrefix($this->config, $this->command, $this->event);
         $this->system     = new System($this->config, $this->command);
         $this->fs         = new FileSystem($this->config, $this->command);
         $this->update     = new Update($this->config, $this->command);
@@ -13424,7 +13690,8 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
-        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
+        $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -13648,6 +13915,22 @@ class Start
     public function getRegistry()
     {
         return $this->registry;
+    }
+
+    /**
+     * @return Event
+     */
+    public function getEvent()
+    {
+        return $this->event;
+    }
+
+    /**
+     * @return Plugins
+     */
+    public function getPlugins()
+    {
+        return $this->plugins;
     }
 }
 

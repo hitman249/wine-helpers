@@ -19,17 +19,18 @@ class WinePrefix {
      * WinePrefix constructor.
      * @param Config $config
      * @param Command $command
+     * @param Event $event
      */
-    public function __construct(Config $config, Command $command)
+    public function __construct(Config $config, Command $command, Event $event)
     {
         $this->command  = $command;
         $this->config   = $config;
+        $this->event    = $event;
         $this->wine     = new Wine($this->config, $this->command);
         $this->monitor  = new Monitor($this->config, $this->command);
         $this->system   = new System($this->config, $this->command);
         $this->fs       = new FileSystem($this->config, $this->command);
         $this->update   = new Update($this->config, $this->command);
-        $this->event    = new Event($this->config, $this->command);
         $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
     }
 
@@ -693,30 +694,6 @@ class WinePrefix {
         }
 
         return '';
-    }
-
-    public function createLibsDirectory()
-    {
-        $libs = $this->config->getRootDir() . '/libs';
-
-        if (!file_exists($libs)) {
-            if (!mkdir($libs, 0775, true) && !is_dir($libs)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $libs));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath($libs)) . '.');
-
-            if (!mkdir("{$libs}/i386", 0775, true) && !is_dir("{$libs}/i386")) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/i386"));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/i386")) . '.');
-
-            if (!mkdir("{$libs}/x86-64", 0775, true) && !is_dir("{$libs}/x86-64")) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', "{$libs}/x86-64"));
-            }
-            $this->log('Create libs folder ' . Text::quoteArgs($this->fs->relativePath("{$libs}/x86-64")) . '.');
-
-            file_put_contents("{$libs}/readme.txt",'В папки i386, x86-64 можно ложить специфичные библиотеки для wine.');
-        }
     }
 
     public function isCreated()
