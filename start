@@ -5319,7 +5319,7 @@ class Wine {
 
 class Update
 {
-    private $version = '0.74';
+    private $version = '0.75';
     private $command;
     private $config;
     private $network;
@@ -7825,6 +7825,27 @@ class Build
             'data2.zip',
             'logs',
             'cache',
+            'tmp',
+            'tmp1',
+            'tmp2',
+            'temp',
+            'temp1',
+            'temp2',
+            'prev',
+            'prev1',
+            'prev2',
+            'old',
+            'old1',
+            'old2',
+            'bak',
+            'bak1',
+            'bak2',
+            'backup',
+            'backup1',
+            'backup2',
+            'original',
+            'original1',
+            'original2',
         ];
 
         foreach (glob("{$gameInfo}/*") as $path) {
@@ -7839,6 +7860,17 @@ class Build
             } else {
                 $this->command->run("\\cp -a --link \"{$path}\" \"{$root}/build/{$gameDir}/static/game_info/\"");
             }
+        }
+
+        $cache = "{$root}/build/{$gameDir}/static/game_info/cache";
+
+        if (!file_exists($cache)) {
+            $this->fs->mkdirs([$cache]);
+        }
+
+        foreach (glob("{$gameInfo}/cache/*.dxvk-cache") as $file) {
+            $fileName = basename($file);
+            $this->fs->cp($file, "{$cache}/{$fileName}");
         }
 
         if (file_exists("{$gameInfo}/data.squashfs")) {
