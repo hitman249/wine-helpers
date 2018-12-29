@@ -5719,15 +5719,11 @@ class Update
             }
         }
 
-        if (!file_exists($filePath)) {
+        if ($isDelete || !file_exists($filePath)) {
             $winetricks = $this->network
                 ->get('https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks');
 
             if ($winetricks) {
-                if ($isDelete) {
-                    unlink($filePath);
-                }
-
                 file_put_contents($filePath, $winetricks);
                 $this->command->run("chmod +x \"{$filePath}\"");
 
