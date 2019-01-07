@@ -7099,7 +7099,7 @@ class CheckDependencies {
 
         ksort($apps);
 
-        $percent  = 100 / (count($apps) + 4);
+        $percent  = 100 / (count($apps) + 5);
         $progress = 0;
 
         foreach ($apps as $app => $_) {
@@ -7154,11 +7154,17 @@ class CheckDependencies {
 
             $progress += $percent;
             app()->getCurrentScene()->setProgress($progress);
+
+            $isLibSDL2 = (bool)$this->command->run('ldconfig -p | grep libSDL2-2');
+            $this->log($this->formattedItem('SDL2', $isLibSDL2 ? 'ok' : 'fail'));
+
+            $progress += $percent;
+            app()->getCurrentScene()->setProgress($progress);
         } else {
             $message = 'Failed to check due to missing ldconfig';
             $this->log('');
-            $this->log("libvulkan, libfuse, libopenal, libXinerama\n{$message}.");
-            $progress += ($percent * 4);
+            $this->log("libvulkan, libfuse, libopenal, libXinerama, SDL2\n{$message}.");
+            $progress += ($percent * 5);
             app()->getCurrentScene()->setProgress($progress);
         }
 
