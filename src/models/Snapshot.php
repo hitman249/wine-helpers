@@ -124,8 +124,13 @@ class Snapshot
 
                 if (file_exists($after)) {
                     $prefix  = $i === 0 ? '' : $i;
-                    $regedit = $this->replaces->replaceToTemplateByString($this->getRegeditChanges($before, $after));
-                    file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $regedit);
+                    $changes = $this->getRegeditChanges($before, $after);
+                    if (false && $changes[Diff::DELETED]) {
+                        file_put_contents("{$this->patchDir}/0-deleted{$prefix}.reg", $changes[Diff::DELETED]);
+                    }
+                    if ($changes[Diff::INSERTED]) {
+                        file_put_contents("{$this->patchDir}/changes{$prefix}.reg", $changes[Diff::INSERTED]);
+                    }
                 }
             }
 
@@ -134,7 +139,7 @@ class Snapshot
 
             $changes = $this->getFilesChanges("{$this->shapshotBeforeDir}/filelist.shapshot", "{$this->shapshotDir}/filelist.shapshot");
 
-            foreach ($changes as $file) {
+            foreach ($changes[Diff::INSERTED] as $file) {
                 $in   = "{$this->driveC}/{$file}";
                 $file = (Text::startsWith($file, $userFolder) ? str_replace($userFolder, $userFolderReplace, $file) : $file);
                 $out  = "{$this->patchDir}/files/{$file}";
@@ -144,10 +149,20 @@ class Snapshot
                 $this->fs->cp($in, $out);
             }
 
-            if ($changes) {
+            if ($changes[Diff::INSERTED]) {
                 if ($this->fs->pack("{$this->patchDir}/files")) {
                     $this->fs->rm("{$this->patchDir}/files");
                 }
+            }
+
+            if (false && $changes[Diff::DELETED]) {
+                $files = array_map(
+                    function ($file) use ($userFolder, $userFolderReplace) {
+                        return (Text::startsWith($file, $userFolder) ? str_replace($userFolder, $userFolderReplace, $file) : $file);
+                    },
+                    $changes[Diff::DELETED]
+                );
+                file_put_contents("{$this->patchDir}/deleted", implode("\n", $files));
             }
 
             return true;
@@ -163,11 +178,24 @@ class Snapshot
 
     public function getRegeditChanges($file1, $file2)
     {
-        $diff        = new Diff($this->config, $this->command);
-        $compare     = $diff->compareFiles($file1, $file2, 'UTF-16LE');
-        $allSections = array_filter($diff->getFile2Data(), function ($line) { return Text::startsWith($line[0], '['); });
-        unset($diff);
-        $changes     = array_filter($compare[Diff::INSERTED], function ($line) { return !Text::startsWith($line, '['); });
+        $diff    = new Diff($this->config, $this->command);
+        $compare = $diff->compareFiles($file1, $file2, 'UTF-16LE');
+
+        return [
+            Diff::INSERTED => $this->getRegeditInserted($diff, $compare),
+            Diff::DELETED  => $this->getRegeditDeleted($diff, $compare),
+        ];
+    }
+
+    /**
+     * @param Diff $diff
+     * @param array $compare
+     * @return string
+     */
+    private function getRegeditDeleted($diff, &$compare)
+    {
+        $sections = array_filter($diff->getFile1Data(), function ($line) { return Text::startsWith($line[0], '['); });
+        $deleted  = array_filter($compare[Diff::DELETED], function ($line) { return !Text::startsWith($line, '[') && !Text::startsWith($line, '  '); });
 
         $result      = [];
         $new         = null;
@@ -175,10 +203,65 @@ class Snapshot
         $prevChange  = null;
         $findSection = null;
 
-        foreach ($changes as $lineNumber => $line) {
+        foreach ($deleted as $lineNumber => $line) {
             if (!$prevChange || ($prevChange + 1) !== $lineNumber) {
                 $prevChange = $lineNumber;
-                $findSection = array_filter($allSections, function ($key) use ($lineNumber) {return $lineNumber > $key;}, ARRAY_FILTER_USE_KEY);
+                $findSection = array_filter($sections, function ($key) use ($lineNumber) {return $lineNumber > $key;}, ARRAY_FILTER_USE_KEY);
+                $findSection = end($findSection);
+            }
+
+            if (!isset($result[$findSection])) {
+                $result[$findSection] = [];
+            }
+
+            list($field) = explode('=', $line);
+
+            if ($field) {
+                $result[$findSection][] = "{$field}=-";
+            }
+        }
+
+        $deletedSections = array_filter($compare[Diff::DELETED], function ($line) use (&$result) {
+            return Text::startsWith($line, '[') && empty($result[$line]);
+        });
+
+        foreach ($deletedSections as $section) {
+            $result[str_replace('[', '[-', $section)] = [];
+        }
+
+        if (!$result) {
+            return '';
+        }
+
+        $text = "Windows Registry Editor Version 5.00\n";
+
+        foreach ($result as $section => $lines) {
+            $text .= "\n{$section}\n" . implode("\n", $lines) . "\n";
+        }
+
+        return $this->replaces->replaceToTemplateByString($text);
+    }
+
+    /**
+     * @param Diff $diff
+     * @param array $compare
+     * @return string
+     */
+    private function getRegeditInserted($diff, &$compare)
+    {
+        $sections = array_filter($diff->getFile2Data(), function ($line) { return Text::startsWith($line[0], '['); });
+        $inserted = array_filter($compare[Diff::INSERTED], function ($line) { return !Text::startsWith($line, '['); });
+
+        $result      = [];
+        $new         = null;
+        $old         = null;
+        $prevChange  = null;
+        $findSection = null;
+
+        foreach ($inserted as $lineNumber => $line) {
+            if (!$prevChange || ($prevChange + 1) !== $lineNumber) {
+                $prevChange = $lineNumber;
+                $findSection = array_filter($sections, function ($key) use ($lineNumber) {return $lineNumber > $key;}, ARRAY_FILTER_USE_KEY);
                 $findSection = end($findSection);
             }
 
@@ -199,7 +282,7 @@ class Snapshot
             $text .= "\n{$section}\n" . implode("\n", $lines) . "\n";
         }
 
-        return $text;
+        return $this->replaces->replaceToTemplateByString($text);
     }
 
     public function getFilesChanges($file1, $file2)
@@ -208,15 +291,25 @@ class Snapshot
         $compare = $diff->compareFiles($file1, $file2);
         unset($diff);
 
-        $result = [];
-
-        foreach ($compare[Diff::INSERTED] as $lineNumber => $line) {
+        $inserted = [];
+        foreach ($compare[Diff::INSERTED] as $line) {
             list($path, $type, $size) = explode(';', $line);
             if ($type === 'file') {
-                $result[] = $path;
+                $inserted[] = $path;
             }
         }
 
-        return $result;
+        $deleted = [];
+        foreach ($compare[Diff::DELETED] as $line) {
+            list($path, $type, $size) = explode(';', $line);
+            if ($type === 'file' && !in_array($path, $inserted, true)) {
+                $deleted[] = $path;
+            }
+        }
+
+        return [
+            Diff::INSERTED => $inserted,
+            Diff::DELETED  => $deleted,
+        ];
     }
 }

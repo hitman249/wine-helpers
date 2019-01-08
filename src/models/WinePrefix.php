@@ -90,44 +90,8 @@ class WinePrefix {
             /**
              * Sandbox the prefix; Borrowed from winetricks scripts
              */
-
-            if ($this->updateSandbox()) {
+            if ($this->updateSandbox(true)) {
                 $this->log('Set sandbox.');
-            }
-            app()->getCurrentScene()->setProgress(27);
-
-
-            /**
-             * Create symlinks to additional folders
-             */
-            if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
-
-                $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
-
-                if ($folders) {
-                    $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
-                    $isCyrillic = $this->system->isCyrillic();
-
-                    $folderCount = count($folders);
-                    if (count($adds) >= $folderCount) {
-                        foreach ($adds as $i => $path) {
-                            if ($i >= $folderCount) {
-                                break;
-                            }
-
-                            $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
-
-                            if (!$isCyrillic) {
-                                $add = str_replace('Мои документы', 'My Documents', $add);
-                            }
-
-                            $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
-                            $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
-                            $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
-                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
-                        }
-                    }
-                }
             }
             app()->getCurrentScene()->setProgress(30);
 
@@ -642,11 +606,11 @@ class WinePrefix {
         return true;
     }
 
-    public function updateSandbox()
+    public function updateSandbox($print = false)
     {
-        if ($this->config->isSandbox()) {
+        $update = false;
 
-            $update = false;
+        if ($this->config->isSandbox()) {
 
             $z = $this->config->wine('WINEPREFIX') . '/dosdevices/z:';
 
@@ -669,11 +633,45 @@ class WinePrefix {
             if ($update) {
                 file_put_contents($this->config->wine('WINEPREFIX') . '/.update-timestamp', 'disable');
             }
-
-            return $update;
         }
 
-        return false;
+        /**
+         * Create symlinks to additional folders
+         */
+        if (file_exists($this->config->getAdditionalDir()) && file_exists($this->config->getAdditionalDir() . '/path.txt')) {
+
+            $folders = array_filter(array_map('trim', explode("\n", file_get_contents($this->config->getAdditionalDir() . '/path.txt'))));
+
+            if ($folders) {
+                $adds = glob($this->config->getAdditionalDir() . '/dir_*/');
+                $isCyrillic = $this->system->isCyrillic();
+
+                $folderCount = count($folders);
+                if (count($adds) >= $folderCount) {
+                    foreach ($adds as $i => $path) {
+                        if ($i >= $folderCount) {
+                            break;
+                        }
+
+                        $add = str_replace('--REPLACE_WITH_USERNAME--', $this->system->getUserName(), trim($folders[$i], " \t\n\r\0\x0B/"));
+
+                        if (!$isCyrillic) {
+                            $add = str_replace('Мои документы', 'My Documents', $add);
+                        }
+
+                        $gameInfoAddDir = Text::quoteArgs($this->fs->relativePath($path));
+                        $dirAdd = Text::quoteArgs($this->config->wine('DRIVE_C') . "/{$add}");
+                        $this->command->run("mkdir -p {$dirAdd} && rm -r {$dirAdd} && ln -sfr {$gameInfoAddDir} {$dirAdd}");
+
+                        if ($print) {
+                            $this->log('Create symlink ' . $gameInfoAddDir . ' > ' . Text::quoteArgs($this->fs->relativePath($this->config->wine('DRIVE_C') . "/{$add}")));
+                        }
+                    }
+                }
+            }
+        }
+
+        return $update;
     }
 
     public function createGameDirectory()

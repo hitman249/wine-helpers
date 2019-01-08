@@ -58,6 +58,7 @@ class Patch
                 $this->fs->mkdirs([$this->config->getPatchApplyDir()]);
             }
 
+            $this->prefix->updateSandbox();
             $this->snapshot->createBefore();
             $result = $callback();
             $this->prefix->updateSandbox();

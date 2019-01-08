@@ -57,7 +57,7 @@ class Registry
         }
 
         if (count($regs) > 2) {
-            file_put_contents($this->config->getPrefixDriveC() . '/tmp.reg', implode("\n", $regs));
+            file_put_contents($this->config->getPrefixDriveC() . '/tmp.reg', iconv('UTF-8', 'UTF-16', implode("\n", $regs)));
             $this->wine->reg([$this->config->getPrefixDriveC() . '/tmp.reg']);
             unset($regs);
 
