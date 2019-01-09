@@ -182,7 +182,7 @@ class Patch
 
         $driveC = $this->config->getPrefixDriveC();
 
-        $this->command->run("cd \"{$parent}\" && tar -xzf \"{$path}\" -C \"{$driveC}\"");
+        $this->command->run("cd \"{$parent}\" && tar -h -xzf \"{$path}\" -C \"{$driveC}\"");
 
         return true;
     }
