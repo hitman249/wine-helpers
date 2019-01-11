@@ -682,6 +682,16 @@ resolution = "800x600"
 # dxgi.customVendorId = 0000
 
 
+
+# Report Nvidia GPUs as AMD GPUs by default. This is enabled by default
+# to work around issues with NVAPI, but may cause issues in some games.
+#
+# Supported values: True, False
+
+# dxgi.nvapiHack = True
+
+
+
 # Override maximum amount of device memory and shared system memory
 # reported to the application. This may fix texture streaming issues
 # in games that do not support cards with large amounts of VRAM.
@@ -798,7 +808,39 @@ resolution = "800x600"
 # - 0 to automatically determine the number of threads to use
 # - any positive number to enforce the thread count
 
-# dxvk.numCompilerThreads = 0";
+# dxvk.numCompilerThreads = 0
+
+
+
+# Toggles raw SSBO usage
+# 
+# Uses storage buffers to implement raw and structured buffer
+# views. Enabled by default on hardware which has a storage
+# buffer offset alignment requirement of 4 Bytes (e.g. AMD).
+# Enabling this may improve performance, but is not safe on
+# hardware with higher alignment requirements.
+# 
+# Supported values:
+# - Auto: Don't change the default
+# - True, False: Always enable / disable
+
+# dxvk.useRawSsbo = Auto
+
+
+
+# Toggles early discard
+# 
+# Uses subgroup operations to determine whether it is safe to
+# discard fragments before the end of a fragment shader. This
+# is enabled by default on all drivers except RADV and Nvidia.
+# Enabling this may improve or degrade performance depending
+# on the game and hardware, or cause other issues.
+# 
+# Supported values:
+# - Auto: Don't change the default
+# - True, False: Always enable / disable
+
+# dxvk.useEarlyDiscard = Auto";
     }
 
     public function isScriptAutoupdate()
