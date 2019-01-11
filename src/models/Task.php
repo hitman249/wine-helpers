@@ -83,8 +83,15 @@ class Task
     private function desktop()
     {
         if ($this->config->getBool('window', 'enable')) {
-            $title      = $this->config->get('window', 'title');
             $resolution = $this->config->get('window', 'resolution');
+
+            if ($resolution === 'auto') {
+                if ($monitor = $this->monitor->getDefaultMonitor()) {
+                    $resolution = $monitor['resolution'];
+                }
+            }
+
+            $title = str_replace([' ', ','], ['_', ''], $this->config->getGameTitle());
 
             return "explorer \"/desktop={$title},{$resolution}\"";
         }

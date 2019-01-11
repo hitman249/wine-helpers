@@ -591,8 +591,12 @@ font = 0
 [window]
 
 enable = 0
-title = "Wine"
-resolution = "800x600"
+
+;
+; resolution = "auto"
+; resolution = "800x600"
+;
+resolution = "auto"
 
 [dlls]
 
