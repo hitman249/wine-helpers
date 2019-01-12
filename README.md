@@ -1,5 +1,7 @@
 ## Screenshots 
 
+[YouTube](https://www.youtube.com/watch?v=eZjJW1_oJSY)
+
 ![Settings](1.png)
 ![Settings](2.png)
 ![Settings](3.png)
