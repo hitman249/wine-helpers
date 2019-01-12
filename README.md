@@ -54,7 +54,7 @@
 
 2) Run:
     ```bash
-    wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x start./start
+    wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x ./start
     ```
     ```bash
     ./start
