@@ -99,12 +99,16 @@ class CheckDependencies {
         foreach ($apps as $app => $_) {
             if ($app === 'binutils') {
                 $app = 'ld';
+            } else if ($app === 'p7zip') {
+                $app = '7z';
             }
 
             $is = trim($this->command->run("command -v {$app}"));
 
             if ($app === 'ld') {
                 $app = 'binutils';
+            } else if ($app === '7z') {
+                $app = 'p7zip';
             }
 
             if ($is) {
