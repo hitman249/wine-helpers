@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 cd -P -- "$(dirname -- "$0")"
 
@@ -23,12 +23,12 @@ if [ -f "./restart" ]; then
 fi
 
 tail -n +37 ./start > "$(pwd -P)/start-tmp"
-"$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
+"$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@" 2> >(grep -v "no version information available" 1>&2)
 
 while [ -f "./restart" ]
 do
     rm "./restart"
-    tail -n +37 ./start > "$(pwd -P)/start-tmp"
+    tail -n +37 ./start > "$(pwd -P)/start-tmp" 2> >(grep -v "no version information available" 1>&2)
     "$RUN_FROM" -f "$(pwd -P)/start-tmp" "$@"
 done
 
