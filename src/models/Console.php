@@ -54,15 +54,20 @@ class Console
 
     public function isWine()
     {
-        return trim(reset($this->arguments)) === 'wine';
+        return  trim(reset($this->arguments)) === 'wine' || $this->isWine64();
     }
 
-    public function wine($args)
+    public function isWine64()
+    {
+        return 'wine64' === trim(reset($this->arguments));
+    }
+
+    public function wine($args, $wine = 'WINE')
     {
         $config = clone $this->config;
         $config->set('wine', 'WINEDEBUG', '');
         $cmd = Text::quoteArgs($args);
-        (new Command($config))->run(Text::quoteArgs($config->wine('WINE')) . " {$cmd}", null, true);
+        (new Command($config))->run(Text::quoteArgs($config->wine($wine)) . " {$cmd}", null, true);
     }
 
     public function lock()
@@ -148,7 +153,7 @@ class Console
         }
 
         if ($this->isWine()) {
-            $this->wine(array_splice($this->arguments, 1));
+            $this->wine(array_splice($this->arguments, 1), $this->isWine64() ? 'WINE64' : 'WINE');
             exit(0);
         }
 
