@@ -53,6 +53,7 @@ return [
         'models/Replaces.php',
         'models/Registry.php',
         'models/Plugins.php',
+        'models/Driver.php',
         'models/AbstractPlugin.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',

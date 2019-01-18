@@ -24,6 +24,7 @@ class Start
     private $registry;
     private $event;
     private $plugins;
+    private $driver;
 
     public function __construct()
     {
@@ -55,6 +56,7 @@ class Start
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
+        $this->driver     = new Driver($this->config, $this->command, $this->system);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -294,6 +296,14 @@ class Start
     public function getPlugins()
     {
         return $this->plugins;
+    }
+
+    /**
+     * @return Driver
+     */
+    public function getDriver()
+    {
+        return $this->driver;
     }
 }
 

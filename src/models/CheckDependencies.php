@@ -89,6 +89,8 @@ class CheckDependencies {
             'patch'      => false,
             'hostname'   => false,
             'locale'     => false,
+            'modinfo'    => false,
+            'lsmod'      => false,
         ];
 
         ksort($apps);
@@ -225,6 +227,41 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log('');
             $this->log('Install libfuse.');
             $this->log("sudo apt-get install libfuse2");
+        }
+
+        if ($this->config->isDxvk()) {
+
+            $driver = app('start')->getDriver()->getVersion();
+
+            list($mesa) = isset($driver['mesa']) ? explode('-', $driver['mesa']) : '';
+
+            if ($mesa) {
+                $mesa = version_compare($mesa, '18.3', '<');
+            }
+
+            if ('nvidia' === $driver['vendor']) {
+
+                $text = "\nPlease install NVIDIA driver 415.22 or newer.";
+
+                if ('nvidia' !== $driver['driver']) {
+                    $this->log($text);
+                } elseif ('nvidia' === $driver['driver'] && version_compare($driver['version'], '415.22', '<')) {
+                    $this->log($text);
+                }
+
+            } elseif ('amd' === $driver['vendor']) {
+
+                $text = 'Please install AMD driver: ';
+
+                if ('amdgpu-pro' === $driver['driver'] && version_compare($driver['version'], '18.50', '<')) {
+                    $this->log("\n{$text} AMDGPU PRO 18.50 or newer.");
+                } elseif ('amdgpu' === $driver['driver'] && $mesa) {
+                    $this->log("\n{$text} RADV, Mesa 18.3 or newer (recommended).");
+                }
+
+            } elseif ('intel' === $driver['vendor'] && $mesa) {
+                $this->log("\nPlease install Mesa 18.3 or newer.");
+            }
         }
 
         if ($this->config->isEsync() || $this->config->isDxvk()) {

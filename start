@@ -7142,6 +7142,8 @@ class CheckDependencies {
             'patch'      => false,
             'hostname'   => false,
             'locale'     => false,
+            'modinfo'    => false,
+            'lsmod'      => false,
         ];
 
         ksort($apps);
@@ -7278,6 +7280,41 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log('');
             $this->log('Install libfuse.');
             $this->log("sudo apt-get install libfuse2");
+        }
+
+        if ($this->config->isDxvk()) {
+
+            $driver = app('start')->getDriver()->getVersion();
+
+            list($mesa) = isset($driver['mesa']) ? explode('-', $driver['mesa']) : '';
+
+            if ($mesa) {
+                $mesa = version_compare($mesa, '18.3', '<');
+            }
+
+            if ('nvidia' === $driver['vendor']) {
+
+                $text = "\nPlease install NVIDIA driver 415.22 or newer.";
+
+                if ('nvidia' !== $driver['driver']) {
+                    $this->log($text);
+                } elseif ('nvidia' === $driver['driver'] && version_compare($driver['version'], '415.22', '<')) {
+                    $this->log($text);
+                }
+
+            } elseif ('amd' === $driver['vendor']) {
+
+                $text = 'Please install AMD driver: ';
+
+                if ('amdgpu-pro' === $driver['driver'] && version_compare($driver['version'], '18.50', '<')) {
+                    $this->log("\n{$text} AMDGPU PRO 18.50 or newer.");
+                } elseif ('amdgpu' === $driver['driver'] && $mesa) {
+                    $this->log("\n{$text} RADV, Mesa 18.3 or newer (recommended).");
+                }
+
+            } elseif ('intel' === $driver['vendor'] && $mesa) {
+                $this->log("\nPlease install Mesa 18.3 or newer.");
+            }
         }
 
         if ($this->config->isEsync() || $this->config->isDxvk()) {
@@ -10976,6 +11013,161 @@ class Plugins
 
 
 
+class Driver
+{
+    private $config;
+    private $command;
+    private $system;
+
+    /**
+     * Driver constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param System $system
+     */
+    public function __construct(Config $config, Command $command, System $system)
+    {
+        $this->config  = $config;
+        $this->command = $command;
+        $this->system  = $system;
+    }
+
+    public function getNvidia()
+    {
+        static $result;
+
+        if (null !== $result) {
+            return $result;
+        }
+
+        $proc = '/proc/driver/nvidia/version';
+
+        if (file_exists($proc)) {
+            $text = file_get_contents($proc);
+            if ($text) {
+                $text = array_map('trim', explode('Module', $text));
+                if (!empty($text[1])) {
+                    $version = array_map('trim', explode(' ', trim($text[1])));
+                    $version = reset($version);
+                    $result  = ['vendor' => 'nvidia', 'driver' => 'nvidia', 'version' => $version];
+
+                    return $result;
+                }
+            }
+        }
+
+        if (trim($this->command->run('command -v nvidia-smi'))) {
+            $text = trim($this->command->run('nvidia-smi --query-gpu=driver_version --format=csv,noheader'));
+
+            if (!empty($text) && mb_strlen($text) < 10) {
+                $result = ['vendor' => 'nvidia', 'driver' => 'nvidia', 'version' => $text];
+                return $result;
+            }
+        }
+
+        $text = trim($this->command->run('modinfo nvidia | grep -E "^version:"'));
+
+        if ($text && stripos($text, 'modinfo') === false) {
+            $text = array_map('trim', explode('ersion:', $text));
+
+            if (!empty($text[1])) {
+                $version = array_map('trim', explode(' ', trim($text[1])));
+                $version = reset($version);
+                $result  = ['vendor' => 'nvidia', 'driver' => 'nvidia', 'version' => $version];
+
+                return $result;
+            }
+        }
+
+        if (trim($this->command->run('lsmod | grep nouveau'))) {
+            $result = ['vendor' => 'nvidia', 'driver' => 'nouveau', 'version' => ''];
+            return $result;
+        }
+
+        if (null === $result) {
+            $result = [];
+        }
+
+        return $result;
+    }
+
+    public function getAmd()
+    {
+        static $result;
+
+        if (null !== $result) {
+            return $result;
+        }
+
+        if (trim($this->command->run('lsmod | grep radeon'))) {
+            $result = ['vendor' => 'amd', 'driver' => 'radeon', 'version' => '', 'mesa' => $this->system->getMesaVersion()];
+            return $result;
+        }
+
+        $text = trim($this->command->run('modinfo amdgpu | grep -E "^version:"'));
+
+        if ($text && stripos($text, 'modinfo') === false) {
+            $text = array_map('trim', explode('ersion:', $text));
+
+            if (!empty($text[1])) {
+                $version = array_map('trim', explode(' ', trim($text[1])));
+                $version = reset($version);
+                $result  = ['vendor' => 'amd', 'driver' => 'amdgpu-pro', 'version' => $version];
+
+                return $result;
+            }
+        }
+
+        if (trim($this->command->run('lsmod | grep amdgpu'))) {
+            $result = ['vendor' => 'amd', 'driver' => 'amdgpu', 'version' => '', 'mesa' => $this->system->getMesaVersion()];
+            return $result;
+        }
+
+        return $result;
+    }
+
+    public function getIntel()
+    {
+        static $result;
+
+        if (null !== $result) {
+            return $result;
+        }
+
+        if ((bool)trim($this->command->run('glxinfo | grep "Intel"'))) {
+            $result = ['vendor' => 'intel', 'driver' => 'intel', 'version' => '', 'mesa' => $this->system->getMesaVersion()];
+            return $result;
+        }
+
+        return $result;
+    }
+
+    public function getVersion()
+    {
+        $driver = $this->getNvidia();
+
+        if ($driver) {
+            return $driver;
+        }
+
+        $driver = $this->getAmd();
+
+        if ($driver) {
+            return $driver;
+        }
+
+        $driver = $this->getIntel();
+
+        if ($driver) {
+            return $driver;
+        }
+
+        return $driver;
+    }
+}
+
+
+
 abstract class AbstractPlugin
 {
     /** @var Event */
@@ -13894,6 +14086,7 @@ class Start
     private $registry;
     private $event;
     private $plugins;
+    private $driver;
 
     public function __construct()
     {
@@ -13925,6 +14118,7 @@ class Start
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
+        $this->driver     = new Driver($this->config, $this->command, $this->system);
         $this->mountes    = [
             new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
             new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
@@ -14164,6 +14358,14 @@ class Start
     public function getPlugins()
     {
         return $this->plugins;
+    }
+
+    /**
+     * @return Driver
+     */
+    public function getDriver()
+    {
+        return $this->driver;
     }
 }
 
