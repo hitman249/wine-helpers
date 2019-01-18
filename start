@@ -5256,9 +5256,10 @@ class Wine {
         $config = clone $this->config;
         $config->set('wine', 'WINEDEBUG', '');
         $cmd = Text::quoteArgs($args);
+        $logFile = $this->config->getLogsDir() . '/filemanager.log';
 
-        return app('start')->getPatch()->create(function () use ($config, $cmd) {
-            return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}");
+        return app('start')->getPatch()->create(function () use ($config, $cmd, $logFile) {
+            return (new Command($config))->run(Text::quoteArgs($this->config->wine('WINEFILE')) . " {$cmd}", $logFile);
         });
     }
 
@@ -5295,7 +5296,9 @@ class Wine {
             $config = clone $this->config;
             $config->set('wine', 'WINEDEBUG', '');
             $cmd = Text::quoteArgs($args);
-            $logFile = $this->config->getLogsDir() . '/winetricks-' . implode('-', $args) . '.log';
+            $title = implode('-', $args);
+            $title = mb_strlen($title) > 50 ? mb_substr($title, 0, 48) . '..' : $title;
+            $logFile = $this->config->getLogsDir() . "/winetricks-{$title}.log";
             return app('start')->getPatch()->create(function () use (&$config, $cmd, $logFile, $output) {
                 return (new Command($config))->run(Text::quoteArgs($this->config->getRootDir() . '/winetricks') . " {$cmd}", $logFile, $output);
             });
