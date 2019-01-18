@@ -150,6 +150,48 @@ class Snapshot
             }
 
             if ($changes[Diff::INSERTED]) {
+                $win32 = "{$this->patchDir}/files/windows/system32";
+                $win64 = "{$this->patchDir}/files/windows/syswow64";
+                $ext   = ['dll', 'ocx', 'exe'];
+                $files = [];
+
+                if (file_exists($win32)) {
+                    foreach (glob("{$win32}/*") as $path) {
+                        $fileInfo = pathinfo($path);
+                        $name = mb_strtolower($fileInfo['basename']);
+                        if (in_array($fileInfo['extension'], $ext, true) && !in_array($name, $files, true)) {
+                            $files[] = $name;
+                        }
+                    }
+                }
+
+                if (file_exists($win64)) {
+                    foreach (glob("{$win64}/*") as $path) {
+                        $fileInfo = pathinfo($path);
+                        $name = mb_strtolower($fileInfo['basename']);
+                        if (in_array($fileInfo['extension'], $ext, true) && !in_array($name, $files, true)) {
+                            $files[] = $name;
+                        }
+                    }
+                }
+
+                if ($files) {
+                    $reg = [
+                        "REGEDIT4\n",
+                        "[HKEY_CURRENT_USER\Software\Wine\DllOverrides]"
+                    ];
+
+                    foreach ($files as $lib) {
+                        $fileInfo = pathinfo($lib);
+                        if ('dll' === $fileInfo['extension']) {
+                            $lib = "*{$fileInfo['filename']}";
+                        }
+                        $reg[] = "\"{$lib}\"=\"native\"";
+                    }
+
+                    file_put_contents("{$this->patchDir}/override-dll.reg", implode("\n", $reg));
+                }
+
                 if ($this->fs->pack("{$this->patchDir}/files")) {
                     $this->fs->rm("{$this->patchDir}/files");
                 }

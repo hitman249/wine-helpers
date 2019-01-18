@@ -54,7 +54,7 @@ class Console
 
     public function isWine()
     {
-        return  trim(reset($this->arguments)) === 'wine' || $this->isWine64();
+        return trim(reset($this->arguments)) === 'wine' || $this->isWine64();
     }
 
     public function isWine64()
