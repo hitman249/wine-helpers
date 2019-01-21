@@ -49,6 +49,39 @@ class YandexDisk
             if ($matches[0][2]) {
                 $json       = json_decode($matches[0][2], true);
                 $this->data = $json;
+
+                if ($this->data['resources']) {
+                    $this->data['original'] = $this->data['resources'];
+
+                    $result = array_filter($this->data['resources'], function ($item) {return 'dir' === $item['type'];});
+
+                    uasort($this->data['resources'], function ($a, $b) {
+                        if ($a['type'] === 'dir' || $b['type'] === 'dir') {
+                            return 0;
+                        }
+                        if ($a['modified'] === $b['modified']) {
+                            return 0;
+                        }
+
+                        return (int)$a['modified'] > (int)$b['modified'] ? 1 : -1;
+                    });
+
+                    foreach ($this->data['resources'] as $id => $resource) {
+                        if ('dir' !== $resource['type']) {
+                            $result[$id] = $resource;
+                        }
+                    }
+
+                    $this->data['resources'] = $result;
+
+                    unset($result);
+
+                    $allKeys = array_keys($this->data['resources']);
+
+                    foreach ($this->data['resources'] as $id => $resource) {
+                        $this->data['resources'][$id]['children'] = array_diff($allKeys, array_diff($allKeys, $resource['children']));
+                    }
+                }
             }
         }
     }
@@ -66,12 +99,15 @@ class YandexDisk
         $itemList = [];
         $data = $this->getData();
 
-        foreach ($data ?: [] as $id => $resource) {
+        foreach ($this->data['original']?:[] as $resource) {
             if (!$this->currentPath && isset($resource['path'])) {
                 list($hash, $_path) = explode(':', $resource['path']);
                 $this->currentPath = $resource['path'];
+                break;
             }
+        }
 
+        foreach ($data ?: [] as $id => $resource) {
             foreach ($resource['children'] as $childId) {
                 $dir  = $data[$childId]['type'] === 'dir' ? '/' : '';
                 $path = "{$resource['name']}/{$data[$childId]['name']}{$dir}";

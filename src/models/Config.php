@@ -756,22 +756,6 @@ resolution = "auto"
 # d3d11.allowMapFlagNoWait = False
 
 
-# Fake Stream Output support. This reports a success code to applications
-# calling CreateGeometryShaderWithStreamOutput, even if the device does
-# not actually support transform feedback. Allows some games to run that
-# would otherwise crash or show an error message.
-#
-# Supported values: True, False
-#
-# Enabled by default for:
-# - F1 2015
-# - Final Fantasy XV
-# - Mafia 3
-# - Overwatch
-
-# d3d11.fakeStreamOutSupport = False
-
-
 # Override the maximum feature level that a D3D11 device can be created
 # with. Setting this to a higher value may allow some applications to run
 # that would otherwise fail to create a D3D11 device.
