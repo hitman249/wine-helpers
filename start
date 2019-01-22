@@ -9270,15 +9270,26 @@ class WineDownloader
 
         $this->result = '';
 
-        $items = [];
+        $folders = [];
+        $items   = [];
 
         if ($ya->getParent()) {
-            $items[] = ['id' => '..', 'name' => '..'];
+            $folders[] = ['id' => '..', 'name' => '..'];
         }
 
         foreach ($ya->getList() as $key => $value) {
-            $items[] = ['id' => $key, 'name' => $value];
+            if (endsWith($value, '/')) {
+                $folders[] = ['id' => $key, 'name' => $value];
+            } else {
+                $items[] = ['id' => $key, 'name' => $value];
+            }
         }
+
+        uasort($items, function ($a, $b) {
+            return strcasecmp($b['name'], $a['name']);
+        });
+
+        $items = array_merge($folders, $items);
 
         $this->scene->removeWidget($popup->hide());
 
