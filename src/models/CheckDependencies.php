@@ -278,6 +278,13 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             }
         }
 
+        if ($this->system->getVmMaxMapCount() < 200000) {
+            $this->log('');
+            $this->log('Please set vm.max_map_count=262144');
+            $this->log('Run as root:');
+            $this->log('echo \'vm.max_map_count=262144\' >> /etc/sysctl.conf');
+        }
+
         if ($this->config->isGenerationPatchesMode()) {
             if (!$apps['diff']) {
                 $isOk = false;

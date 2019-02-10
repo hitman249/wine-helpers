@@ -426,4 +426,18 @@ class System {
 
         return $arch;
     }
+
+    public function getVmMaxMapCount()
+    {
+        static $vmMaxMapCount;
+
+        if (null === $vmMaxMapCount) {
+            if ((bool)trim($this->command->run('command -v sysctl'))) {
+                list($key, $value) = array_map('trim', explode('=', trim($this->command->run('sysctl vm.max_map_count'))));
+                $vmMaxMapCount = (int)$value;
+            }
+        }
+
+        return $vmMaxMapCount;
+    }
 }

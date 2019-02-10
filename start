@@ -3953,6 +3953,20 @@ class System {
 
         return $arch;
     }
+
+    public function getVmMaxMapCount()
+    {
+        static $vmMaxMapCount;
+
+        if (null === $vmMaxMapCount) {
+            if ((bool)trim($this->command->run('command -v sysctl'))) {
+                list($key, $value) = array_map('trim', explode('=', trim($this->command->run('sysctl vm.max_map_count'))));
+                $vmMaxMapCount = (int)$value;
+            }
+        }
+
+        return $vmMaxMapCount;
+    }
 }
 
 
@@ -7304,6 +7318,13 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                 $this->log("* soft nofile {$recommendedUlimit}");
                 $this->log("* hard nofile {$recommendedUlimit}");
             }
+        }
+
+        if ($this->system->getVmMaxMapCount() < 200000) {
+            $this->log('');
+            $this->log('Please set vm.max_map_count=262144');
+            $this->log('Run as root:');
+            $this->log('echo \'vm.max_map_count=262144\' >> /etc/sysctl.conf');
         }
 
         if ($this->config->isGenerationPatchesMode()) {
