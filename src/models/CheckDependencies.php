@@ -93,9 +93,42 @@ class CheckDependencies {
             'lsmod'      => false,
         ];
 
+        $libs = [
+            'libvulkan'    => [
+                'name'   => 'libvulkan',
+                'status' => true,
+                'find'   => 'libvulkan.so',
+            ],
+            'libfuse'      => [
+                'name'   => 'libfuse',
+                'status' => true,
+                'find'   => 'libfuse.so',
+            ],
+            'libopenal'    => [
+                'name'   => 'libopenal',
+                'status' => true,
+                'find'   => 'libopenal.so',
+            ],
+            'libxinerama1' => [
+                'name'   => 'libxinerama1',
+                'status' => true,
+                'find'   => 'libXinerama.so',
+            ],
+            'libSDL2-2'    => [
+                'name'   => 'libSDL2-2',
+                'status' => true,
+                'find'   => 'libSDL2-2',
+            ],
+            'libasound2'    => [
+                'name'   => 'libasound2',
+                'status' => true,
+                'find'   => 'libasound',
+            ],
+        ];
+
         ksort($apps);
 
-        $percent  = 100 / (count($apps) + 5);
+        $percent  = 100 / (count($apps) + count($libs));
         $progress = 0;
 
         foreach ($apps as $app => $_) {
@@ -126,45 +159,25 @@ class CheckDependencies {
         }
 
         if ($apps['ldconfig']) {
-            $isVulkan = array_filter(array_map('trim', explode("\n", trim($this->command->run('ldconfig -p | grep libvulkan.so')))));
 
-            if ($isVulkan <= 1 && $this->system->getArch() === 64) {
-                $isVulkan = false;
+            foreach ($libs as $key => $lib) {
+                $count = array_filter(array_map('trim', explode("\n", trim($this->command->run("ldconfig -p | grep '{$lib}'")))));
+
+                if ($count <= 0 || ($count <= 1 && $this->system->getArch() === 64)) {
+                    $lib[$key]['status'] = false;
+                }
+
+                $this->log($this->formattedItem($lib['name'], $lib['status'] ? 'ok' : 'fail'));
+
+                $progress += $percent;
+                app()->getCurrentScene()->setProgress($progress);
             }
 
-            $this->log($this->formattedItem('libvulkan', $isVulkan ? 'ok' : 'fail'));
-
-            $progress += $percent;
-            app()->getCurrentScene()->setProgress($progress);
-
-            $isFuse = (bool)$this->command->run('ldconfig -p | grep libfuse.so');
-            $this->log($this->formattedItem('libfuse', $isFuse ? 'ok' : 'fail'));
-
-            $progress += $percent;
-            app()->getCurrentScene()->setProgress($progress);
-
-            $isOpenAL = (bool)$this->command->run('ldconfig -p | grep libopenal.so');
-            $this->log($this->formattedItem('libopenal', $isOpenAL ? 'ok' : 'fail'));
-
-            $progress += $percent;
-            app()->getCurrentScene()->setProgress($progress);
-
-            $isXinerama = (bool)$this->command->run('ldconfig -p | grep libXinerama.so');
-            $this->log($this->formattedItem('libxinerama1', $isXinerama ? 'ok' : 'fail'));
-
-            $progress += $percent;
-            app()->getCurrentScene()->setProgress($progress);
-
-            $isLibSDL2 = (bool)$this->command->run('ldconfig -p | grep libSDL2-2');
-            $this->log($this->formattedItem('SDL2', $isLibSDL2 ? 'ok' : 'fail'));
-
-            $progress += $percent;
-            app()->getCurrentScene()->setProgress($progress);
         } else {
             $message = 'Failed to check due to missing ldconfig';
             $this->log('');
-            $this->log("libvulkan, libfuse, libopenal, libXinerama, SDL2\n{$message}.");
-            $progress += ($percent * 5);
+            $this->log("libvulkan, libfuse, libopenal, libXinerama, SDL2, libasound2\n{$message}.");
+            $progress += ($percent * count($libs));
             app()->getCurrentScene()->setProgress($progress);
         }
 
@@ -212,14 +225,14 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install x11-xserver-utils");
         }
 
-        if ($apps['ldconfig'] && !$isVulkan && $this->config->isDxvk()) {
+        if ($apps['ldconfig'] && !$libs['libvulkan']['status'] && $this->config->isDxvk()) {
             $isOk = false;
             $this->log('');
             $this->log('Please install libvulkan1.');
             $this->log('https://github.com/lutris/lutris/wiki/How-to:-DXVK#installing-vulkan');
         }
 
-        if ($apps['ldconfig'] && !$isFuse) {
+        if ($apps['ldconfig'] && !$libs['libfuse']['status']) {
             if (file_exists($this->config->getRootDir() . '/wine.squashfs')
                 || file_exists($this->config->getRootDir() . '/game_info/data.squashfs')) {
                 $isOk = false;
