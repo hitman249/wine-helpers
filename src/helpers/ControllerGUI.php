@@ -12,6 +12,20 @@ class ControllerGUI {
     public function  __construct()
     {
         $this->ncurses = new NcursesObjects\Ncurses;
+        $this->init();
+
+        $this->scenes             = [];
+        $this->scenes['main']     = new MainScene();
+        $this->scenes['prefix']   = new PrefixScene();
+        $this->scenes['gameInfo'] = new GameInfoScene();
+        $this->scenes['check']    = new CheckDependenciesScene();
+        $this->scenes['tools']    = new ToolsScene();
+        $this->scenes['wine']     = new WineScene();
+        $this->scenes['tweaks']   = new TweaksScene();
+    }
+
+    public function init()
+    {
         $this->ncurses
             ->setEchoState(false)
             ->setNewLineTranslationState(true)
@@ -22,14 +36,12 @@ class ControllerGUI {
             ncurses_start_color();
             ncurses_assume_default_colors(NCURSES_COLOR_WHITE, NCURSES_COLOR_BLUE);
         }
+    }
 
-        $this->scenes             = [];
-        $this->scenes['main']     = new MainScene();
-        $this->scenes['prefix']   = new PrefixScene();
-        $this->scenes['gameInfo'] = new GameInfoScene();
-        $this->scenes['check']    = new CheckDependenciesScene();
-        $this->scenes['tools']    = new ToolsScene();
-        $this->scenes['wine']     = new WineScene();
+
+    public function end()
+    {
+        ncurses_end();
     }
 
     public function getNcurses()
@@ -162,7 +174,15 @@ class ControllerGUI {
     }
 
     /**
-     * @return GameInfoScene|MainScene|PrefixScene
+     * @return TweaksScene
+     */
+    public function getTweaksScene()
+    {
+        return $this->getScenes('tweaks');
+    }
+
+    /**
+     * @return GameInfoScene|MainScene|PrefixScene|TweaksScene
      */
     public function getCurrentScene()
     {
@@ -209,6 +229,12 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getWineScene()->show();
+    }
+
+    public function showTweaks()
+    {
+        $this->hideAll();
+        $this->getTweaksScene()->show();
     }
 
     public function close()

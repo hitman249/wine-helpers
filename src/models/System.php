@@ -410,13 +410,13 @@ class System {
 
         if (null === $arch) {
             if ((bool)trim($this->command->run('command -v arch'))) {
-                if ($this->command->run('arch') === 'x86_64') {
+                if (trim($this->command->run('arch')) === 'x86_64') {
                     $arch = 64;
                 } else {
                     $arch = 32;
                 }
             } elseif ((bool)trim($this->command->run('command -v getconf'))) {
-                if ($this->command->run('getconf LONG_BIT') === '64') {
+                if (trim($this->command->run('getconf LONG_BIT')) === '64') {
                     $arch = 64;
                 } else {
                     $arch = 32;
@@ -425,6 +425,39 @@ class System {
         }
 
         return $arch;
+    }
+
+    public function getXorgVersion()
+    {
+        static $xorg;
+
+        if (null === $xorg) {
+            if ((bool)trim($this->command->run('command -v xdpyinfo'))) {
+                $result = trim($this->command->run('xdpyinfo | grep -i "X.Org version"'));
+                $result = array_map('trim', explode(':', $result));
+                $result = end($result);
+
+                if ($result) {
+                    $xorg = $result;
+                }
+            }
+
+            if (null === $xorg) {
+                $path = '/var/log/Xorg.0.log';
+
+                if (file_exists($path)) {
+                    $result = trim($this->command->run("cat {$path} | grep \"X.Org X Server\""));
+                    $result = array_map('trim', explode(' ', $result));
+                    $result = end($result);
+
+                    if ($result) {
+                        $xorg = $result;
+                    }
+                }
+            }
+        }
+
+        return $xorg;
     }
 
     public function getVmMaxMapCount()
@@ -439,5 +472,45 @@ class System {
         }
 
         return $vmMaxMapCount;
+    }
+
+    public function getCpuFreq()
+    {
+        $cpu = trim($this->command->run('cat /proc/cpuinfo'));
+        $result = [];
+
+        $cpuId = null;
+        $name  = null;
+
+        foreach (explode("\n", $cpu) as $line) {
+            if (stripos($line, 'processor') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'processor') {
+                    $cpuId = (int)trim(end($exLine));
+                }
+            }
+
+            if (stripos($line, 'model name') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'model name') {
+                    $name = trim(end($exLine = explode(':', $line)));
+                }
+            }
+
+            if (stripos($line, 'cpu MHz') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'cpu MHz') {
+                    $result[] = [
+                        'id'   => $cpuId,
+                        'name' => $name,
+                        'freq' => trim(end($exLine = explode(':', $line))),
+                        'mode' => file_exists("/sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor") ?
+                            trim($this->command->run("cat /sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor")) : '',
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 }

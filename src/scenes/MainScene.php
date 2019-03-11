@@ -57,7 +57,7 @@ class MainScene extends AbstractScene
                 ['id' => 'tools',    'name' => 'Tools'],
                 ['id' => 'wine',     'name' => 'Wine'],
 //                ['id' => 'settings', 'name' => 'Settings'],
-                ['id' => 'info',     'name' => 'Info'],
+                ['id' => 'tweaks',    'name' => 'Tweaks'],
                 ['id' => 'exit',     'name' => 'Exit'],
             ]
         );
@@ -78,6 +78,9 @@ class MainScene extends AbstractScene
             }
             if ('tools' === $item['id']) {
                 app()->showTools();
+            }
+            if ('tweaks' === $item['id']) {
+                app()->showTweaks();
             }
             if ('exit' === $item['id']) {
                 app()->close();

@@ -142,7 +142,6 @@ class InfoWidget extends AbstractWidget {
                     ' - Create\Remove Icon',
                     ' - Pack\Unpack "wine" or "data" folder',
                     ' - Replace "data" folder to symlinks',
-                    ' - Set CPU mode',
                     ' - Build',
                     ' - Reset game files',
                 ];
@@ -163,23 +162,86 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ('info' === $item['id']) {
+            } elseif ('tweaks' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    '- Hardware info',
+                    '- System info',
+                    '- Performance tweaks',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('sys_info' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $system = app('start')->getSystem();
+                $driver = app('start')->getDriver()->getVersion();
+
+                $items = [
+                    'Distr:            ' . $system->getDistrName(),
+                    'Arch:             ' . $system->getArch(),
+                    'Linux:            ' . $system->getLinuxVersion(),
+                    'GPU Driver:       ' . implode(', ', array_filter($driver)),
+                    'Glibc:            ' . $system->getGlibcVersion(),
+                    'X.Org version:    ' . $system->getXorgVersion(),
+                    'vm.max_map_count: ' . $system->getVmMaxMapCount(),
+                    'ulimit soft:      ' . $system->getUlimitSoft(),
+                    'ulimit hard:      ' . $system->getUlimitHard(),
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('hw_info' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
                 $system = app('start')->getSystem();
 
                 $items = [
-                    'CPU:   ' . $system->getCPU(),
-                    'GPU:   ' . $system->getGPU(),
-                    'RAM:   ' . $system->getRAM() . ' Mb',
-                    'Distr: ' . $system->getDistrName(),
-                    'Linux: ' . $system->getLinuxVersion(),
-                    'Glibc: ' . $system->getGlibcVersion(),
+                    'RAM:      ' . $system->getRAM() . ' Mb',
+                    'Free RAM: ' . $system->getFreeRAM() . ' Mb',
+                    'CPU:      ' . $system->getCPU(),
+                    'GPU:      ' . $system->getGPU(),
                 ];
 
-                if ($mesa = $system->getMesaVersion()) {
-                    $items[] = 'Mesa:  ' . $mesa;
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('cpu_mode' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $system = app('start')->getSystem();
+
+                $items = [];
+                $title = false;
+                $performance = false;
+                foreach ($system->getCpuFreq() as $cpu) {
+                    if ($title === false) {
+                        $title = true;
+                        $items[] = $cpu['name'];
+                        $items[] = '';
+                    }
+
+                    if ($performance === false && $cpu['mode'] === 'performance') {
+                        $performance = true;
+                    }
+
+                    $items[] = "CPU {$cpu['id']}: {$cpu['freq']} ({$cpu['mode']})";
+                }
+
+                if (!$performance) {
+                    $items[] = '';
+                    $items[] = 'Recommended change CPU mode to "performance".';
                 }
 
                 $window->refresh();

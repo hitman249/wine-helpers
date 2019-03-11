@@ -3937,13 +3937,13 @@ class System {
 
         if (null === $arch) {
             if ((bool)trim($this->command->run('command -v arch'))) {
-                if ($this->command->run('arch') === 'x86_64') {
+                if (trim($this->command->run('arch')) === 'x86_64') {
                     $arch = 64;
                 } else {
                     $arch = 32;
                 }
             } elseif ((bool)trim($this->command->run('command -v getconf'))) {
-                if ($this->command->run('getconf LONG_BIT') === '64') {
+                if (trim($this->command->run('getconf LONG_BIT')) === '64') {
                     $arch = 64;
                 } else {
                     $arch = 32;
@@ -3952,6 +3952,39 @@ class System {
         }
 
         return $arch;
+    }
+
+    public function getXorgVersion()
+    {
+        static $xorg;
+
+        if (null === $xorg) {
+            if ((bool)trim($this->command->run('command -v xdpyinfo'))) {
+                $result = trim($this->command->run('xdpyinfo | grep -i "X.Org version"'));
+                $result = array_map('trim', explode(':', $result));
+                $result = end($result);
+
+                if ($result) {
+                    $xorg = $result;
+                }
+            }
+
+            if (null === $xorg) {
+                $path = '/var/log/Xorg.0.log';
+
+                if (file_exists($path)) {
+                    $result = trim($this->command->run("cat {$path} | grep \"X.Org X Server\""));
+                    $result = array_map('trim', explode(' ', $result));
+                    $result = end($result);
+
+                    if ($result) {
+                        $xorg = $result;
+                    }
+                }
+            }
+        }
+
+        return $xorg;
     }
 
     public function getVmMaxMapCount()
@@ -3966,6 +3999,46 @@ class System {
         }
 
         return $vmMaxMapCount;
+    }
+
+    public function getCpuFreq()
+    {
+        $cpu = trim($this->command->run('cat /proc/cpuinfo'));
+        $result = [];
+
+        $cpuId = null;
+        $name  = null;
+
+        foreach (explode("\n", $cpu) as $line) {
+            if (stripos($line, 'processor') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'processor') {
+                    $cpuId = (int)trim(end($exLine));
+                }
+            }
+
+            if (stripos($line, 'model name') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'model name') {
+                    $name = trim(end($exLine = explode(':', $line)));
+                }
+            }
+
+            if (stripos($line, 'cpu MHz') !== false) {
+                $exLine = explode(':', $line);
+                if (trim($exLine[0]) === 'cpu MHz') {
+                    $result[] = [
+                        'id'   => $cpuId,
+                        'name' => $name,
+                        'freq' => trim(end($exLine = explode(':', $line))),
+                        'mode' => file_exists("/sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor") ?
+                            trim($this->command->run("cat /sys/devices/system/cpu/cpu{$cpuId}/cpufreq/scaling_governor")) : '',
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 }
 
@@ -11290,6 +11363,20 @@ class ControllerGUI {
     public function  __construct()
     {
         $this->ncurses = new NcursesObjects\Ncurses;
+        $this->init();
+
+        $this->scenes             = [];
+        $this->scenes['main']     = new MainScene();
+        $this->scenes['prefix']   = new PrefixScene();
+        $this->scenes['gameInfo'] = new GameInfoScene();
+        $this->scenes['check']    = new CheckDependenciesScene();
+        $this->scenes['tools']    = new ToolsScene();
+        $this->scenes['wine']     = new WineScene();
+        $this->scenes['tweaks']   = new TweaksScene();
+    }
+
+    public function init()
+    {
         $this->ncurses
             ->setEchoState(false)
             ->setNewLineTranslationState(true)
@@ -11300,14 +11387,12 @@ class ControllerGUI {
             ncurses_start_color();
             ncurses_assume_default_colors(NCURSES_COLOR_WHITE, NCURSES_COLOR_BLUE);
         }
+    }
 
-        $this->scenes             = [];
-        $this->scenes['main']     = new MainScene();
-        $this->scenes['prefix']   = new PrefixScene();
-        $this->scenes['gameInfo'] = new GameInfoScene();
-        $this->scenes['check']    = new CheckDependenciesScene();
-        $this->scenes['tools']    = new ToolsScene();
-        $this->scenes['wine']     = new WineScene();
+
+    public function end()
+    {
+        ncurses_end();
     }
 
     public function getNcurses()
@@ -11440,7 +11525,15 @@ class ControllerGUI {
     }
 
     /**
-     * @return GameInfoScene|MainScene|PrefixScene
+     * @return TweaksScene
+     */
+    public function getTweaksScene()
+    {
+        return $this->getScenes('tweaks');
+    }
+
+    /**
+     * @return GameInfoScene|MainScene|PrefixScene|TweaksScene
      */
     public function getCurrentScene()
     {
@@ -11487,6 +11580,12 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getWineScene()->show();
+    }
+
+    public function showTweaks()
+    {
+        $this->hideAll();
+        $this->getTweaksScene()->show();
     }
 
     public function close()
@@ -11700,7 +11799,7 @@ class MainScene extends AbstractScene
                 ['id' => 'tools',    'name' => 'Tools'],
                 ['id' => 'wine',     'name' => 'Wine'],
 //                ['id' => 'settings', 'name' => 'Settings'],
-                ['id' => 'info',     'name' => 'Info'],
+                ['id' => 'tweaks',    'name' => 'Tweaks'],
                 ['id' => 'exit',     'name' => 'Exit'],
             ]
         );
@@ -11721,6 +11820,9 @@ class MainScene extends AbstractScene
             }
             if ('tools' === $item['id']) {
                 app()->showTools();
+            }
+            if ('tweaks' === $item['id']) {
+                app()->showTweaks();
             }
             if ('exit' === $item['id']) {
                 app()->close();
@@ -12673,6 +12775,103 @@ class WineScene extends AbstractScene {
 
 
 
+class TweaksScene extends AbstractScene
+{
+    private $selectIndex = 0;
+
+    public function render()
+    {
+        /** @var Config $config */
+        $config = app('start')->getConfig();
+        /** @var Update $update */
+        $update = app('start')->getUpdate();
+        /** @var Wine $wine */
+        $wine = app('start')->getWine();
+
+        $this->window
+            ->border()
+            ->title('Tweaks')
+            ->status($update->getUrl())
+            ->refresh();
+
+        $menu = $this->renderMenu();
+
+        $info = $this->addWidget(new InfoWidget($this->window));
+        $info
+            ->setData($menu)
+            ->show();
+
+        if ($menu->selectAt($this->selectIndex)) {
+            $menu->render();
+        }
+        $menu->onChangeEvent(function () use (&$menu) {
+            $this->selectIndex = $menu->index();
+        });
+    }
+
+    public function renderMenu()
+    {
+        $items = [
+            ['id' => 'back',        'name' => 'Back'],
+            ['id' => 'hw_info',     'name' => 'Hardware info'],
+            ['id' => 'sys_info',    'name' => 'System info'],
+            ['id' => 'cpu_mode',    'name' => 'CPU mode'],
+        ];
+
+        $select = $this->addWidget(new PopupSelectWidget($this->window));
+        $select
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 16)
+            ->offset(2, 1)
+            ->setActive(true)
+            ->show();
+
+        $select->onEnterEvent(function ($item, $xy) {
+            if ('back' === $item['id']) {
+                app()->showMain();
+            }
+
+            if ('cpu_mode' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setTitle('Set mode')
+                    ->setItems([
+                        ['id' => 'performance',  'name' => 'performance'],
+                        ['id' => 'ondemand',     'name' => 'ondemand (default)'],
+                        ['id' => 'conservative', 'name' => 'conservative'],
+                        ['id' => 'powersave',    'name' => 'powersave'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$item) {
+                    $this->removeWidget($select->hide());
+
+                    $gui = app('gui');
+                    $gui->end();
+                    exec("sudo sh -c '$(for CPUFREQ in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f \$CPUFREQ ] || continue; echo -n {$type['id']} > \$CPUFREQ; done)'");
+                    $gui->init();
+                    app()->showTweaks();
+                });
+            }
+
+        });
+
+        return $select;
+    }
+
+    public function pressKey($key) {}
+}
+
+
+
 abstract class AbstractWidget {
 
     /** @var \NcursesObjects\Window  */
@@ -13154,7 +13353,6 @@ class InfoWidget extends AbstractWidget {
                     ' - Create\Remove Icon',
                     ' - Pack\Unpack "wine" or "data" folder',
                     ' - Replace "data" folder to symlinks',
-                    ' - Set CPU mode',
                     ' - Build',
                     ' - Reset game files',
                 ];
@@ -13175,23 +13373,86 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ('info' === $item['id']) {
+            } elseif ('tweaks' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    '- Hardware info',
+                    '- System info',
+                    '- Performance tweaks',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('sys_info' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $system = app('start')->getSystem();
+                $driver = app('start')->getDriver()->getVersion();
+
+                $items = [
+                    'Distr:            ' . $system->getDistrName(),
+                    'Arch:             ' . $system->getArch(),
+                    'Linux:            ' . $system->getLinuxVersion(),
+                    'GPU Driver:       ' . implode(', ', array_filter($driver)),
+                    'Glibc:            ' . $system->getGlibcVersion(),
+                    'X.Org version:    ' . $system->getXorgVersion(),
+                    'vm.max_map_count: ' . $system->getVmMaxMapCount(),
+                    'ulimit soft:      ' . $system->getUlimitSoft(),
+                    'ulimit hard:      ' . $system->getUlimitHard(),
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('hw_info' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
                 $system = app('start')->getSystem();
 
                 $items = [
-                    'CPU:   ' . $system->getCPU(),
-                    'GPU:   ' . $system->getGPU(),
-                    'RAM:   ' . $system->getRAM() . ' Mb',
-                    'Distr: ' . $system->getDistrName(),
-                    'Linux: ' . $system->getLinuxVersion(),
-                    'Glibc: ' . $system->getGlibcVersion(),
+                    'RAM:      ' . $system->getRAM() . ' Mb',
+                    'Free RAM: ' . $system->getFreeRAM() . ' Mb',
+                    'CPU:      ' . $system->getCPU(),
+                    'GPU:      ' . $system->getGPU(),
                 ];
 
-                if ($mesa = $system->getMesaVersion()) {
-                    $items[] = 'Mesa:  ' . $mesa;
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('cpu_mode' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $system = app('start')->getSystem();
+
+                $items = [];
+                $title = false;
+                $performance = false;
+                foreach ($system->getCpuFreq() as $cpu) {
+                    if ($title === false) {
+                        $title = true;
+                        $items[] = $cpu['name'];
+                        $items[] = '';
+                    }
+
+                    if ($performance === false && $cpu['mode'] === 'performance') {
+                        $performance = true;
+                    }
+
+                    $items[] = "CPU {$cpu['id']}: {$cpu['freq']} ({$cpu['mode']})";
+                }
+
+                if (!$performance) {
+                    $items[] = '';
+                    $items[] = 'Recommended change CPU mode to "performance".';
                 }
 
                 $window->refresh();

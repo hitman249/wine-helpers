@@ -63,6 +63,7 @@ return [
         'scenes/CheckDependenciesScene.php',
         'scenes/ToolsScene.php',
         'scenes/WineScene.php',
+        'scenes/TweaksScene.php',
         'widgets/AbstractWidget.php',
         'widgets/SelectWidget.php',
         'widgets/InfoWidget.php',
