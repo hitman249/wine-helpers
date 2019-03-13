@@ -2,7 +2,7 @@
 
 class Update
 {
-    private $version = '0.77';
+    private $version = '0.78';
     private $command;
     private $config;
     private $network;

@@ -37,10 +37,11 @@ class TweaksScene extends AbstractScene
     public function renderMenu()
     {
         $items = [
-            ['id' => 'back',        'name' => 'Back'],
-            ['id' => 'hw_info',     'name' => 'Hardware info'],
-            ['id' => 'sys_info',    'name' => 'System info'],
-            ['id' => 'cpu_mode',    'name' => 'CPU mode'],
+            ['id' => 'back',         'name' => 'Back'],
+            ['id' => 'hw_info',      'name' => 'Hardware info'],
+            ['id' => 'sys_info',     'name' => 'System info'],
+            ['id' => 'cpu_mode',     'name' => 'CPU mode'],
+            ['id' => 'dependencies', 'name' => 'Check dependencies'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -57,7 +58,20 @@ class TweaksScene extends AbstractScene
             if ('back' === $item['id']) {
                 app()->showMain();
             }
+            if ('dependencies' === $item['id']) {
+                /** @var Config $config */
+                $config = app('start')->getConfig();
 
+                /** @var Command $command */
+                $command = app('start')->getCommand();
+
+                /** @var System $system */
+                $system = app('start')->getSystem();
+
+                (new CheckDependencies($config, $command, $system))->check();
+
+                app()->showTweaks();
+            }
             if ('cpu_mode' === $item['id']) {
                 $select = $this->addWidget(new PopupSelectWidget($this->window));
                 $select

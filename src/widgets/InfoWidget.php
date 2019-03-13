@@ -248,6 +248,18 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('dependencies' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'See file "~/game_info/logs/dependencies.log"',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             } elseif ('exit' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);

@@ -432,6 +432,7 @@ WINEDEBUG = "-all"
 ;
 ; If the game wheezing sound, you can try
 ; PULSE_LATENCY_MSEC=60
+; SDL_AUDIODRIVER=directsound
 
 WINEESYNC=1
 PBA_DISABLE=1

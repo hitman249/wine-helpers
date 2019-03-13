@@ -124,6 +124,116 @@ class CheckDependencies {
                 'status' => true,
                 'find'   => 'libasound',
             ],
+            'libsm6'    => [
+                'name'   => 'libsm6',
+                'status' => true,
+                'find'   => 'libSM.so',
+            ],
+            'libGL'    => [
+                'name'   => 'libGL',
+                'status' => true,
+                'find'   => 'libGL.so',
+            ],
+            'libtxc_dxtn'    => [
+                'name'   => 'libtxc_dxtn',
+                'status' => true,
+                'find'   => 'libtxc_dxtn.so',
+            ],
+            'libgif'    => [
+                'name'   => 'libgif',
+                'status' => true,
+                'find'   => 'libgif.so',
+            ],
+            'libncurses5'    => [
+                'name'   => 'libncurses5',
+                'status' => true,
+                'find'   => 'libncurses.so.5',
+            ],
+            'libncursesw5'    => [
+                'name'   => 'libncursesw5',
+                'status' => true,
+                'find'   => 'libncursesw.so.5',
+            ],
+            'libncurses6'    => [
+                'name'   => 'libncurses6',
+                'status' => true,
+                'find'   => 'libncurses.so.6',
+            ],
+            'libncursesw6'    => [
+                'name'   => 'libncursesw6',
+                'status' => true,
+                'find'   => 'libncursesw.so.6',
+            ],
+            'libfreetype'    => [
+                'name'   => 'libfreetype',
+                'status' => true,
+                'find'   => 'libfreetype.so',
+            ],
+            'libmpg123'    => [
+                'name'   => 'libmpg123',
+                'status' => true,
+                'find'   => 'libmpg123.so',
+            ],
+            'libXcomposite'    => [
+                'name'   => 'libXcomposite',
+                'status' => true,
+                'find'   => 'libXcomposite.so',
+            ],
+            'libgnutls'    => [
+                'name'   => 'libgnutls',
+                'status' => true,
+                'find'   => 'libgnutls.so',
+            ],
+            'libjpeg62'    => [
+                'name'   => 'libjpeg62',
+                'status' => true,
+                'find'   => 'libjpeg.so.62',
+            ],
+            'libjpeg8'    => [
+                'name'   => 'libjpeg8',
+                'status' => true,
+                'find'   => 'libjpeg.so.8',
+            ],
+            'libxslt'    => [
+                'name'   => 'libxslt',
+                'status' => true,
+                'find'   => 'libxslt.so',
+            ],
+            'libXrandr'    => [
+                'name'   => 'libxrandr',
+                'status' => true,
+                'find'   => 'libXrandr.so',
+            ],
+            'libpng16'    => [
+                'name'   => 'libpng16',
+                'status' => true,
+                'find'   => 'libpng16.so',
+            ],
+            'libpng12'    => [
+                'name'   => 'libpng12',
+                'status' => true,
+                'find'   => 'libpng12.so',
+            ],
+            'libxcb1'    => [
+                'name'   => 'libxcb1',
+                'status' => true,
+                'find'   => 'libxcb.so.1',
+            ],
+            'libtheora'    => [
+                'name'   => 'libtheora',
+                'status' => true,
+                'find'   => 'libtheora.so.0',
+            ],
+            'libvorbis'    => [
+                'name'   => 'libvorbis',
+                'status' => true,
+                'find'   => 'libvorbis.so.0',
+            ],
+            'zlib1g'    => [
+                'name'   => 'zlib1g',
+                'status' => true,
+                'find'   => 'libz.so.1',
+            ],
         ];
 
         ksort($apps);
@@ -161,13 +271,46 @@ class CheckDependencies {
         if ($apps['ldconfig']) {
 
             foreach ($libs as $key => $lib) {
-                $count = array_filter(array_map('trim', explode("\n", trim($this->command->run("ldconfig -p | grep '{$lib}'")))));
+                $result = [
+                    'x86-64' => null,
+                    'i386'   => null,
+                ];
+                $finds = array_filter(array_map('trim', explode("\n", trim($this->command->run("ldconfig -p | grep '{$lib['find']}'")))));
 
-                if ($count <= 0 || ($count <= 1 && $this->system->getArch() === 64)) {
-                    $lib[$key]['status'] = false;
+                foreach ($finds as $find) {
+                    list($_fullName, $_path) = array_map('trim', explode('=>', $find));
+                    list($_name, $_arch) = array_map(function ($n) {return trim($n, " \t\n\r\0\x0B()");}, explode(' (', $find));
+                    $_arch = stripos($_arch,'x86-64') !== false ? 'x86-64' : 'i386';
+
+                    if (null === $result[$_arch]) {
+                        $result[$_arch] = [
+                            'name' => $_name,
+                            'path' => $_path,
+                        ];
+                    } elseif (strlen($_name) > strlen($result[$_arch]['name']) || (strlen($_name) === strlen($result[$_arch]['name']) && strlen($_path) > strlen($result[$_arch]['path']))) {
+                        $result[$_arch] = [
+                            'name' => $_name,
+                            'path' => $_path,
+                        ];
+                    }
                 }
 
-                $this->log($this->formattedItem($lib['name'], $lib['status'] ? 'ok' : 'fail'));
+                if ($this->system->getArch() === 64) {
+                    $lib[$key]['status'] = (bool)($result['x86-64'] && $result['i386']);
+                } else {
+                    $lib[$key]['status'] = (bool)$result['i386'];
+                }
+
+                $this->log('');
+                $this->log('');
+                $this->log($this->formattedItem("Find lib \"{$lib['name']}\"", $lib[$key]['status'] ? 'ok' : 'fail'));
+                $this->log('');
+
+                if ($this->system->getArch() === 64) {
+                    $this->log("(x86-64) \"{$result['x86-64']['path']}\"");
+                }
+
+                $this->log("(i386)   \"{$result['i386']['path']}\"");
 
                 $progress += $percent;
                 app()->getCurrentScene()->setProgress($progress);
