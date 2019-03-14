@@ -7233,6 +7233,42 @@ class CheckDependencies {
             'lsmod'      => false,
         ];
 
+        $appsPackage = [
+            'wine'       => 'wine',
+            'zenity'     => 'zenity',
+            'xrandr'     => 'x11-xserver-utils',
+            'pulseaudio' => 'pulseaudio',
+            'glxinfo'    => 'mesa-utils',
+            'grep'       => 'grep',
+            'tar'        => 'tar',
+            'wget'       => 'wget',
+            'ldconfig'   => 'libc-bin',
+            'mksquashfs' => 'squashfs-tools',
+            'ldd'        => 'libc-bin',
+            'ps'         => 'procps',
+            'lspci'      => 'pciutils',
+            'fusermount' => 'fuse',
+            'mount'      => 'mount',
+            'tee'        => 'coreutils',
+            'sed'        => 'sed',
+            'xlsfonts'   => 'x11-utils',
+            'id'         => 'coreutils',
+            'cabextract' => 'cabextract',
+            'p7zip'      => 'p7zip',
+            'unrar'      => 'unrar',
+            'unzip'      => 'unzip',
+            'zip'        => 'zip',
+            'binutils'   => 'binutils',
+            'ffmpeg'     => 'ffmpeg',
+            'xz'         => 'xz-utils',
+            'diff'       => 'diffutils',
+            'patch'      => 'patch',
+            'hostname'   => 'hostname',
+            'locale'     => 'libc-bin',
+            'modinfo'    => 'kmod',
+            'lsmod'      => 'kmod',
+        ];
+
         $libs = [
             'libvulkan1'    => [
                 'name'   => 'libvulkan1',
@@ -7472,6 +7508,10 @@ class CheckDependencies {
             } else {
                 $apps[$app] = false;
                 $this->log($this->formattedItem($app, 'fail'));
+
+                if (!in_array($appsPackage[$app], $install, true)) {
+                    $install[] = $appsPackage[$app];
+                }
             }
 
             $progress += $percent;
@@ -7549,7 +7589,7 @@ class CheckDependencies {
         if ($install) {
             $this->log('');
             $this->log('');
-            $this->log('Please install:');
+            $this->log('Please install (ubuntu):');
             $this->log('sudo apt-get install ' . implode(' ', $install));
         }
 
