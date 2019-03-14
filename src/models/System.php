@@ -16,11 +16,23 @@ class System {
         $this->config  = $config;
     }
 
-    public function getUserName()
+    public function getUserName($reset = false)
     {
         static $userName = null;
 
+        if (true === $reset) {
+            $userName = null;
+        }
+
         if ($userName === null) {
+
+            $libwine = $this->config->getWineDir() . '/lib/libwine.so';
+
+            if (file_exists($libwine) && (bool)trim($this->command->run('grep "Proton" ' . Text::quoteArgs($libwine)))) {
+                $userName = 'steamuser';
+                return $userName;
+            }
+
             $userName = trim($this->command->run('id -u -n'));
         }
 

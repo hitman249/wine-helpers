@@ -105,6 +105,8 @@ class WineDownloader
             $this->clear();
             $this->extract($this->result);
         }
+
+        app('start')->getSystem()->getUserName(true);
     }
 
     public function clear()
