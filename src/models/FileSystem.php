@@ -48,7 +48,7 @@ class FileSystem {
 
         foreach (scandir($dir, SCANDIR_SORT_NONE) as $object) {
             if ($object !== '.' && $object !== '..') {
-                if (is_dir("{$dir}/{$object}")) {
+                if (is_dir("{$dir}/{$object}") && !is_link("{$dir}/{$object}")) {
                     $this->rm("{$dir}/{$object}");
                 } else {
                     unlink("{$dir}/{$object}");

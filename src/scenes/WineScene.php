@@ -27,11 +27,12 @@ class WineScene extends AbstractScene {
     public function renderMenu()
     {
         $items = [
-            ['id' => 'back',        'name' => 'Back'],
-            ['id' => 'winecfg',     'name' => 'Config',          'wine' => 'WINECFG'],
-            ['id' => 'filemanager', 'name' => 'File Manager',    'wine' => 'WINEFILE'],
-            ['id' => 'regedit',     'name' => 'Regedit',         'wine' => 'REGEDIT'],
-            ['id' => 'change',      'name' => 'Change Version' ],
+            ['id' => 'back',            'name' => 'Back'],
+            ['id' => 'winecfg',         'name' => 'Config',          'wine' => 'WINECFG'],
+            ['id' => 'filemanager',     'name' => 'File Manager',    'wine' => 'WINEFILE'],
+            ['id' => 'regedit',         'name' => 'Regedit',         'wine' => 'REGEDIT'],
+            ['id' => 'change',          'name' => 'Change Wine version' ],
+            ['id' => 'recreate_prefix', 'name' => 'Recreate prefix' ],
 //            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
 //            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
 //            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
@@ -48,11 +49,12 @@ class WineScene extends AbstractScene {
             ->show();
 
         $select->onEnterEvent(function ($item) {
+            $config = app('start')->getConfig();
+
             if ('back' === $item['id']) {
                 app()->showMain();
             }
             if (in_array($item['id'], ['winecfg', 'filemanager', 'regedit', 'taskmgr', 'uninstaller', 'progman'])) {
-                $config = app('start')->getConfig();
                 $task   = new Task($config);
                 $task
                     ->debug()
@@ -70,6 +72,29 @@ class WineScene extends AbstractScene {
             if ('change' === $item['id']) {
                 $wineDownloader = new WineDownloader(app('start')->getConfig(), app('start')->getCommand(), app('start')->getFileSystem(), app('start')->getPack());
                 $wineDownloader->wizard();
+            }
+            if ('recreate_prefix' === $item['id']) {
+                $popup = $this->addWidget(new PopupYesNoWidget($this->getWindow()));
+                $popup
+                    ->setTitle('Recreate prefix')
+                    ->setText([
+                        'Recreate Wine prefix folder?',
+                    ])
+                    ->setActive(true)
+                    ->show();
+                $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                $popup->onEnterEvent(function ($flag) use (&$popup, &$config) {
+                    $this->removeWidget($popup->hide());
+
+                    if (!$flag) {
+                        return;
+                    }
+
+                    if (file_exists($config->getPrefixFolder())) {
+                        app('start')->getFileSystem()->rm($config->getPrefixFolder());
+                        app('start')->getUpdate()->restart();
+                    }
+                });
             }
         });
 

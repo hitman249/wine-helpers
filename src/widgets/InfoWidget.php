@@ -424,6 +424,18 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('recreate_prefix' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Recreate Wine prefix folder.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             } elseif ('update' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);

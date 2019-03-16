@@ -64,6 +64,7 @@ class GameInfo {
                 $this->config->getHooksDir(),
                 $this->config->getHooksGpuDir(),
                 $this->config->getRegistryDir(),
+                $this->config->getPatchApplyDir(),
             ];
 
             foreach ($folders as $path) {
