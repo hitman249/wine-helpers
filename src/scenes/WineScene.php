@@ -38,6 +38,10 @@ class WineScene extends AbstractScene {
 //            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
         ];
 
+        if (app('start')->getDriver()->isGalliumNineSupport()) {
+            $items[] =  ['id' => 'galliumnine', 'name' => 'Gallium Nine' ];
+        }
+
         $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select
             ->setItems($items)
@@ -96,10 +100,56 @@ class WineScene extends AbstractScene {
                     }
                 });
             }
+            if ('galliumnine' === $item['id']) {
+                if ($this->isGalliumNineInstalled()) {
+                    $task = new Task($config);
+                    $task
+                        ->debug()
+                        ->logName($item['id'])
+                        ->cmd(Text::quoteArgs($config->wine('WINE')) . ' ninewinecfg.exe')
+                        ->run();
+                } else {
+                    $popup = $this->addWidget(new PopupYesNoWidget($this->getWindow()));
+                    $popup
+                        ->setTitle('Gallium Nine')
+                        ->setText([
+                            'Install Gallium Nine?',
+                        ])
+                        ->setActive(true)
+                        ->show();
+                    $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
+                    $popup->onEnterEvent(function ($flag) use (&$popup, &$config) {
+                        $this->removeWidget($popup->hide());
+
+                        if (!$flag) {
+                            return;
+                        }
+
+                        $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
+                        $popup
+                            ->setTitle('Installing Gallium Nine')
+                            ->setText('Wait ...')
+                            ->setActive(true)
+                            ->show();
+
+                        (new Wine($config, app('start')->getCommand()))->winetricks(['galliumnine']);
+
+                        $this->removeWidget($popup->hide());
+                    });
+                }
+            }
         });
 
         return $select;
     }
 
     public function pressKey($key) {}
+
+    public function isGalliumNineInstalled()
+    {
+        /** @var Config $config */
+        $config = app('start')->getConfig();
+
+        return file_exists($config->getWineSystem32Folder() . '/ninewinecfg.exe');
+    }
 }

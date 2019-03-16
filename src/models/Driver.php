@@ -151,4 +151,9 @@ class Driver
 
         return $driver;
     }
+
+    public function isGalliumNineSupport()
+    {
+        return $this->getAmd() || $this->getIntel();
+    }
 }

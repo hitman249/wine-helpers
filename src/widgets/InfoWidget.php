@@ -523,6 +523,22 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('galliumnine' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [];
+
+                if (app('gui')->getWineScene()->isGalliumNineInstalled()) {
+                    $items[] = 'Configuring Gallium Nine with "ninewinecfg".';
+                } else {
+                    $items[] = 'Install Gallium Nine.';
+                }
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             }
         };
 
