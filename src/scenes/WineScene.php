@@ -26,21 +26,22 @@ class WineScene extends AbstractScene {
 
     public function renderMenu()
     {
-        $items = [
-            ['id' => 'back',            'name' => 'Back'],
-            ['id' => 'winecfg',         'name' => 'Config',          'wine' => 'WINECFG'],
-            ['id' => 'filemanager',     'name' => 'File Manager',    'wine' => 'WINEFILE'],
-            ['id' => 'regedit',         'name' => 'Regedit',         'wine' => 'REGEDIT'],
-            ['id' => 'change',          'name' => 'Change Wine version' ],
-            ['id' => 'recreate_prefix', 'name' => 'Recreate prefix' ],
-//            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
-//            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
-//            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
-        ];
+        $items = [];
+        $items[] = ['id' => 'back',            'name' => 'Back'];
+        $items[] = ['id' => 'winecfg',         'name' => 'Config',          'wine' => 'WINECFG'];
+        $items[] = ['id' => 'filemanager',     'name' => 'File Manager',    'wine' => 'WINEFILE'];
+        $items[] = ['id' => 'regedit',         'name' => 'Regedit',         'wine' => 'REGEDIT'];
 
         if (app('start')->getDriver()->isGalliumNineSupport()) {
             $items[] =  ['id' => 'galliumnine', 'name' => 'Gallium Nine' ];
         }
+
+        $items[] = ['id' => 'change',          'name' => 'Change Wine version' ];
+        $items[] = ['id' => 'recreate_prefix', 'name' => 'Recreate prefix' ];
+
+//            ['id' => 'taskmgr',     'name' => 'Task Manager',    'wine' => 'WINETASKMGR'],
+//            ['id' => 'uninstaller', 'name' => 'Uninstaller',     'wine' => 'WINEUNINSTALLER'],
+//            ['id' => 'progman',     'name' => 'Program Manager', 'wine' => 'WINEPROGRAM'],
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select

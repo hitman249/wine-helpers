@@ -38,10 +38,10 @@ class TweaksScene extends AbstractScene
     {
         $items = [
             ['id' => 'back',         'name' => 'Back'],
-            ['id' => 'hw_info',      'name' => 'Hardware info'],
-            ['id' => 'sys_info',     'name' => 'System info'],
             ['id' => 'cpu_mode',     'name' => 'CPU mode'],
             ['id' => 'dependencies', 'name' => 'Check dependencies'],
+            ['id' => 'hw_info',      'name' => 'Hardware info'],
+            ['id' => 'sys_info',     'name' => 'System info'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));

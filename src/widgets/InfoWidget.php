@@ -683,6 +683,8 @@ class InfoWidget extends AbstractWidget {
                     $items[] = 'Configuring Gallium Nine with "ninewinecfg".';
                 } else {
                     $items[] = 'Install Gallium Nine.';
+                    $items[] = 'Native Direct3D9 in GNU/Linux.';
+                    $items[] = 'Support only AMD and Intel GPU.';
                 }
 
                 $window->refresh();
