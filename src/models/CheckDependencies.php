@@ -538,6 +538,7 @@ class CheckDependencies {
             $this->log('');
             $this->log('');
             $this->log('Please install (ubuntu):');
+            $this->log('sudo dpkg --add-architecture i386 && sudo apt-get update');
             $this->log('sudo apt-get install ' . implode(' ', $install));
         }
 
