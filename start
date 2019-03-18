@@ -7240,9 +7240,11 @@ class CheckDependencies {
         app()->showCheckDependencies();
 
         $system = app('start')->getSystem();
+        $update = app('start')->getUpdate();
         $driver = app('start')->getDriver()->getVersion();
 
         $items = [
+            'Script version:   ' . $update->version(),
             'RAM:              ' . $system->getRAM() . ' Mb',
             'CPU:              ' . $system->getCPU(),
             'GPU:              ' . $system->getGPU(),
