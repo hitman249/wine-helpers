@@ -56,8 +56,8 @@ class MainScene extends AbstractScene
             [
                 ['id' => 'tools',    'name' => 'Tools'],
                 ['id' => 'wine',     'name' => 'Wine'],
-//                ['id' => 'settings', 'name' => 'Settings'],
-                ['id' => 'tweaks',    'name' => 'Tweaks'],
+                ['id' => 'config',   'name' => 'Config'],
+                ['id' => 'tweaks',   'name' => 'Tweaks'],
                 ['id' => 'exit',     'name' => 'Exit'],
             ]
         );
@@ -72,7 +72,7 @@ class MainScene extends AbstractScene
             ->setActive(true)
             ->show();
 
-        $select->onEnterEvent(function ($item, $xy) {
+        $select->onEnterEvent(function ($item, $xy) use (&$config) {
             if ('wine' === $item['id']) {
                 app()->showWine();
             }
@@ -81,6 +81,42 @@ class MainScene extends AbstractScene
             }
             if ('tweaks' === $item['id']) {
                 app()->showTweaks();
+            }
+            if ('config' === $item['id']) {
+
+                $configPaths = $config->findConfigsPath();
+
+                if (count($configPaths) > 1) {
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems(
+                            array_map(
+                                function ($path) {
+                                    return [
+                                        'id'   => $path,
+                                        'name' => (new Config($path))->getGameTitle() . ' | ' . basename($path)
+                                    ];
+                                },
+                                $configPaths
+                            )
+                        )
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                    $select->onEnterEvent(function ($item) use (&$select) {
+                        $this->removeWidget($select->hide());
+                        app()->getConfigScene()->setConfig(new Config($item['id']));
+                        app()->showConfig();
+                    });
+                } else {
+                    app()->showConfig();
+                }
             }
             if ('exit' === $item['id']) {
                 app()->close();

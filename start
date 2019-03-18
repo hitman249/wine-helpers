@@ -4439,6 +4439,26 @@ class Config {
         return null === $field ? $this->config[$section] : $this->config[$section][$field];
     }
 
+    /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        $this->load();
+
+        return $this->config;
+    }
+
+    /**
+     * @return bool
+     */
+    public function save()
+    {
+        $update = new Update($this, new Command($this));
+
+        return $update->updateConfig($this);
+    }
+
     public function set($section, $field, $value)
     {
         $this->load();
@@ -4537,6 +4557,13 @@ class Config {
                 $this->config = parse_ini_string($this->getDefaultConfig(), true);
                 @file_put_contents($path, $this->getDefaultConfig());
             }
+        }
+    }
+
+    public function reload()
+    {
+        if (file_exists($this->configPath)) {
+            $this->config = (new FileINI($this->configPath))->get();
         }
     }
 
@@ -5466,7 +5493,7 @@ class Wine {
 
 class Update
 {
-    private $version = '0.80';
+    private $version = '0.81';
     private $command;
     private $config;
     private $network;
@@ -5638,17 +5665,25 @@ class Update
         return false;
     }
 
-    public function updateConfig()
+    /**
+     * @param Config|null $config
+     * @return bool
+     */
+    public function updateConfig($config = null)
     {
-        if (!file_exists($this->config->getConfigFile())) {
+        if (null === $config) {
+            $config = $this->config;
+        }
+
+        if (!file_exists($config->getConfigFile())) {
             return false;
         }
 
         $result = [];
 
-        $current          = (new FileINI($this->config->getConfigFile()))->get();
-        $currentText      = file_get_contents($this->config->getConfigFile());
-        $defaultText      = $this->config->getDefaultConfig();
+        $current          = $config->getConfig();
+        $currentText      = file_get_contents($config->getConfigFile());
+        $defaultText      = $config->getDefaultConfig();
         $defaultTextArray = explode("\n", $defaultText);
 
         $section = null;
@@ -5743,7 +5778,7 @@ class Update
         $newConfig = implode("\n", $result);
 
         if (md5($currentText) !== md5($newConfig)) {
-            file_put_contents($this->config->getConfigFile(), $newConfig);
+            file_put_contents($config->getConfigFile(), $newConfig);
             return true;
         }
 
@@ -11690,6 +11725,7 @@ class ControllerGUI {
         $this->scenes['tools']    = new ToolsScene();
         $this->scenes['wine']     = new WineScene();
         $this->scenes['tweaks']   = new TweaksScene();
+        $this->scenes['config']   = new ConfigScene();
     }
 
     public function init()
@@ -11850,6 +11886,14 @@ class ControllerGUI {
     }
 
     /**
+     * @return ConfigScene
+     */
+    public function getConfigScene()
+    {
+        return $this->getScenes('config');
+    }
+
+    /**
      * @return GameInfoScene|MainScene|PrefixScene|TweaksScene
      */
     public function getCurrentScene()
@@ -11903,6 +11947,12 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getTweaksScene()->show();
+    }
+
+    public function showConfig()
+    {
+        $this->hideAll();
+        $this->getConfigScene()->show();
     }
 
     public function close()
@@ -12115,8 +12165,8 @@ class MainScene extends AbstractScene
             [
                 ['id' => 'tools',    'name' => 'Tools'],
                 ['id' => 'wine',     'name' => 'Wine'],
-//                ['id' => 'settings', 'name' => 'Settings'],
-                ['id' => 'tweaks',    'name' => 'Tweaks'],
+                ['id' => 'config',   'name' => 'Config'],
+                ['id' => 'tweaks',   'name' => 'Tweaks'],
                 ['id' => 'exit',     'name' => 'Exit'],
             ]
         );
@@ -12131,7 +12181,7 @@ class MainScene extends AbstractScene
             ->setActive(true)
             ->show();
 
-        $select->onEnterEvent(function ($item, $xy) {
+        $select->onEnterEvent(function ($item, $xy) use (&$config) {
             if ('wine' === $item['id']) {
                 app()->showWine();
             }
@@ -12140,6 +12190,42 @@ class MainScene extends AbstractScene
             }
             if ('tweaks' === $item['id']) {
                 app()->showTweaks();
+            }
+            if ('config' === $item['id']) {
+
+                $configPaths = $config->findConfigsPath();
+
+                if (count($configPaths) > 1) {
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems(
+                            array_map(
+                                function ($path) {
+                                    return [
+                                        'id'   => $path,
+                                        'name' => (new Config($path))->getGameTitle() . ' | ' . basename($path)
+                                    ];
+                                },
+                                $configPaths
+                            )
+                        )
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                    $select->onEnterEvent(function ($item) use (&$select) {
+                        $this->removeWidget($select->hide());
+                        app()->getConfigScene()->setConfig(new Config($item['id']));
+                        app()->showConfig();
+                    });
+                } else {
+                    app()->showConfig();
+                }
             }
             if ('exit' === $item['id']) {
                 app()->close();
@@ -13278,6 +13364,252 @@ class TweaksScene extends AbstractScene
 
 
 
+class ConfigScene extends AbstractScene
+{
+    private $selectIndex = 0;
+
+    /** @var Config */
+    private $config;
+
+    /**
+     * @param Config $config
+     */
+    public function setConfig($config)
+    {
+        $this->config = $config;
+    }
+
+    /**
+     * @return Config
+     */
+    public function getConfig()
+    {
+        return null === $this->config ? app('start')->getConfig() : $this->config;
+    }
+
+    public function render()
+    {
+        /** @var Update $update */
+        $update = app('start')->getUpdate();
+
+        $this->window
+            ->border()
+            ->title('Config ~/' . basename($this->getConfig()->getConfigFile()))
+            ->status($update->getUrl())
+            ->refresh();
+
+        $menu = $this->renderMenu();
+
+        $info = $this->addWidget(new InfoWidget($this->window));
+        $info
+            ->setData($menu)
+            ->show();
+
+        if ($menu->selectAt($this->selectIndex)) {
+            $menu->render();
+        }
+        $menu->onChangeEvent(function () use (&$menu) {
+            $this->selectIndex = $menu->index();
+        });
+    }
+
+    public function renderMenu()
+    {
+        /** @var Config $config */
+        $config = $this->getConfig();
+
+        $items = [
+            ['id' => 'back',                            'name' => 'Back'],
+            ['id' => 'config_wine_arch',                'name' => '(' . ($config->get('wine', 'WINEARCH')) . ')' . ' Wine arch'],
+            ['id' => 'config_winver',                   'name' => '(' . ($config->get('script', 'winver')) . ')' . ' Windows version'],
+            ['id' => 'config_patches',                  'name' => '[' . ($config->isGenerationPatchesMode() ? 'ON] ' : 'OFF]') . ' Create patches'],
+            ['id' => 'config_esync',                    'name' => '[' . ($config->isEsync() ? 'ON] ' : 'OFF]') . ' ESYNC enable'],
+            ['id' => 'config_pba',                      'name' => '[' . ($config->isPBA() ? 'ON] ' : 'OFF]') . ' PBA enable'],
+            ['id' => 'config_dxvk',                     'name' => '[' . ($config->isDxvk() ? 'ON] ' : 'OFF]') . ' DXVK enable'],
+            ['id' => 'config_csmt',                     'name' => '[' . ($config->getBool('script', 'csmt') ? 'ON] ' : 'OFF]') . ' CSMT enable'],
+            ['id' => 'config_pulse',                    'name' => '[' . ($config->getBool('script', 'pulse') ? 'ON] ' : 'OFF]') . ' Pulse enable'],
+            ['id' => 'config_window_enable',            'name' => '[' . ($config->getBool('window', 'enable') ? 'ON] ' : 'OFF]') . ' Window mode'],
+            ['id' => 'config_sandbox',                  'name' => '[' . ($config->getBool('script', 'sandbox') ? 'ON] ' : 'OFF]') . ' Sandbox'],
+            ['id' => 'config_fixres',                   'name' => '[' . ($config->getBool('script', 'fixres') ? 'ON] ' : 'OFF]') . ' Auto fixed resolution'],
+            ['id' => 'config_faudio',                   'name' => '[' . ($config->getBool('script', 'faudio') ? 'ON] ' : 'OFF]') . ' FAudio'],
+            ['id' => 'config_dumbxinputemu',            'name' => '[' . ($config->getBool('script', 'dumbxinputemu') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu'],
+            ['id' => 'config_dxvk_d3d10',               'name' => '[' . ($config->getBool('script', 'dxvk_d3d10') ? 'ON] ' : 'OFF]') . ' DXVK D3D10'],
+            ['id' => 'config_autoupdate',               'name' => '[' . ($config->isScriptAutoupdate() ? 'ON] ' : 'OFF]') . ' SCRIPT autoupdate'],
+            ['id' => 'config_dxvk_autoupdate',          'name' => '[' . ($config->isDxvkAutoupdate() ? 'ON] ' : 'OFF]') . ' DXVK autoupdate'],
+            ['id' => 'config_faudio_autoupdate',        'name' => '[' . ($config->getBool('script', 'faudio_autoupdate') ? 'ON] ' : 'OFF]') . ' FAudio autoupdate'],
+            ['id' => 'config_dumbxinputemu_autoupdate', 'name' => '[' . ($config->getBool('script', 'dumbxinputemu_autoupdate') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu autoupdate'],
+        ];
+
+        $select = $this->addWidget(new PopupSelectWidget($this->window));
+        $select
+            ->setItems($items)
+            ->border()
+            ->setFullMode()
+            ->maxSize(null, 16)
+            ->offset(2, 1)
+            ->setActive(true)
+            ->show();
+
+        $select->onEnterEvent(function ($item, $xy) use (&$config) {
+            if ('back' === $item['id']) {
+                app()->showMain();
+            }
+
+            if ('config_wine_arch' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'win32', 'name' => 'win32'],
+                        ['id' => 'win64', 'name' => 'win64'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('wine', 'WINEARCH', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
+            }
+
+            if ('config_winver' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => 'win2k', 'name' => 'Windows 2000'],
+                        ['id' => 'winxp', 'name' => 'Windows XP'],
+                        ['id' => 'win7',  'name' => 'Windows 7'],
+                        ['id' => 'win10', 'name' => 'Windows 10'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('script', 'winver', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
+            }
+
+            if ('config_patches' === $item['id']) {
+                $config->set('script', 'generation_patches_mode', $config->isGenerationPatchesMode() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_esync' === $item['id']) {
+                $config->set('export', 'WINEESYNC', $config->isEsync() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_pba' === $item['id']) {
+                $config->set('export', 'PBA_DISABLE', $config->isPBA() ? 1 : 0);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_dxvk' === $item['id']) {
+                $config->set('script', 'dxvk', $config->isDxvk() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_csmt' === $item['id']) {
+                $config->set('script', 'csmt', $config->getBool('script', 'csmt') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_pulse' === $item['id']) {
+                $config->set('script', 'pulse', $config->getBool('script', 'pulse') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_window_enable' === $item['id']) {
+                $config->set('window', 'enable', $config->getBool('window', 'enable') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_dxvk_d3d10' === $item['id']) {
+                $config->set('script', 'dxvk_d3d10', $config->getBool('script', 'dxvk_d3d10') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_faudio' === $item['id']) {
+                $config->set('script', 'faudio', $config->getBool('script', 'faudio') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_dumbxinputemu' === $item['id']) {
+                $config->set('script', 'dumbxinputemu', $config->getBool('script', 'dumbxinputemu') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_sandbox' === $item['id']) {
+                $config->set('script', 'sandbox', $config->getBool('script', 'sandbox') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fixres' === $item['id']) {
+                $config->set('script', 'fixres', $config->getBool('script', 'fixres') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_autoupdate' === $item['id']) {
+                $config->set('script', 'autoupdate', $config->isScriptAutoupdate() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_dxvk_autoupdate' === $item['id']) {
+                $config->set('script', 'dxvk_autoupdate', $config->isDxvkAutoupdate() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_faudio_autoupdate' === $item['id']) {
+                $config->set('script', 'faudio_autoupdate', $config->getBool('script', 'faudio_autoupdate') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_dumbxinputemu_autoupdate' === $item['id']) {
+                $config->set('script', 'dumbxinputemu_autoupdate', $config->getBool('script', 'dumbxinputemu_autoupdate') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            app('start')->getConfig()->reload();
+        });
+
+        return $select;
+    }
+
+    public function pressKey($key) {}
+}
+
+
+
 abstract class AbstractWidget {
 
     /** @var \NcursesObjects\Window  */
@@ -13767,12 +14099,12 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ('settings' === $item['id']) {
+            } elseif ('config' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Configuration *.ini files',
+                    'Configuration',
                 ];
 
                 $window->refresh();
@@ -14139,6 +14471,156 @@ class InfoWidget extends AbstractWidget {
                 $window->refresh();
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_patches' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Automatic patch generation MODE.',
+                    'See folder ./game_info/patches/auto',
+                    'To apply, move the patches to the folder ./game_info/patches/apply',
+                    '',
+                    'When enabled, patches do not apply (only creates)!',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_esync' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Esync removes wineserver overhead for synchronization objects.',
+                    '',
+                    'This can increase performance for some games, especially ones',
+                    'that rely heavily on the CPU.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_pba' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Patches to add a persistent buffer allocator for',
+                    'faster dynamic geometry in Direct3D games.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dxvk' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Vulkan-based D3D11 and D3D10 implementation for Linux / Wine.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_csmt' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'CSMT (Commandstream multithreading) for better graphic performance.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_pulse' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Set sound driver to PulseAudio or ALSA.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_sandbox' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Not use "/home/user" directory.',
+                    'Not mount "/" entry point.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fixres' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Auto fixed resolution, brightness, gamma for all monitors.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dxvk_d3d10' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Required for determining display manner FPS.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_faudio' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'FAudio - Accuracy-focused XAudio reimplementation.',
+                    'From <= Wine 4.2',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dumbxinputemu' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'XInput reimplementation compatibile with DirectInput controllers.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif (strpos($item['id'], 'config_') !== false) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update([]);
 
             } elseif ('galliumnine' === $item['id']) {
 
@@ -14879,7 +15361,7 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
-        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->driver     = new Driver($this->config, $this->command, $this->system);
         $this->mountes    = [

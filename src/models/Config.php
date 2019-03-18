@@ -128,6 +128,26 @@ class Config {
         return null === $field ? $this->config[$section] : $this->config[$section][$field];
     }
 
+    /**
+     * @return array
+     */
+    public function getConfig()
+    {
+        $this->load();
+
+        return $this->config;
+    }
+
+    /**
+     * @return bool
+     */
+    public function save()
+    {
+        $update = new Update($this, new Command($this));
+
+        return $update->updateConfig($this);
+    }
+
     public function set($section, $field, $value)
     {
         $this->load();
@@ -226,6 +246,13 @@ class Config {
                 $this->config = parse_ini_string($this->getDefaultConfig(), true);
                 @file_put_contents($path, $this->getDefaultConfig());
             }
+        }
+    }
+
+    public function reload()
+    {
+        if (file_exists($this->configPath)) {
+            $this->config = (new FileINI($this->configPath))->get();
         }
     }
 

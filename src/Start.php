@@ -54,7 +54,7 @@ class Start
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
-        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->shapshot);
+        $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->driver     = new Driver($this->config, $this->command, $this->system);
         $this->mountes    = [

@@ -22,6 +22,7 @@ class ControllerGUI {
         $this->scenes['tools']    = new ToolsScene();
         $this->scenes['wine']     = new WineScene();
         $this->scenes['tweaks']   = new TweaksScene();
+        $this->scenes['config']   = new ConfigScene();
     }
 
     public function init()
@@ -182,6 +183,14 @@ class ControllerGUI {
     }
 
     /**
+     * @return ConfigScene
+     */
+    public function getConfigScene()
+    {
+        return $this->getScenes('config');
+    }
+
+    /**
      * @return GameInfoScene|MainScene|PrefixScene|TweaksScene
      */
     public function getCurrentScene()
@@ -235,6 +244,12 @@ class ControllerGUI {
     {
         $this->hideAll();
         $this->getTweaksScene()->show();
+    }
+
+    public function showConfig()
+    {
+        $this->hideAll();
+        $this->getConfigScene()->show();
     }
 
     public function close()

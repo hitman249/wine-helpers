@@ -150,12 +150,12 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
-            } elseif ('settings' === $item['id']) {
+            } elseif ('config' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);
 
                 $items = [
-                    'Configuration *.ini files',
+                    'Configuration',
                 ];
 
                 $window->refresh();
@@ -522,6 +522,156 @@ class InfoWidget extends AbstractWidget {
                 $window->refresh();
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_patches' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Automatic patch generation MODE.',
+                    'See folder ./game_info/patches/auto',
+                    'To apply, move the patches to the folder ./game_info/patches/apply',
+                    '',
+                    'When enabled, patches do not apply (only creates)!',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_esync' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Esync removes wineserver overhead for synchronization objects.',
+                    '',
+                    'This can increase performance for some games, especially ones',
+                    'that rely heavily on the CPU.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_pba' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Patches to add a persistent buffer allocator for',
+                    'faster dynamic geometry in Direct3D games.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dxvk' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Vulkan-based D3D11 and D3D10 implementation for Linux / Wine.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_csmt' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'CSMT (Commandstream multithreading) for better graphic performance.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_pulse' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Set sound driver to PulseAudio or ALSA.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_sandbox' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Not use "/home/user" directory.',
+                    'Not mount "/" entry point.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fixres' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Auto fixed resolution, brightness, gamma for all monitors.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dxvk_d3d10' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Required for determining display manner FPS.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_faudio' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'FAudio - Accuracy-focused XAudio reimplementation.',
+                    'From <= Wine 4.2',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_dumbxinputemu' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'XInput reimplementation compatibile with DirectInput controllers.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif (strpos($item['id'], 'config_') !== false) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update([]);
 
             } elseif ('galliumnine' === $item['id']) {
 

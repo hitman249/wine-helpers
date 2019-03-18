@@ -2,7 +2,7 @@
 
 class Update
 {
-    private $version = '0.80';
+    private $version = '0.81';
     private $command;
     private $config;
     private $network;
@@ -174,17 +174,25 @@ class Update
         return false;
     }
 
-    public function updateConfig()
+    /**
+     * @param Config|null $config
+     * @return bool
+     */
+    public function updateConfig($config = null)
     {
-        if (!file_exists($this->config->getConfigFile())) {
+        if (null === $config) {
+            $config = $this->config;
+        }
+
+        if (!file_exists($config->getConfigFile())) {
             return false;
         }
 
         $result = [];
 
-        $current          = (new FileINI($this->config->getConfigFile()))->get();
-        $currentText      = file_get_contents($this->config->getConfigFile());
-        $defaultText      = $this->config->getDefaultConfig();
+        $current          = $config->getConfig();
+        $currentText      = file_get_contents($config->getConfigFile());
+        $defaultText      = $config->getDefaultConfig();
         $defaultTextArray = explode("\n", $defaultText);
 
         $section = null;
@@ -279,7 +287,7 @@ class Update
         $newConfig = implode("\n", $result);
 
         if (md5($currentText) !== md5($newConfig)) {
-            file_put_contents($this->config->getConfigFile(), $newConfig);
+            file_put_contents($config->getConfigFile(), $newConfig);
             return true;
         }
 

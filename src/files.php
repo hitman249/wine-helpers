@@ -64,6 +64,7 @@ return [
         'scenes/ToolsScene.php',
         'scenes/WineScene.php',
         'scenes/TweaksScene.php',
+        'scenes/ConfigScene.php',
         'widgets/AbstractWidget.php',
         'widgets/SelectWidget.php',
         'widgets/InfoWidget.php',
