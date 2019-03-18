@@ -52,6 +52,33 @@ class CheckDependencies {
     {
         app()->showCheckDependencies();
 
+        $system = app('start')->getSystem();
+        $driver = app('start')->getDriver()->getVersion();
+
+        $items = [
+            'RAM:              ' . $system->getRAM() . ' Mb',
+            'CPU:              ' . $system->getCPU(),
+            'GPU:              ' . $system->getGPU(),
+            'Distr:            ' . $system->getDistrName(),
+            'Arch:             ' . $system->getArch(),
+            'Linux:            ' . $system->getLinuxVersion(),
+            'GPU Driver:       ' . implode(', ', array_filter($driver)),
+            'Glibc:            ' . $system->getGlibcVersion(),
+            'X.Org version:    ' . $system->getXorgVersion(),
+            'vm.max_map_count: ' . $system->getVmMaxMapCount(),
+            'ulimit soft:      ' . $system->getUlimitSoft(),
+            'ulimit hard:      ' . $system->getUlimitHard(),
+        ];
+
+        $this->log('System info.');
+        $this->log('');
+
+        foreach ($items as $item) {
+            $this->log($item);
+        }
+
+        $this->log('');
+        $this->log('');
         $this->log('Check dependencies.');
         $this->log('');
 
@@ -92,6 +119,7 @@ class CheckDependencies {
             'locale'     => false,
             'modinfo'    => false,
             'lsmod'      => false,
+            'winbindd'   => false,
         ];
 
         $appsPackage = [
@@ -128,75 +156,76 @@ class CheckDependencies {
             'locale'     => 'libc-bin',
             'modinfo'    => 'kmod',
             'lsmod'      => 'kmod',
+            'winbindd'   => 'winbind',
         ];
 
         $libs = [
-            'libvulkan1'    => [
+            'libvulkan1'        => [
                 'name'   => 'libvulkan1',
                 'status' => true,
                 'find'   => 'libvulkan.so.1',
             ],
-            'libfuse2'      => [
+            'libfuse2'          => [
                 'name'   => 'libfuse2',
                 'status' => true,
                 'find'   => 'libfuse.so.2',
             ],
-            'libopenal1'    => [
+            'libopenal1'        => [
                 'name'   => 'libopenal',
                 'status' => true,
                 'find'   => 'libopenal.so.1',
             ],
-            'libxinerama1' => [
+            'libxinerama1'      => [
                 'name'   => 'libxinerama1',
                 'status' => true,
                 'find'   => 'libXinerama.so.1',
             ],
-            'libsdl2-2.0-0'    => [
+            'libsdl2-2.0-0'     => [
                 'name'   => 'libsdl2-2.0-0',
                 'status' => true,
                 'find'   => 'libSDL2-2.0.so.0',
             ],
-            'libasound2'    => [
+            'libasound2'        => [
                 'name'   => 'libasound2',
                 'status' => true,
                 'find'   => 'libasound.so.2',
             ],
-            'libsm6'    => [
+            'libsm6'            => [
                 'name'   => 'libsm6',
                 'status' => true,
                 'find'   => 'libSM.so.6',
             ],
-            'libgl1'    => [
+            'libgl1'            => [
                 'name'   => 'libgl1',
                 'status' => true,
                 'find'   => 'libGL.so.1',
             ],
-            'libgif7'    => [
+            'libgif7'           => [
                 'name'   => 'libgif7',
                 'status' => true,
                 'find'   => 'libgif.so.7',
             ],
-            'libncurses5'    => [
+            'libncurses5'       => [
                 'name'   => 'libncurses5',
                 'status' => true,
                 'find'   => 'libncurses.so.5',
             ],
-            'libncursesw5'    => [
+            'libncursesw5'      => [
                 'name'   => 'libncursesw5',
                 'status' => true,
                 'find'   => 'libncursesw.so.5',
             ],
-            'libncurses6'    => [
+            'libncurses6'       => [
                 'name'   => 'libncurses6',
                 'status' => true,
                 'find'   => 'libncurses.so.6',
             ],
-            'libncursesw6'    => [
+            'libncursesw6'      => [
                 'name'   => 'libncursesw6',
                 'status' => true,
                 'find'   => 'libncursesw.so.6',
             ],
-            'libfreetype6'    => [
+            'libfreetype6'      => [
                 'name'   => 'libfreetype',
                 'status' => true,
                 'find'   => 'libfreetype.so.6',
@@ -206,7 +235,7 @@ class CheckDependencies {
                 'status' => true,
                 'find'   => 'libfontconfig.so.1',
             ],
-            'libmpg123-0'    => [
+            'libmpg123-0'       => [
                 'name'   => 'libmpg123-0',
                 'status' => true,
                 'find'   => 'libmpg123.so.0',
@@ -216,130 +245,167 @@ class CheckDependencies {
                 'status' => true,
                 'find'   => 'libXcomposite.so.1',
             ],
-            'libgnutls30'    => [
+            'libgnutls30'       => [
                 'name'   => 'libgnutls30',
                 'status' => true,
                 'find'   => 'libgnutls.so.30',
             ],
-            'libgnutls-deb0-28'    => [
+            'libgnutls-deb0-28' => [
                 'name'   => 'libgnutls-deb0-28',
                 'status' => true,
                 'find'   => 'libgnutls-deb0.so.28',
             ],
-            'libjpeg62'    => [
+            'libjpeg62'         => [
                 'name'   => 'libjpeg62',
                 'status' => true,
                 'find'   => 'libjpeg.so.62',
             ],
-            'libjpeg8'    => [
+            'libjpeg8'          => [
                 'name'   => 'libjpeg8',
                 'status' => true,
                 'find'   => 'libjpeg.so.8',
             ],
-            'libxslt1.1'    => [
+            'libxslt1.1'        => [
                 'name'   => 'libxslt1.1',
                 'status' => true,
                 'find'   => 'libxslt.so.1',
             ],
-            'libxrandr2'    => [
+            'libxrandr2'        => [
                 'name'   => 'libxrandr2',
                 'status' => true,
                 'find'   => 'libXrandr.so.2',
             ],
-            'libpng16-16'    => [
+            'libpng16-16'       => [
                 'name'   => 'libpng16-16',
                 'status' => true,
                 'find'   => 'libpng16.so.16',
             ],
-            'libpng12-0'    => [
+            'libpng12-0'        => [
                 'name'   => 'libpng12-0',
                 'status' => true,
                 'find'   => 'libpng12.so',
             ],
-            'libtiff5'    => [
+            'libtiff5'          => [
                 'name'   => 'libtiff5',
                 'status' => true,
                 'find'   => 'libtiff.so.5',
             ],
-            'libxcb1'    => [
+            'libxcb1'           => [
                 'name'   => 'libxcb1',
                 'status' => true,
                 'find'   => 'libxcb.so.1',
             ],
-            'libtheora0'    => [
+            'libtheora0'        => [
                 'name'   => 'libtheora0',
                 'status' => true,
                 'find'   => 'libtheora.so.0',
             ],
-            'libvorbis0a'    => [
+            'libvorbis0a'       => [
                 'name'   => 'libvorbis0a',
                 'status' => true,
                 'find'   => 'libvorbis.so.0',
             ],
-            'zlib1g'    => [
+            'zlib1g'            => [
                 'name'   => 'zlib1g',
                 'status' => true,
                 'find'   => 'libz.so.1',
             ],
-            'samba-libs'    => [
+            'samba-libs'        => [
                 'name'   => 'samba-libs',
                 'status' => true,
                 'find'   => 'libnetapi.so.0',
             ],
-            'libsane1'    => [
+            'libsane1'          => [
                 'name'   => 'libsane1',
                 'status' => true,
                 'find'   => 'libsane.so.1',
             ],
-            'libcapi20-3'    => [
+            'libcapi20-3'       => [
                 'name'   => 'libcapi20-3',
                 'status' => true,
                 'find'   => 'libcapi20.so.3',
             ],
-            'libcups2'    => [
+            'libcups2'          => [
                 'name'   => 'libcups2',
                 'status' => true,
                 'find'   => 'libcups.so.2',
             ],
-            'libgsm1'    => [
+            'libgsm1'           => [
                 'name'   => 'libgsm1',
                 'status' => true,
                 'find'   => 'libgsm.so.1',
             ],
-            'libodbc1'    => [
+            'libodbc1'          => [
                 'name'   => 'libodbc1',
                 'status' => true,
                 'find'   => 'libodbc.so.2',
             ],
-            'libosmesa6'    => [
+            'libosmesa6'        => [
                 'name'   => 'libosmesa6',
                 'status' => true,
                 'find'   => 'libOSMesa.so.8',
             ],
-            'libpcap0.8'    => [
+            'libpcap0.8'        => [
                 'name'   => 'libpcap0.8',
                 'status' => true,
                 'find'   => 'libpcap.so.0.8',
             ],
-            'libv4l-0'    => [
+            'libv4l-0'          => [
                 'name'   => 'libv4l-0',
                 'status' => true,
                 'find'   => 'libv4l1.so.0',
             ],
-            'libdbus-1-3'    => [
+            'libdbus-1-3'       => [
                 'name'   => 'libdbus-1-3',
                 'status' => true,
                 'find'   => 'libdbus-1.so.3',
             ],
-            'libglib2.0-0'    => [
+            'libglib2.0-0'      => [
                 'name'   => 'libglib2.0-0',
                 'status' => true,
                 'find'   => 'libgobject-2.0.so.0',
             ],
-            'libgtk-3-0'    => [
+            'libgtk-3-0'        => [
                 'name'   => 'libgtk-3-0',
                 'status' => true,
                 'find'   => 'libgtk-3.so.0',
+            ],
+            'libgstreamer1.0-0' => [
+                'name'   => [
+                    'gstreamer1.0-plugins-base',
+                    'gstreamer1.0-plugins-good',
+                    'libgstreamer1.0-0'
+                ],
+                'status' => true,
+                'find'   => 'libgstreamer-1.0.so.0',
+            ],
+        ];
+
+        $fonts = [
+            'fonts-unfonts-extra' => [
+                'name'   => 'fonts-unfonts-extra',
+                'status' => true,
+                'find'   => 'UnJamoBatang.ttf',
+            ],
+            'fonts-unfonts-core' => [
+                'name'   => 'fonts-unfonts-core',
+                'status' => true,
+                'find'   => 'UnBatang.ttf',
+            ],
+            'fonts-wqy-microhei' => [
+                'name'   => [ 'fonts-wqy-microhei', 'ttf-wqy-microhei' ],
+                'status' => true,
+                'find'   => 'wqy-microhei.ttc',
+            ],
+            'fonts-horai-umefont' => [
+                'name'   => 'fonts-horai-umefont',
+                'status' => true,
+                'find'   => 'horai-umefont',
+            ],
+            'ttf-mscorefonts-installer' => [
+                'name'   => 'ttf-mscorefonts-installer',
+                'status' => true,
+                'find'   => 'Georgia.ttf',
             ],
         ];
 
@@ -379,6 +445,24 @@ class CheckDependencies {
             app()->getCurrentScene()->setProgress($progress);
         }
 
+        if (trim($this->command->run('command -v fc-list'))) {
+            foreach ($fonts as $key => $font) {
+                $findFont = (bool)trim($this->command->run("fc-list | grep '{$font['find']}'"));
+
+                if (!$findFont) {
+                    $fonts[$key]['status'] = false;
+                    foreach ((array)$font['name'] as $pkg) {
+                        $install[] = $pkg;
+                    }
+                }
+
+                $this->log('');
+                $this->log('');
+                $findLibs = implode(', ', (array)$font['name']);
+                $this->log($this->formattedItem("Find font \"{$findLibs}\"", $fonts[$key]['status'] ? 'ok' : 'fail'));
+            }
+        }
+
         if ($apps['ldconfig']) {
 
             foreach ($libs as $key => $lib) {
@@ -413,20 +497,23 @@ class CheckDependencies {
                 }
 
                 if (false === $libs[$key]['status']) {
-                    if (!$result['i386']) {
-                        $install[] = "{$lib['name']}:i386";
-                    }
+                    foreach ((array)$lib['name'] as $findLib) {
+                        if (!$result['i386']) {
+                            $install[] = "{$findLib}:i386";
+                        }
 
-                    if ($this->system->getArch() === 64) {
-                        if (!$result['x86-64']) {
-                            $install[] = $lib['name'];
+                        if ($this->system->getArch() === 64) {
+                            if (!$result['x86-64']) {
+                                $install[] = $findLib;
+                            }
                         }
                     }
                 }
 
                 $this->log('');
                 $this->log('');
-                $this->log($this->formattedItem("Find lib \"{$lib['name']}\"", $libs[$key]['status'] ? 'ok' : 'fail'));
+                $findLibs = implode(', ', (array)$lib['name']);
+                $this->log($this->formattedItem("Find lib \"{$findLibs}\"", $libs[$key]['status'] ? 'ok' : 'fail'));
                 $this->log('');
 
                 if ($this->system->getArch() === 64) {
