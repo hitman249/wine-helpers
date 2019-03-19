@@ -41,10 +41,6 @@ class ToolsScene extends AbstractScene {
             $items[] = ['id' => 'icon',   'name' => 'Icon'];
         }
 
-        if (Network::isConnected()) {
-            $items[] = ['id' => 'update',   'name' => 'Update'];
-        }
-
         $items[] = ['id' => 'pack',    'name' => 'Pack'];
         $items[] = ['id' => 'symlink', 'name' => 'Symlink'];
         $items[] = ['id' => 'build',   'name' => 'Build'];

@@ -44,6 +44,10 @@ class TweaksScene extends AbstractScene
             ['id' => 'sys_info',     'name' => 'System info'],
         ];
 
+        if (Network::isConnected()) {
+            $items[] = ['id' => 'update',   'name' => 'Update'];
+        }
+
         $select = $this->addWidget(new PopupSelectWidget($this->window));
         $select
             ->setItems($items)
