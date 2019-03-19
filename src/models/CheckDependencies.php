@@ -122,6 +122,7 @@ class CheckDependencies {
             'modinfo'    => false,
             'lsmod'      => false,
             'winbindd'   => false,
+            'fc-list'    => false,
         ];
 
         $appsPackage = [
@@ -159,6 +160,7 @@ class CheckDependencies {
             'modinfo'    => 'kmod',
             'lsmod'      => 'kmod',
             'winbindd'   => 'winbind',
+            'fc-list'    => 'fontconfig',
         ];
 
         $libs = [
