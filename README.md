@@ -166,7 +166,7 @@
 - Delete `./prefix` folder.
 - Run `./start gui` wait for launch and exit.
 
-##### Continue from Wine File Manager
+##### Continue from Wine > File Manager
 
 - Run `./start gui`
 - Wine > File Manager
@@ -205,18 +205,18 @@ Help:
 ./start help
 ```
 
- ## Links
+## Links
  
- * dxvk [GPU driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)
- * dxvk [releases](https://github.com/doitsujin/dxvk/releases)
- * wine builds for support vulkan [yandex disk](https://yadi.sk/d/IrofgqFSqHsPu) 
- or [google disk](https://drive.google.com/open?id=1fTfJQhQSzlEkY-j3g0H6p4lwmQayUNSR)
- * [wine standalone](https://lutris.net/files/runners/)
- * [Installer Repacks](https://repacks.net/)
- * Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
- * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
- * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
- * [CPU clock control for Linux](http://www.michurin.net/tools/cpu-frequency.html)
- * [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
- * [Performance Tweaks](https://github.com/lutris/lutris/wiki/Performance-Tweaks)
- * [AntiMicro (gamepad)](https://github.com/AntiMicro/antimicro) - [YouTube](https://www.youtube.com/watch?v=HgX-pDXlF5Q)
+* dxvk [GPU driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)
+* dxvk [releases](https://github.com/doitsujin/dxvk/releases)
+* wine builds for support vulkan [yandex disk](https://yadi.sk/d/IrofgqFSqHsPu)
+or [google disk](https://drive.google.com/open?id=1fTfJQhQSzlEkY-j3g0H6p4lwmQayUNSR)
+* [wine standalone](https://lutris.net/files/runners/)
+* [Installer Repacks](https://repacks.net/)
+* Gamepad [dumbxinputemu](https://github.com/kozec/dumbxinputemu/releases)
+* Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
+* [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
+* [CPU clock control for Linux](http://www.michurin.net/tools/cpu-frequency.html)
+* [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
+* [Performance Tweaks](https://github.com/lutris/lutris/wiki/Performance-Tweaks)
+* [AntiMicro (gamepad)](https://github.com/AntiMicro/antimicro) - [YouTube](https://www.youtube.com/watch?v=HgX-pDXlF5Q)
