@@ -37,11 +37,11 @@
 
 ## How to run the game
 
-1) Extract 
+1. Extract
     ```bash
     chmod +x ./extract.sh && ./extract.sh
     ```
-2) Start the game
+2. Start the game
     ```bash
     ./start
     ``` 
@@ -52,9 +52,9 @@
 
 ## How to port the game
 
-1) Create an empty folder
+1. Create an empty folder
 
-2) Run:
+2. Run:
     ```bash
     wget -q -O start https://raw.githubusercontent.com/hitman249/wine-helpers/master/start && chmod +x ./start
     ```
@@ -62,56 +62,56 @@
     ./start
     ```
 
-3) Follow the wizard instructions to download the **wine** and wait for the menu. Exit application.
+3. Follow the wizard instructions to download the **wine** and wait for the menu. Exit application.
 
-4) Edit the file according to the game information.
+4. Edit the file according to the game information.
     ```text
     ./game_info/game_info.ini
     ```
 
-5) Run the configurator. Through the file manager install the game.
+5. Run the configurator. Through the file manager install the game.
     ```bash
     ./start gui
     ```
     ```text
     Wine > File Manager
     ```
-6) Game files should be in the folder: 
+6. Game files should be in the folder:
     ```text
     ./game_info/data
     ```
 
-7) Additional `*.dll` libraries can be copied to folders:
+7. Additional `*.dll` libraries can be copied to folders:
     ```text
     ./game_info/dlls
     ./game_info/dlls64
     ```
     
-8) Additional `*.reg` files can be copied to folder:
+8. Additional `*.reg` files can be copied to folder:
     ```text
     ./game_info/regs
     ```
 
-9) Use the configuration file `winetricks_to_install = ""` parameter to install additional packages. Or use the command: 
+9. Use the configuration file `winetricks_to_install = ""` parameter to install additional packages. Or use the command:
     ```bash
     ./start winetricks
     ```
 
-10) To use dxvk, use the `dxvk = 1` parameter in the configuration file.
+10. To use dxvk, use the `dxvk = 1` parameter in the configuration file.
 
-11) To forward additional folders in prefix, use the following directory:
+11. To forward additional folders in prefix, use the following directory:
     ```text
     ./game_info/additional
     ```
 
-12) Delete the `prefix` folder. 
+12. Delete the `prefix` folder.
 
-13) The start team must successfully launch the game.
+13. The start team must successfully launch the game.
     ```bash
     ./start
     ```
 
-14) The game has been successfully ported.
+14. The game has been successfully ported.
 
 
 #### Recommendations
@@ -144,7 +144,54 @@
     ```bash
     rm -rf ./game_info/data
     ```
+### Create prefix patches
 
+##### Start
+
+1. Edit `./game_info/game_info.ini`
+   ```ini
+   generation_patches_mode = 1
+   ```
+
+###### Continue from winetricks
+
+- Insert the package names by a space in:
+  ```ini
+  winetricks_to_install = "package1 package2"
+  ```
+  or silent mode:
+  ```ini
+  winetricks_to_install = "-q package1 package2"
+  ```
+- Delete `./prefix` folder.
+- Run `./start gui` wait for launch and exit.
+
+###### Continue from Wine File Manager
+
+- Run `./start gui`
+- Wine > File Manager
+- Install program
+- Close File Manager and wait auto exit (1-10 minutes)
+
+
+##### Finish
+
+2. Move created folders in:
+   ```
+   ./game_info/patches/auto/
+   ```
+   to apply:
+   ```
+   ./game_info/patches/apply/
+   ```
+
+###### Structure patch
+
+```text
+./files.tar.gz      - changed files from prefix folder
+./changes.reg       - changed registry records (regedit)
+./override-dll.reg  - inserted libs from system32 directory
+```
 
 # Help
 
