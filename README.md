@@ -146,14 +146,14 @@
     ```
 ### Create prefix patches
 
-##### Start
+#### Start
 
 1. Edit `./game_info/game_info.ini`
    ```ini
    generation_patches_mode = 1
    ```
 
-###### Continue from winetricks
+##### Continue from winetricks
 
 - Insert the package names by a space in:
   ```ini
@@ -166,7 +166,7 @@
 - Delete `./prefix` folder.
 - Run `./start gui` wait for launch and exit.
 
-###### Continue from Wine File Manager
+##### Continue from Wine File Manager
 
 - Run `./start gui`
 - Wine > File Manager
@@ -174,7 +174,7 @@
 - Close File Manager and wait auto exit (1-10 minutes)
 
 
-##### Finish
+#### Finish
 
 2. Move created folders in:
    ```
@@ -185,7 +185,7 @@
    ./game_info/patches/apply/
    ```
 
-###### Structure patch
+##### Structure patch
 
 ```text
 ./files.tar.gz      - changed files from prefix folder
