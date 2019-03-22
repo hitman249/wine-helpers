@@ -45,7 +45,8 @@ class CheckDependencies {
     {
         $length     = 25;
         $lengthItem = mb_strlen($item);
-        return  '- ' . $item . ' ' . str_repeat('.', $length - $lengthItem) . ' ' . $value;
+        $lenDot     = $length - $lengthItem;
+        return  '- ' . $item . ' ' . str_repeat('.', $lenDot > 0 ?  $lenDot : 0) . ' ' . $value;
     }
 
     public function check()

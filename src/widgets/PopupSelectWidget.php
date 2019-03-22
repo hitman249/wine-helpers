@@ -149,7 +149,8 @@ class PopupSelectWidget extends AbstractWidget {
         $width = ($this->getInnerWidth() + ('full' === $this->mode ? 1 : 0));
 
         if ($len <= $width) {
-            return $title . str_repeat(' ', $width - $len);
+            $lenSpace = $width - $len;
+            return $title . str_repeat(' ', $lenSpace > 0 ? $lenSpace : 0);
         }
 
         if ($this->mode === 'end') {
