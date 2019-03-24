@@ -487,8 +487,10 @@ autoupdate = 1
 ;
 ; Download the latest DXVK.
 ; https://github.com/doitsujin/dxvk
+; Dxvk versions: dxvk101, dxvk100, dxvk96, dxvk95 other. Empty from latest.
 ;
 dxvk = 0
+dxvk_version = ""
 dxvk_autoupdate = 1
 
 

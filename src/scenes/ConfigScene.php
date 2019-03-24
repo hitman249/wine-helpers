@@ -60,6 +60,7 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_winver',                   'name' => '(' . ($config->get('script', 'winver')) . ')' . ' Windows version'],
             ['id' => 'config_patches',                  'name' => '[' . ($config->isGenerationPatchesMode() ? 'ON] ' : 'OFF]') . ' Create patches'],
             ['id' => 'config_dxvk',                     'name' => '[' . ($config->isDxvk() ? 'ON] ' : 'OFF]') . ' DXVK enable'],
+            ['id' => 'config_dxvk_version',             'name' => '(' . ($config->get('script', 'dxvk_version') ?: 'latest') . ')' . ' DXVK version'],
             ['id' => 'config_esync',                    'name' => '[' . ($config->isEsync() ? 'ON] ' : 'OFF]') . ' ESYNC enable'],
             ['id' => 'config_csmt',                     'name' => '[' . ($config->getBool('script', 'csmt') ? 'ON] ' : 'OFF]') . ' CSMT enable'],
             ['id' => 'config_pulse',                    'name' => '[' . ($config->getBool('script', 'pulse') ? 'ON] ' : 'OFF]') . ' Pulse enable'],
@@ -247,6 +248,41 @@ class ConfigScene extends AbstractScene
                 $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
                 $config->save();
                 app()->showConfig();
+            }
+
+            if ('config_dxvk_version' === $item['id']) {
+
+                app('start')->getUpdate()->downloadWinetricks();
+                $winetricks = $config->getRootDir() . '/winetricks';
+
+                if (file_exists($winetricks)) {
+
+                    $versions = explode("\n", file_get_contents($winetricks));
+                    $versions = array_filter($versions, function ($line) { return strpos($line, 'load_dxvk') !== false && strpos($line, 'load_dxvk()') === false; });
+                    $versions = array_map(function ($line) { return str_replace('load_', '', trim($line, " \t\n\r\0\x0B(){}[].:")); }, $versions);
+                    natsort($versions);
+                    $versions = array_reverse($versions);
+                    $versions = array_map(function ($row) { return ['id' => $row, 'name' => $row]; }, $versions);
+                    $versions = array_merge([['id' => '', 'name' => 'latest']], $versions);
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems($versions)
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                    $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                        $this->removeWidget($select->hide());
+                        $config->set('script', 'dxvk_version', $type['id']);
+                        $config->save();
+                        app()->showConfig();
+                    });
+                }
             }
 
             app('start')->getConfig()->reload();

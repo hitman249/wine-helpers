@@ -357,6 +357,10 @@ class Update
 
     public function versionDxvkRemote()
     {
+        if ($this->config->get('script', 'dxvk_version')) {
+            return $this->config->get('script', 'dxvk_version');
+        }
+
         static $version;
 
         if (null === $version) {
@@ -387,7 +391,7 @@ class Update
         $oldVersion = $this->versionDxvk();
 
         if ($newVersion !== $oldVersion) {
-            (new Wine($this->config, $this->command))->winetricks(['dxvk']);
+            (new Wine($this->config, $this->command))->winetricks([$this->config->get('script', 'dxvk_version')?:'dxvk']);
             file_put_contents($dxvk, $newVersion);
 
             return true;

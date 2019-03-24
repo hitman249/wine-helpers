@@ -689,6 +689,18 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('config_dxvk_version' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Set DXVK version.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             } elseif (strpos($item['id'], 'config_') !== false) {
 
                 $window->erase()->border()->title($item['name']);
