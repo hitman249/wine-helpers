@@ -47,6 +47,7 @@ class Fixes
             'physx',
             'font',
             'focus',
+            'nocrashdialog',
         ];
 
         foreach ($fixes as $fix) {
@@ -223,6 +224,13 @@ class Fixes
         $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/d', 'N', '/f']);
     }
 
+    /**
+     * @param callable|null $logCallback
+     */
+    public function nocrashdialogUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/d', 'dword:00000000', '/f']);
+    }
 
     /**
      * @param $file

@@ -463,7 +463,6 @@ WINEDEBUG = "-all"
 
 WINEESYNC=1
 PBA_DISABLE=1
-
 [script]
 
 ;
@@ -557,64 +556,9 @@ focus = 0
 
 
 ;
-; Fix ddraw \ ddrawex
-; Bug render menu
-; Games: Cossacks, Olympus 2207
+; No crash dialog
 ;
-ddraw = 0
-
-
-;
-; Fix installers
-; Add gdiplus.dll, mfc42.dll, mfc42u.dll
-;
-installers = 0
-
-
-;
-; Install d3dx9_24.dll ... d3dx9_43.dll, d3dcompiler_43.dll
-; Games: Mafia II, Vietcong, S.T.A.L.K.E.R, GTAIV, Painkiller, others.
-;
-d3dx9 = 0
-
-
-;
-; Fix internet support
-; Install winhttp wininet directplay
-; Games: Stronghold Crusader
-;
-internet = 0
-
-
-;
-; Fix intro
-; Install qasf, qdvd, quartz, dirac, l3codecx, ffdshow, cinepak, xvid, binkw32, ogg, windowscodecs, wmp9, quicktime76, icodecs
-; Games: Lost Planet
-;
-intro = 0
-
-
-;
-; Fix sound problems
-; Install xact
-;
-; Not compatible with DXVK.
-; Try FAudio first! [script] > faudio = 1
-;
-xact = 0
-
-
-;
-; Install physx
-;
-physx = 0
-
-
-;
-; Fix font incorrect
-; Install allfonts
-;
-font = 0
+nocrashdialog = 0
 
 [window]
 

@@ -66,6 +66,8 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_sandbox',                  'name' => '[' . ($config->getBool('script', 'sandbox') ? 'ON] ' : 'OFF]') . ' Sandbox'],
             ['id' => 'config_fixres',                   'name' => '[' . ($config->getBool('script', 'fixres') ? 'ON] ' : 'OFF]') . ' Auto fixed resolution'],
             ['id' => 'config_pba',                      'name' => '[' . ($config->isPBA() ? 'ON] ' : 'OFF]') . ' PBA enable'],
+            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
+            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
             ['id' => 'config_window_enable',            'name' => '[' . ($config->getBool('window', 'enable') ? 'ON] ' : 'OFF]') . ' Window mode'],
             ['id' => 'config_faudio',                   'name' => '[' . ($config->getBool('script', 'faudio') ? 'ON] ' : 'OFF]') . ' FAudio'],
             ['id' => 'config_dumbxinputemu',            'name' => '[' . ($config->getBool('script', 'dumbxinputemu') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu'],
@@ -231,6 +233,18 @@ class ConfigScene extends AbstractScene
 
             if ('config_dumbxinputemu_autoupdate' === $item['id']) {
                 $config->set('script', 'dumbxinputemu_autoupdate', $config->getBool('script', 'dumbxinputemu_autoupdate') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_focus' === $item['id']) {
+                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_nocrashdialog' === $item['id']) {
+                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
                 $config->save();
                 app()->showConfig();
             }

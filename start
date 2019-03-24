@@ -4774,7 +4774,6 @@ WINEDEBUG = "-all"
 
 WINEESYNC=1
 PBA_DISABLE=1
-
 [script]
 
 ;
@@ -4868,64 +4867,9 @@ focus = 0
 
 
 ;
-; Fix ddraw \ ddrawex
-; Bug render menu
-; Games: Cossacks, Olympus 2207
+; No crash dialog
 ;
-ddraw = 0
-
-
-;
-; Fix installers
-; Add gdiplus.dll, mfc42.dll, mfc42u.dll
-;
-installers = 0
-
-
-;
-; Install d3dx9_24.dll ... d3dx9_43.dll, d3dcompiler_43.dll
-; Games: Mafia II, Vietcong, S.T.A.L.K.E.R, GTAIV, Painkiller, others.
-;
-d3dx9 = 0
-
-
-;
-; Fix internet support
-; Install winhttp wininet directplay
-; Games: Stronghold Crusader
-;
-internet = 0
-
-
-;
-; Fix intro
-; Install qasf, qdvd, quartz, dirac, l3codecx, ffdshow, cinepak, xvid, binkw32, ogg, windowscodecs, wmp9, quicktime76, icodecs
-; Games: Lost Planet
-;
-intro = 0
-
-
-;
-; Fix sound problems
-; Install xact
-;
-; Not compatible with DXVK.
-; Try FAudio first! [script] > faudio = 1
-;
-xact = 0
-
-
-;
-; Install physx
-;
-physx = 0
-
-
-;
-; Fix font incorrect
-; Install allfonts
-;
-font = 0
+nocrashdialog = 0
 
 [window]
 
@@ -10131,7 +10075,8 @@ class FAudio
     {
         if (null === $this->disk) {
             $this->disk = new YandexDisk('https://yadi.sk/d/IrofgqFSqHsPu/faudio_builds');
-            $this->data = array_filter($this->disk->getList(), function ($path) { return !Text::endsWith($path, '/'); });
+            $this->data = $this->disk->getList();
+            natsort($this->data);
         }
     }
 
@@ -10159,9 +10104,11 @@ class FAudio
     public function versionRemote()
     {
         $file = $this->getFileLatest();
-        $fileName = explode('.', basename($file['path']));
+        $fileName = array_filter(explode('.', basename($file['path'])),
+            function ($t) { return !in_array($t, ['xz', 'bz', 'bz2', 'zip', 'tar', 'gz'], true); });
+        $fileName = implode('.', $fileName);
 
-        return reset($fileName);
+        return $fileName;
     }
 
     /**
@@ -10308,6 +10255,7 @@ class Fixes
             'physx',
             'font',
             'focus',
+            'nocrashdialog',
         ];
 
         foreach ($fixes as $fix) {
@@ -10484,6 +10432,13 @@ class Fixes
         $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/d', 'N', '/f']);
     }
 
+    /**
+     * @param callable|null $logCallback
+     */
+    public function nocrashdialogUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/d', 'dword:00000000', '/f']);
+    }
 
     /**
      * @param $file
@@ -13524,6 +13479,8 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_sandbox',                  'name' => '[' . ($config->getBool('script', 'sandbox') ? 'ON] ' : 'OFF]') . ' Sandbox'],
             ['id' => 'config_fixres',                   'name' => '[' . ($config->getBool('script', 'fixres') ? 'ON] ' : 'OFF]') . ' Auto fixed resolution'],
             ['id' => 'config_pba',                      'name' => '[' . ($config->isPBA() ? 'ON] ' : 'OFF]') . ' PBA enable'],
+            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
+            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
             ['id' => 'config_window_enable',            'name' => '[' . ($config->getBool('window', 'enable') ? 'ON] ' : 'OFF]') . ' Window mode'],
             ['id' => 'config_faudio',                   'name' => '[' . ($config->getBool('script', 'faudio') ? 'ON] ' : 'OFF]') . ' FAudio'],
             ['id' => 'config_dumbxinputemu',            'name' => '[' . ($config->getBool('script', 'dumbxinputemu') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu'],
@@ -13689,6 +13646,18 @@ class ConfigScene extends AbstractScene
 
             if ('config_dumbxinputemu_autoupdate' === $item['id']) {
                 $config->set('script', 'dumbxinputemu_autoupdate', $config->getBool('script', 'dumbxinputemu_autoupdate') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_focus' === $item['id']) {
+                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_nocrashdialog' === $item['id']) {
+                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
                 $config->save();
                 app()->showConfig();
             }
@@ -14702,6 +14671,30 @@ class InfoWidget extends AbstractWidget {
 
                 $items = [
                     'XInput reimplementation compatibile with DirectInput controllers.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_focus' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Fix focus.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_nocrashdialog' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Show Wine crash dialog.'
                 ];
 
                 $window->refresh();

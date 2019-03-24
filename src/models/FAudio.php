@@ -28,7 +28,8 @@ class FAudio
     {
         if (null === $this->disk) {
             $this->disk = new YandexDisk('https://yadi.sk/d/IrofgqFSqHsPu/faudio_builds');
-            $this->data = array_filter($this->disk->getList(), function ($path) { return !Text::endsWith($path, '/'); });
+            $this->data = $this->disk->getList();
+            natsort($this->data);
         }
     }
 
@@ -56,9 +57,11 @@ class FAudio
     public function versionRemote()
     {
         $file = $this->getFileLatest();
-        $fileName = explode('.', basename($file['path']));
+        $fileName = array_filter(explode('.', basename($file['path'])),
+            function ($t) { return !in_array($t, ['xz', 'bz', 'bz2', 'zip', 'tar', 'gz'], true); });
+        $fileName = implode('.', $fileName);
 
-        return reset($fileName);
+        return $fileName;
     }
 
     /**
