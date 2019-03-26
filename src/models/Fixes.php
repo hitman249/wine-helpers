@@ -38,23 +38,38 @@ class Fixes
         $isUpdated = false;
 
         $fixes = [
-            'ddraw',
-            'installers',
-            'd3dx9',
-            'internet',
-            'intro',
-            'xact',
-            'physx',
-            'font',
+//            'ddraw',
+//            'installers',
+//            'd3dx9',
+//            'internet',
+//            'intro',
+//            'xact',
+//            'physx',
+//            'font',
             'focus',
             'nocrashdialog',
+            'cfc',
+            'ddr',
+            'glsl',
+            'orm',
         ];
 
         foreach ($fixes as $fix) {
             $versionPath = $this->config->wine('DRIVE_C') . '/.' . $fix;
 
-            if ($this->config->getBool('fixes', $fix)) {
-                if (!file_exists($versionPath)) {
+            $valueConfigFix = $this->config->get('fixes', $fix);
+            $valueLocalFix  = file_exists($versionPath) ? trim(file_get_contents($versionPath)) : null;
+
+            $isNotEmpty = false;
+
+            if (in_array($fix, ['glsl'], true)) {
+                $isNotEmpty = !$this->config->getBool('fixes', $fix);
+            } else {
+                $isNotEmpty = $this->config->getBool('fixes', $fix);
+            }
+
+            if ($isNotEmpty) {
+                if (null === $valueLocalFix || $valueLocalFix !== $valueConfigFix) {
                     $isUpdated = true;
 
                     if ($logCallback) {
@@ -63,7 +78,7 @@ class Fixes
 
                     if (method_exists($this, "{$fix}Up")) {
                         app('start')->getPatch()->create(function () use ($fix, $logCallback, $versionPath) {
-                            file_put_contents($versionPath, $fix);
+                            file_put_contents($versionPath, $this->config->get('fixes', $fix));
                             $this->{"{$fix}Up"}($logCallback);
                         });
                     }
@@ -89,6 +104,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function ddrawUp($logCallback = null)
@@ -117,6 +133,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function ddrawDown($logCallback = null)
@@ -129,6 +146,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function installersUp($logCallback = null)
@@ -151,6 +169,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function internetUp($logCallback = null)
@@ -162,6 +181,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function introUp($logCallback = null)
@@ -192,6 +212,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function xactUp($logCallback = null)
@@ -200,6 +221,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function physxUp($logCallback = null)
@@ -208,6 +230,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function fontUp($logCallback = null)
@@ -227,9 +250,90 @@ class Fixes
     /**
      * @param callable|null $logCallback
      */
+    public function focusDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'GrabFullscreen', '/f']);
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
     public function nocrashdialogUp($logCallback = null)
     {
-        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/d', 'dword:00000000', '/f']);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/t', 'REG_DWORD', '/d', '00000000', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function nocrashdialogDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function cfcUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'CheckFloatConstants', '/d', 'enabled', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function cfcDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'CheckFloatConstants', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'DirectDrawRenderer', '/d', $this->config->get('fixes', 'ddr'), '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'DirectDrawRenderer', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function glslUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'UseGLSL', '/d', 'disabled', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function glslDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'UseGLSL', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ormUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'OffscreenRenderingMode', '/d', $this->config->get('fixes', 'orm'), '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ormDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'OffscreenRenderingMode', '/f']);
     }
 
     /**

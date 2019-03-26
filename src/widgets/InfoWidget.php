@@ -689,6 +689,68 @@ class InfoWidget extends AbstractWidget {
 
                 $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
 
+            } elseif ('config_fix_ddr' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Select what backend to use for ddraw. Valid options are:',
+                    '',
+                    '    gdi - Use GDI to draw on the screen',
+                    '    opengl - Use OpenGL (default)',
+                    '',
+                    'The "gdi" option mostly exists for legacy reasons. Aside from bugs in the GL',
+                    'renderer, only change this if you have a setup without OpenGL. Installing a software',
+                    'GL implementation is the preferred solution in that case though.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_cfc' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Range check float constants in d3d9 shaders. Use this to workaround',
+                    'application bugs like https://bugs.winehq.org/show_bug.cgi?id=34052,',
+                    'usually resulting in geometry glitches. Enabling this has a small performance',
+                    'impact, default is disabled.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_glsl' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Disable GLSL shaders, use ARB shaders (faster, but sometimes breaks)',
+                    'Enable GLSL shaders (default)',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_orm' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Select the offscreen rendering implementation:',
+                    '',
+                    '    backbuffer - Render offscreen render targets in the backbuffer',
+                    '    fbo - Use framebuffer objects for offscreen rendering (default)',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
             } elseif ('config_dxvk_version' === $item['id']) {
 
                 $window->erase()->border()->title($item['name']);

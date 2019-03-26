@@ -67,8 +67,6 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_sandbox',                  'name' => '[' . ($config->getBool('script', 'sandbox') ? 'ON] ' : 'OFF]') . ' Sandbox'],
             ['id' => 'config_fixres',                   'name' => '[' . ($config->getBool('script', 'fixres') ? 'ON] ' : 'OFF]') . ' Auto fixed resolution'],
             ['id' => 'config_pba',                      'name' => '[' . ($config->isPBA() ? 'ON] ' : 'OFF]') . ' PBA enable'],
-            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
-            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
             ['id' => 'config_window_enable',            'name' => '[' . ($config->getBool('window', 'enable') ? 'ON] ' : 'OFF]') . ' Window mode'],
             ['id' => 'config_faudio',                   'name' => '[' . ($config->getBool('script', 'faudio') ? 'ON] ' : 'OFF]') . ' FAudio'],
             ['id' => 'config_dumbxinputemu',            'name' => '[' . ($config->getBool('script', 'dumbxinputemu') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu'],
@@ -77,6 +75,14 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_dxvk_autoupdate',          'name' => '[' . ($config->isDxvkAutoupdate() ? 'ON] ' : 'OFF]') . ' DXVK autoupdate'],
             ['id' => 'config_faudio_autoupdate',        'name' => '[' . ($config->getBool('script', 'faudio_autoupdate') ? 'ON] ' : 'OFF]') . ' FAudio autoupdate'],
             ['id' => 'config_dumbxinputemu_autoupdate', 'name' => '[' . ($config->getBool('script', 'dumbxinputemu_autoupdate') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu autoupdate'],
+
+
+            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
+            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
+            ['id' => 'config_fix_cfc',                  'name' => '[' . ($config->getBool('fixes', 'cfc') ? 'ON] ' : 'OFF]') . ' CheckFloatConstants'],
+            ['id' => 'config_fix_glsl',                 'name' => '[' . ($config->getBool('fixes', 'glsl') ? 'ON] ' : 'OFF]') . ' Use GLSL shaders'],
+            ['id' => 'config_fix_ddr',                  'name' => '(' . ($config->get('fixes', 'ddr') ?: 'default') . ')' . ' DirectDrawRenderer'],
+            ['id' => 'config_fix_orm',                  'name' => '(' . ($config->get('fixes', 'orm') ?: 'default') . ')' . ' OffscreenRenderingMode'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -238,18 +244,6 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
-            if ('config_fix_focus' === $item['id']) {
-                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
-                $config->save();
-                app()->showConfig();
-            }
-
-            if ('config_fix_nocrashdialog' === $item['id']) {
-                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
-                $config->save();
-                app()->showConfig();
-            }
-
             if ('config_dxvk_version' === $item['id']) {
 
                 app('start')->getUpdate()->downloadWinetricks();
@@ -283,6 +277,78 @@ class ConfigScene extends AbstractScene
                         app()->showConfig();
                     });
                 }
+            }
+
+            if ('config_fix_focus' === $item['id']) {
+                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_nocrashdialog' === $item['id']) {
+                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_cfc' === $item['id']) {
+                $config->set('fixes', 'cfc', $config->getBool('fixes', 'cfc') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_glsl' === $item['id']) {
+                $config->set('fixes', 'glsl', $config->getBool('fixes', 'glsl') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_ddr' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => '',       'name' => 'default'],
+                        ['id' => 'gdi',    'name' => 'gdi'],
+                        ['id' => 'opengl', 'name' => 'opengl'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('fixes', 'ddr', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
+            }
+
+            if ('config_fix_orm' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => '',           'name' => 'default'],
+                        ['id' => 'fbo',        'name' => 'fbo'],
+                        ['id' => 'backbuffer', 'name' => 'backbuffer'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('fixes', 'orm', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
             }
 
             app('start')->getConfig()->reload();

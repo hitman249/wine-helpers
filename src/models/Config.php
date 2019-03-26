@@ -559,8 +559,37 @@ focus = 0
 
 ;
 ; No crash dialog
+; Values: 0(default), 1
 ;
 nocrashdialog = 0
+
+
+;
+; CheckFloatConstants
+; Values: 0(default), 1
+;
+cfc = 0
+
+
+;
+; DirectDrawRenderer
+; Values: ""(default), "gdi", "opengl"
+;
+ddr = ""
+
+
+;
+; Use GLSL shaders (1) or ARB shaders (0) (faster, but sometimes breaks)
+; Values: 0, 1(default)
+;
+glsl = 1
+
+
+;
+; OffscreenRenderingMode
+; Values: ""(default), "fbo", "backbuffer"
+;
+orm = ""
 
 [window]
 

@@ -221,6 +221,13 @@ class WinePrefix {
 
 
         /**
+         * Update configs
+         */
+        $this->update->updateConfig();
+        $this->update->updateDxvkConfig();
+
+
+        /**
          * Create symlink to game directory
          */
         $this->createGameDirectory();
@@ -266,13 +273,6 @@ class WinePrefix {
          * Set windows version; Borrowed from winetricks
          */
         $this->updateWinVersion();
-
-
-        /**
-         * Update configs
-         */
-        $this->update->updateConfig();
-        $this->update->updateDxvkConfig();
     }
 
     public function updateReplaces()

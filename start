@@ -4870,8 +4870,37 @@ focus = 0
 
 ;
 ; No crash dialog
+; Values: 0(default), 1
 ;
 nocrashdialog = 0
+
+
+;
+; CheckFloatConstants
+; Values: 0(default), 1
+;
+cfc = 0
+
+
+;
+; DirectDrawRenderer
+; Values: ""(default), "gdi", "opengl"
+;
+ddr = ""
+
+
+;
+; Use GLSL shaders (1) or ARB shaders (0) (faster, but sometimes breaks)
+; Values: 0, 1(default)
+;
+glsl = 1
+
+
+;
+; OffscreenRenderingMode
+; Values: ""(default), "fbo", "backbuffer"
+;
+orm = ""
 
 [window]
 
@@ -5725,6 +5754,7 @@ class Update
 
         if (md5($currentText) !== md5($newConfig)) {
             file_put_contents($config->getConfigFile(), $newConfig);
+            app('start')->getConfig()->reload();
             return true;
         }
 
@@ -6346,6 +6376,13 @@ class WinePrefix {
 
 
         /**
+         * Update configs
+         */
+        $this->update->updateConfig();
+        $this->update->updateDxvkConfig();
+
+
+        /**
          * Create symlink to game directory
          */
         $this->createGameDirectory();
@@ -6391,13 +6428,6 @@ class WinePrefix {
          * Set windows version; Borrowed from winetricks
          */
         $this->updateWinVersion();
-
-
-        /**
-         * Update configs
-         */
-        $this->update->updateConfig();
-        $this->update->updateDxvkConfig();
     }
 
     public function updateReplaces()
@@ -10252,23 +10282,38 @@ class Fixes
         $isUpdated = false;
 
         $fixes = [
-            'ddraw',
-            'installers',
-            'd3dx9',
-            'internet',
-            'intro',
-            'xact',
-            'physx',
-            'font',
+//            'ddraw',
+//            'installers',
+//            'd3dx9',
+//            'internet',
+//            'intro',
+//            'xact',
+//            'physx',
+//            'font',
             'focus',
             'nocrashdialog',
+            'cfc',
+            'ddr',
+            'glsl',
+            'orm',
         ];
 
         foreach ($fixes as $fix) {
             $versionPath = $this->config->wine('DRIVE_C') . '/.' . $fix;
 
-            if ($this->config->getBool('fixes', $fix)) {
-                if (!file_exists($versionPath)) {
+            $valueConfigFix = $this->config->get('fixes', $fix);
+            $valueLocalFix  = file_exists($versionPath) ? trim(file_get_contents($versionPath)) : null;
+
+            $isNotEmpty = false;
+
+            if (in_array($fix, ['glsl'], true)) {
+                $isNotEmpty = !$this->config->getBool('fixes', $fix);
+            } else {
+                $isNotEmpty = $this->config->getBool('fixes', $fix);
+            }
+
+            if ($isNotEmpty) {
+                if (null === $valueLocalFix || $valueLocalFix !== $valueConfigFix) {
                     $isUpdated = true;
 
                     if ($logCallback) {
@@ -10277,7 +10322,7 @@ class Fixes
 
                     if (method_exists($this, "{$fix}Up")) {
                         app('start')->getPatch()->create(function () use ($fix, $logCallback, $versionPath) {
-                            file_put_contents($versionPath, $fix);
+                            file_put_contents($versionPath, $this->config->get('fixes', $fix));
                             $this->{"{$fix}Up"}($logCallback);
                         });
                     }
@@ -10303,6 +10348,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function ddrawUp($logCallback = null)
@@ -10331,6 +10377,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function ddrawDown($logCallback = null)
@@ -10343,6 +10390,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function installersUp($logCallback = null)
@@ -10365,6 +10413,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function internetUp($logCallback = null)
@@ -10376,6 +10425,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function introUp($logCallback = null)
@@ -10406,6 +10456,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function xactUp($logCallback = null)
@@ -10414,6 +10465,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function physxUp($logCallback = null)
@@ -10422,6 +10474,7 @@ class Fixes
     }
 
     /**
+     * @deprecated
      * @param callable|null $logCallback
      */
     public function fontUp($logCallback = null)
@@ -10441,9 +10494,90 @@ class Fixes
     /**
      * @param callable|null $logCallback
      */
+    public function focusDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'GrabFullscreen', '/f']);
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver', '/v', 'UseTakeFocus', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
     public function nocrashdialogUp($logCallback = null)
     {
-        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/d', 'dword:00000000', '/f']);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/t', 'REG_DWORD', '/d', '00000000', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function nocrashdialogDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\WineDbg', '/v', 'ShowCrashDialog', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function cfcUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'CheckFloatConstants', '/d', 'enabled', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function cfcDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'CheckFloatConstants', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'DirectDrawRenderer', '/d', $this->config->get('fixes', 'ddr'), '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ddrDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'DirectDrawRenderer', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function glslUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'UseGLSL', '/d', 'disabled', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function glslDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'UseGLSL', '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ormUp($logCallback = null)
+    {
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'OffscreenRenderingMode', '/d', $this->config->get('fixes', 'orm'), '/f']);
+    }
+
+    /**
+     * @param callable|null $logCallback
+     */
+    public function ormDown($logCallback = null)
+    {
+        $this->wine->run(['reg', 'delete', 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D', '/v', 'OffscreenRenderingMode', '/f']);
     }
 
     /**
@@ -13486,8 +13620,6 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_sandbox',                  'name' => '[' . ($config->getBool('script', 'sandbox') ? 'ON] ' : 'OFF]') . ' Sandbox'],
             ['id' => 'config_fixres',                   'name' => '[' . ($config->getBool('script', 'fixres') ? 'ON] ' : 'OFF]') . ' Auto fixed resolution'],
             ['id' => 'config_pba',                      'name' => '[' . ($config->isPBA() ? 'ON] ' : 'OFF]') . ' PBA enable'],
-            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
-            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
             ['id' => 'config_window_enable',            'name' => '[' . ($config->getBool('window', 'enable') ? 'ON] ' : 'OFF]') . ' Window mode'],
             ['id' => 'config_faudio',                   'name' => '[' . ($config->getBool('script', 'faudio') ? 'ON] ' : 'OFF]') . ' FAudio'],
             ['id' => 'config_dumbxinputemu',            'name' => '[' . ($config->getBool('script', 'dumbxinputemu') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu'],
@@ -13496,6 +13628,14 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_dxvk_autoupdate',          'name' => '[' . ($config->isDxvkAutoupdate() ? 'ON] ' : 'OFF]') . ' DXVK autoupdate'],
             ['id' => 'config_faudio_autoupdate',        'name' => '[' . ($config->getBool('script', 'faudio_autoupdate') ? 'ON] ' : 'OFF]') . ' FAudio autoupdate'],
             ['id' => 'config_dumbxinputemu_autoupdate', 'name' => '[' . ($config->getBool('script', 'dumbxinputemu_autoupdate') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu autoupdate'],
+
+
+            ['id' => 'config_fix_nocrashdialog',        'name' => '[' . (!$config->getBool('fixes', 'nocrashdialog') ? 'ON] ' : 'OFF]') . ' Show crash dialog'],
+            ['id' => 'config_fix_focus',                'name' => '[' . ($config->getBool('fixes', 'focus') ? 'ON] ' : 'OFF]') . ' Fix focus'],
+            ['id' => 'config_fix_cfc',                  'name' => '[' . ($config->getBool('fixes', 'cfc') ? 'ON] ' : 'OFF]') . ' CheckFloatConstants'],
+            ['id' => 'config_fix_glsl',                 'name' => '[' . ($config->getBool('fixes', 'glsl') ? 'ON] ' : 'OFF]') . ' Use GLSL shaders'],
+            ['id' => 'config_fix_ddr',                  'name' => '(' . ($config->get('fixes', 'ddr') ?: 'default') . ')' . ' DirectDrawRenderer'],
+            ['id' => 'config_fix_orm',                  'name' => '(' . ($config->get('fixes', 'orm') ?: 'default') . ')' . ' OffscreenRenderingMode'],
         ];
 
         $select = $this->addWidget(new PopupSelectWidget($this->window));
@@ -13657,18 +13797,6 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
-            if ('config_fix_focus' === $item['id']) {
-                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
-                $config->save();
-                app()->showConfig();
-            }
-
-            if ('config_fix_nocrashdialog' === $item['id']) {
-                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
-                $config->save();
-                app()->showConfig();
-            }
-
             if ('config_dxvk_version' === $item['id']) {
 
                 app('start')->getUpdate()->downloadWinetricks();
@@ -13702,6 +13830,78 @@ class ConfigScene extends AbstractScene
                         app()->showConfig();
                     });
                 }
+            }
+
+            if ('config_fix_focus' === $item['id']) {
+                $config->set('fixes', 'focus', $config->getBool('fixes', 'focus') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_nocrashdialog' === $item['id']) {
+                $config->set('fixes', 'nocrashdialog', !$config->getBool('fixes', 'nocrashdialog') ? 1 : 0);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_cfc' === $item['id']) {
+                $config->set('fixes', 'cfc', $config->getBool('fixes', 'cfc') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_glsl' === $item['id']) {
+                $config->set('fixes', 'glsl', $config->getBool('fixes', 'glsl') ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
+            if ('config_fix_ddr' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => '',       'name' => 'default'],
+                        ['id' => 'gdi',    'name' => 'gdi'],
+                        ['id' => 'opengl', 'name' => 'opengl'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('fixes', 'ddr', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
+            }
+
+            if ('config_fix_orm' === $item['id']) {
+                $select = $this->addWidget(new PopupSelectWidget($this->window));
+                $select
+                    ->setItems([
+                        ['id' => '',           'name' => 'default'],
+                        ['id' => 'fbo',        'name' => 'fbo'],
+                        ['id' => 'backbuffer', 'name' => 'backbuffer'],
+                    ])
+                    ->border()
+                    ->setFullMode()
+                    ->backAccess()
+                    ->maxSize(null, 4)
+                    ->offset($xy['x'], $xy['y'])
+                    ->setActive(true)
+                    ->show();
+                $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                    $this->removeWidget($select->hide());
+                    $config->set('fixes', 'orm', $type['id']);
+                    $config->save();
+                    app()->showConfig();
+                });
             }
 
             app('start')->getConfig()->reload();
@@ -14737,6 +14937,68 @@ class InfoWidget extends AbstractWidget {
 
                 $items = [
                     'Show Wine crash dialog.'
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_ddr' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Select what backend to use for ddraw. Valid options are:',
+                    '',
+                    '    gdi - Use GDI to draw on the screen',
+                    '    opengl - Use OpenGL (default)',
+                    '',
+                    'The "gdi" option mostly exists for legacy reasons. Aside from bugs in the GL',
+                    'renderer, only change this if you have a setup without OpenGL. Installing a software',
+                    'GL implementation is the preferred solution in that case though.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_cfc' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Range check float constants in d3d9 shaders. Use this to workaround',
+                    'application bugs like https://bugs.winehq.org/show_bug.cgi?id=34052,',
+                    'usually resulting in geometry glitches. Enabling this has a small performance',
+                    'impact, default is disabled.',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_glsl' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Disable GLSL shaders, use ARB shaders (faster, but sometimes breaks)',
+                    'Enable GLSL shaders (default)',
+                ];
+
+                $window->refresh();
+
+                $this->windowPrint->padding(1, 1)->dotMode(false)->update($items);
+
+            } elseif ('config_fix_orm' === $item['id']) {
+
+                $window->erase()->border()->title($item['name']);
+
+                $items = [
+                    'Select the offscreen rendering implementation:',
+                    '',
+                    '    backbuffer - Render offscreen render targets in the backbuffer',
+                    '    fbo - Use framebuffer objects for offscreen rendering (default)',
                 ];
 
                 $window->refresh();

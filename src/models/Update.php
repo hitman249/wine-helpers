@@ -288,6 +288,7 @@ class Update
 
         if (md5($currentText) !== md5($newConfig)) {
             file_put_contents($config->getConfigFile(), $newConfig);
+            app('start')->getConfig()->reload();
             return true;
         }
 
