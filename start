@@ -5468,7 +5468,7 @@ class Wine {
 
 class Update
 {
-    private $version = '0.83';
+    private $version = '0.84';
     private $command;
     private $config;
     private $network;
@@ -10646,6 +10646,7 @@ class Snapshot
 
         $this->folders = [
             'Program Files',
+            'Program Files (x86)',
             'ProgramData',
             'users',
             'windows',
@@ -10683,6 +10684,10 @@ class Snapshot
 
     private function read($dir)
     {
+        if (!file_exists($dir)) {
+            return;
+        }
+
         $gameFolder   = $this->fs->relativePath($this->config->getPrefixGameFolder(), $this->driveC);
         $relativePath = $this->fs->relativePath($dir, $this->driveC);
 

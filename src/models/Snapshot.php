@@ -36,6 +36,7 @@ class Snapshot
 
         $this->folders = [
             'Program Files',
+            'Program Files (x86)',
             'ProgramData',
             'users',
             'windows',
@@ -73,6 +74,10 @@ class Snapshot
 
     private function read($dir)
     {
+        if (!file_exists($dir)) {
+            return;
+        }
+
         $gameFolder   = $this->fs->relativePath($this->config->getPrefixGameFolder(), $this->driveC);
         $relativePath = $this->fs->relativePath($dir, $this->driveC);
 
