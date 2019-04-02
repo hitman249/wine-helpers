@@ -799,14 +799,6 @@ resolution = "auto"
 # d3d11.zeroWorkgroupMemory = False
 
 
-# Allow allocating more device memory from a Vulkan heap than the heap
-# provides. May in some cases improve performance in low-memory conditions.
-#
-# Supported values: True, False
-
-# dxvk.allowMemoryOvercommit = False
-
-
 # Sets number of pipeline compiler threads.
 # 
 # Supported values:
