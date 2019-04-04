@@ -3554,8 +3554,10 @@ class System {
         if ($userName === null) {
 
             $libwine = $this->config->getWineDir() . '/lib/libwine.so';
+            $libwine = glob("{$libwine}*");
+            $libwine = reset($libwine);
 
-            if (file_exists($libwine) && (bool)trim($this->command->run('grep "Proton" ' . Text::quoteArgs($libwine)))) {
+            if ($libwine && file_exists($libwine) && (bool)trim($this->command->run('grep -i "proton" ' . Text::quoteArgs($libwine)))) {
                 $userName = 'steamuser';
                 return $userName;
             }
@@ -15747,10 +15749,15 @@ class Start
         $this->config     = new Config();
         $this->log        = new Logs();
         $this->command    = new Command($this->config);
+        $this->system     = new System($this->config, $this->command);
+        $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
+        $this->mountes    = [
+            new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
+            new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
+        ];
         $this->event      = new Event($this->config, $this->command);
         $this->gameInfo   = new GameInfo($this->config, $this->command);
         $this->winePrefix = new WinePrefix($this->config, $this->command, $this->event);
-        $this->system     = new System($this->config, $this->command);
         $this->fs         = new FileSystem($this->config, $this->command);
         $this->update     = new Update($this->config, $this->command);
         $this->monitor    = new Monitor($this->config, $this->command);
@@ -15760,17 +15767,12 @@ class Start
         $this->symlink    = new Symlink($this->config, $this->command, $this->fs);
         $this->build      = new Build($this->config, $this->command, $this->system, $this->fs);
         $this->wine       = new Wine($this->config, $this->command);
-        $this->console    = new Console($this->config, $this->command, $this->system, $this->log);
         $this->replaces   = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
         $this->shapshot   = new Snapshot($this->config, $this->command, $this->fs, $this->wine, $this->replaces, $this->system);
         $this->patch      = new Patch($this->config, $this->command, $this->fs, $this->wine, $this->shapshot, $this->winePrefix);
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->driver     = new Driver($this->config, $this->command, $this->system);
-        $this->mountes    = [
-            new Mount($this->config, $this->command, $this->console, $this->config->getDataDir()),
-            new Mount($this->config, $this->command, $this->console, $this->config->getWineDir()),
-        ];
 
         $this->init();
     }

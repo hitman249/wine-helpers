@@ -27,8 +27,10 @@ class System {
         if ($userName === null) {
 
             $libwine = $this->config->getWineDir() . '/lib/libwine.so';
+            $libwine = glob("{$libwine}*");
+            $libwine = reset($libwine);
 
-            if (file_exists($libwine) && (bool)trim($this->command->run('grep "Proton" ' . Text::quoteArgs($libwine)))) {
+            if ($libwine && file_exists($libwine) && (bool)trim($this->command->run('grep -i "proton" ' . Text::quoteArgs($libwine)))) {
                 $userName = 'steamuser';
                 return $userName;
             }
