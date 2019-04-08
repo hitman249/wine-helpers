@@ -190,6 +190,11 @@ class CheckDependencies {
                 'status' => true,
                 'find'   => 'libSDL2-2.0.so.0',
             ],
+            'libudev1'     => [
+                'name'   => 'libudev1',
+                'status' => true,
+                'find'   => 'libudev.so.1',
+            ],
             'libasound2'        => [
                 'name'   => 'libasound2',
                 'status' => true,
