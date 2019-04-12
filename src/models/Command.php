@@ -156,7 +156,17 @@ class Command
 
         $squashfuse = $this->config->getRootDir() . '/squashfuse';
 
-        return $this->run(Text::quoteArgs($squashfuse) . ' ' . Text::quoteArgs("{$folder}.squashfs") . ' ' . Text::quoteArgs($folder));
+        $pathRead = $this->config->getCacheDir() . '/' . basename($folder) . '.squashfs';
+
+        foreach ([$folder, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        $this->run(Text::quoteArgs([$squashfuse, "{$folder}.squashfs", $pathRead]));
+
+        return $this->unionfs($folder);
     }
 
     public function zipfuse($folder)
@@ -165,12 +175,72 @@ class Command
 
         $zipfuse = $this->config->getRootDir() . '/fuse-zip';
 
-        return $this->run(Text::quoteArgs($zipfuse) . ' ' . Text::quoteArgs("{$folder}.zip") . ' ' . Text::quoteArgs($folder));
+        $pathRead = $this->config->getCacheDir() . '/' . basename($folder);
+
+        foreach ([$folder, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        $this->run(Text::quoteArgs([$zipfuse, "{$folder}.zip", "{$pathRead}.squashfs"]));
+
+        return $this->unionfs($folder);
     }
 
-    public function umount($folder)
+    public function unionfs($folder)
     {
-        return $this->run('fusermount -u ' . Text::quoteArgs($folder));
+        (new Update($this->config, $this))->downloadUnionfs();
+
+        $isDataFolder = 'data' ===  basename($folder);
+        $unionfs      = $this->config->getRootDir() . '/unionfs';
+        $pathRead     = $this->config->getCacheDir() . '/' . basename($folder);
+        $pathWrite    = "{$pathRead}.unionfs";
+        $pathRead     = "{$pathRead}.squashfs";
+
+        foreach ([$folder, $pathWrite, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        if ($isDataFolder && file_exists("{$pathRead}/_symlinks")) {
+            $pathRead = "{$pathRead}/_symlinks";
+        }
+
+        $system = new System($this->config, $this);
+        $fs     = new FileSystem($this->config, $this);
+
+        $params = [
+            'use_ino',
+            'readdir_ino',
+            'intr',
+            'atomic_o_trunc',
+            'big_writes',
+            'suid',
+            'cow',
+            'direct_io',
+            'auto_cache',
+//            'sync_read',
+            'exec',
+            'uid=' . $system->getUserId(),
+            'gid=' . $system->getUserGroupId(),
+        ];
+
+        $result = $this->run(Text::quoteArgs([$unionfs, '-o', implode(',', $params), "{$pathWrite}=RW:{$pathRead}=RO", $folder]));
+
+        if ($isDataFolder && file_exists($this->config->getSymlinksDir())) {
+            if ($fs->cp($this->config->getSymlinksDir(), $pathWrite, true, true)) {
+                $fs->rm($this->config->getSymlinksDir());
+            }
+        }
+
+        return $result;
+    }
+
+    public function umount($folder, $lazy = false)
+    {
+        return $this->run('fusermount -u ' . ($lazy ? '-z ' : '') . Text::quoteArgs($folder));
     }
 
     public function getLocale()

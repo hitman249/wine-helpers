@@ -107,6 +107,9 @@ class Build
         if (file_exists("{$root}/squashfuse")) {
             $this->command->run("\\cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
         }
+        if (file_exists("{$root}/unionfs")) {
+            $this->command->run("\\cp -a --link \"{$root}/unionfs\" \"{$root}/build/{$gameDir}/static/\"");
+        }
         if (file_exists("{$root}/fuse-zip")) {
             $this->command->run("\\cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");
         }

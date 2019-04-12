@@ -63,9 +63,9 @@ class FileSystem {
         return true;
     }
 
-    public function cp($in, $out, $overwrite = false)
+    public function cp($in, $out, $overwrite = false, $skipLinks = false)
     {
-        if (file_exists($in) && !is_dir($in)) {
+        if (file_exists($in) && !is_dir($in) && (($skipLinks && !is_link($in)) || !$skipLinks)) {
             copy($in, $out);
             return true;
         }
@@ -87,6 +87,9 @@ class FileSystem {
                 new \RecursiveDirectoryIterator($in, \RecursiveDirectoryIterator::SKIP_DOTS),
                 \RecursiveIteratorIterator::SELF_FIRST) as $item
         ) {
+            if ($skipLinks && $item->isLink()) {
+                continue;
+            }
             if ($item->isDir()) {
                 $pathOut = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
                 if ($overwrite && file_exists($pathOut)) {

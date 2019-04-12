@@ -3019,9 +3019,9 @@ class FileSystem {
         return true;
     }
 
-    public function cp($in, $out, $overwrite = false)
+    public function cp($in, $out, $overwrite = false, $skipLinks = false)
     {
-        if (file_exists($in) && !is_dir($in)) {
+        if (file_exists($in) && !is_dir($in) && (($skipLinks && !is_link($in)) || !$skipLinks)) {
             copy($in, $out);
             return true;
         }
@@ -3043,6 +3043,9 @@ class FileSystem {
                 new \RecursiveDirectoryIterator($in, \RecursiveDirectoryIterator::SKIP_DOTS),
                 \RecursiveIteratorIterator::SELF_FIRST) as $item
         ) {
+            if ($skipLinks && $item->isLink()) {
+                continue;
+            }
             if ($item->isDir()) {
                 $pathOut = $out . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
                 if ($overwrite && file_exists($pathOut)) {
@@ -3401,7 +3404,17 @@ class Command
 
         $squashfuse = $this->config->getRootDir() . '/squashfuse';
 
-        return $this->run(Text::quoteArgs($squashfuse) . ' ' . Text::quoteArgs("{$folder}.squashfs") . ' ' . Text::quoteArgs($folder));
+        $pathRead = $this->config->getCacheDir() . '/' . basename($folder) . '.squashfs';
+
+        foreach ([$folder, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        $this->run(Text::quoteArgs([$squashfuse, "{$folder}.squashfs", $pathRead]));
+
+        return $this->unionfs($folder);
     }
 
     public function zipfuse($folder)
@@ -3410,12 +3423,72 @@ class Command
 
         $zipfuse = $this->config->getRootDir() . '/fuse-zip';
 
-        return $this->run(Text::quoteArgs($zipfuse) . ' ' . Text::quoteArgs("{$folder}.zip") . ' ' . Text::quoteArgs($folder));
+        $pathRead = $this->config->getCacheDir() . '/' . basename($folder);
+
+        foreach ([$folder, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        $this->run(Text::quoteArgs([$zipfuse, "{$folder}.zip", "{$pathRead}.squashfs"]));
+
+        return $this->unionfs($folder);
     }
 
-    public function umount($folder)
+    public function unionfs($folder)
     {
-        return $this->run('fusermount -u ' . Text::quoteArgs($folder));
+        (new Update($this->config, $this))->downloadUnionfs();
+
+        $isDataFolder = 'data' ===  basename($folder);
+        $unionfs      = $this->config->getRootDir() . '/unionfs';
+        $pathRead     = $this->config->getCacheDir() . '/' . basename($folder);
+        $pathWrite    = "{$pathRead}.unionfs";
+        $pathRead     = "{$pathRead}.squashfs";
+
+        foreach ([$folder, $pathWrite, $pathRead] as $item) {
+            if (!file_exists($item) && !mkdir($item, 0775) && !is_dir($item)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $item));
+            }
+        }
+
+        if ($isDataFolder && file_exists("{$pathRead}/_symlinks")) {
+            $pathRead = "{$pathRead}/_symlinks";
+        }
+
+        $system = new System($this->config, $this);
+        $fs     = new FileSystem($this->config, $this);
+
+        $params = [
+            'use_ino',
+            'readdir_ino',
+            'intr',
+            'atomic_o_trunc',
+            'big_writes',
+            'suid',
+            'cow',
+            'direct_io',
+            'auto_cache',
+//            'sync_read',
+            'exec',
+            'uid=' . $system->getUserId(),
+            'gid=' . $system->getUserGroupId(),
+        ];
+
+        $result = $this->run(Text::quoteArgs([$unionfs, '-o', implode(',', $params), "{$pathWrite}=RW:{$pathRead}=RO", $folder]));
+
+        if ($isDataFolder && file_exists($this->config->getSymlinksDir())) {
+            if ($fs->cp($this->config->getSymlinksDir(), $pathWrite, true, true)) {
+                $fs->rm($this->config->getSymlinksDir());
+            }
+        }
+
+        return $result;
+    }
+
+    public function umount($folder, $lazy = false)
+    {
+        return $this->run('fusermount -u ' . ($lazy ? '-z ' : '') . Text::quoteArgs($folder));
     }
 
     public function getLocale()
@@ -3566,6 +3639,28 @@ class System {
         }
 
         return $userName;
+    }
+
+    public function getUserId()
+    {
+        static $userId = null;
+
+        if (null === $userId) {
+            $userId = trim($this->command->run('id -u'));
+        }
+
+        return $userId;
+    }
+
+    public function getUserGroupId()
+    {
+        static $userGroupId = null;
+
+        if (null === $userGroupId) {
+            $userGroupId = trim($this->command->run('id -g'));
+        }
+
+        return $userGroupId;
     }
 
     public function getHostname()
@@ -4159,20 +4254,29 @@ class Mount
             return false;
         }
 
+        $cache = $this->config->getCacheDir() . '/' . basename($this->folder) . '.squashfs';
+
         foreach (range(0, 5) as $i) {
-            if (!file_exists($this->folder)) {
+            if (!file_exists($this->folder) && !file_exists($cache)) {
                 $this->mounted = false;
                 $this->extension = null;
                 break;
             }
 
-            $this->command->umount($this->folder);
+            if (file_exists($this->folder)) {
+                $this->command->umount($this->folder);
+            }
+
+            if (file_exists($cache)) {
+                $this->command->umount($cache);
+                @rmdir($cache);
+            }
 
             if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
                 @rmdir($this->folder);
             }
 
-            if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
+            if ((file_exists($this->folder) || file_exists($cache)) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
                 sleep(1);
             } else {
                 $this->extension = null;
@@ -5919,6 +6023,25 @@ class Update
 
             if ($fusezip) {
                 file_put_contents($filePath, $fusezip);
+                $this->command->run("chmod +x \"{$filePath}\"");
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function downloadUnionfs()
+    {
+        $filePath = $this->config->getRootDir() . '/unionfs';
+
+        if (!file_exists($filePath)) {
+
+            $unionfs = $this->network->getRepo('/unionfs');
+
+            if ($unionfs) {
+                file_put_contents($filePath, $unionfs);
                 $this->command->run("chmod +x \"{$filePath}\"");
 
                 return true;
@@ -8367,6 +8490,9 @@ class Build
         }
         if (file_exists("{$root}/squashfuse")) {
             $this->command->run("\\cp -a --link \"{$root}/squashfuse\" \"{$root}/build/{$gameDir}/static/\"");
+        }
+        if (file_exists("{$root}/unionfs")) {
+            $this->command->run("\\cp -a --link \"{$root}/unionfs\" \"{$root}/build/{$gameDir}/static/\"");
         }
         if (file_exists("{$root}/fuse-zip")) {
             $this->command->run("\\cp -a --link \"{$root}/fuse-zip\" \"{$root}/build/{$gameDir}/static/\"");

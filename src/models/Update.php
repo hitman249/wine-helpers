@@ -468,6 +468,25 @@ class Update
         return false;
     }
 
+    public function downloadUnionfs()
+    {
+        $filePath = $this->config->getRootDir() . '/unionfs';
+
+        if (!file_exists($filePath)) {
+
+            $unionfs = $this->network->getRepo('/unionfs');
+
+            if ($unionfs) {
+                file_put_contents($filePath, $unionfs);
+                $this->command->run("chmod +x \"{$filePath}\"");
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function downloadHwprobe()
     {
         $filePath = $this->config->getRootDir() . '/hw-probe';

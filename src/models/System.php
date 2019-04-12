@@ -41,6 +41,28 @@ class System {
         return $userName;
     }
 
+    public function getUserId()
+    {
+        static $userId = null;
+
+        if (null === $userId) {
+            $userId = trim($this->command->run('id -u'));
+        }
+
+        return $userId;
+    }
+
+    public function getUserGroupId()
+    {
+        static $userGroupId = null;
+
+        if (null === $userGroupId) {
+            $userGroupId = trim($this->command->run('id -g'));
+        }
+
+        return $userGroupId;
+    }
+
     public function getHostname()
     {
         static $hostname = null;

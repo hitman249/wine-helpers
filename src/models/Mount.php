@@ -101,20 +101,29 @@ class Mount
             return false;
         }
 
+        $cache = $this->config->getCacheDir() . '/' . basename($this->folder) . '.squashfs';
+
         foreach (range(0, 5) as $i) {
-            if (!file_exists($this->folder)) {
+            if (!file_exists($this->folder) && !file_exists($cache)) {
                 $this->mounted = false;
                 $this->extension = null;
                 break;
             }
 
-            $this->command->umount($this->folder);
+            if (file_exists($this->folder)) {
+                $this->command->umount($this->folder);
+            }
+
+            if (file_exists($cache)) {
+                $this->command->umount($cache);
+                @rmdir($cache);
+            }
 
             if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
                 @rmdir($this->folder);
             }
 
-            if (file_exists($this->folder) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
+            if ((file_exists($this->folder) || file_exists($cache)) && (file_exists("{$this->folder}.squashfs") || file_exists("{$this->folder}.zip"))) {
                 sleep(1);
             } else {
                 $this->extension = null;
