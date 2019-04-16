@@ -109,7 +109,7 @@ class Task
         $wine       = $this->config->wine('WINE');
         $desktop    = $this->desktop();
         $fileName   = $this->config->getGameExe();
-        $arguments  = $this->config->getGameArgs();
+        $arguments  = str_replace("'", '"', $this->config->getGameArgs());
 
         $this->cmd = "cd \"{$fullPath}\" && \"{$wine}\" {$desktop} \"{$fileName}\" {$arguments}";
 
