@@ -11193,10 +11193,10 @@ class Diff
         $this->file2Path = $file2;
 
         $this->file1Data = $encoding === 'UTF-8' ? file_get_contents($file1) : iconv($encoding, 'UTF-8', file_get_contents($file1));
-        $this->file1Data = preg_split('/\R/', $this->file1Data);
+        $this->file1Data = preg_split('/\n|\r\n?/', $this->file1Data);
 
         $this->file2Data = $encoding === 'UTF-8' ? file_get_contents($file2) : iconv($encoding, 'UTF-8', file_get_contents($file2));
-        $this->file2Data = preg_split('/\R/', $this->file2Data);
+        $this->file2Data = preg_split('/\n|\r\n?/', $this->file2Data);
 
         return $this->diff($this->file1Path, $this->file2Path);
     }
@@ -11224,22 +11224,22 @@ class Diff
         $sectionType = self::DELETED;
 
         foreach (explode("\n", $diff) as $line) {
-            if (strpos($line, '*** ') !== false && strpos($line, ' ****') === false) {
+            if (mb_strpos($line, '*** ') !== false && mb_strpos($line, ' ****') === false) {
                 continue;
             }
-            if (strpos($line, '--- ') !== false && strpos($line, ' ----') === false) {
+            if (mb_strpos($line, '--- ') !== false && mb_strpos($line, ' ----') === false) {
                 continue;
             }
-            if (strpos($line, '***************') !== false) {
+            if (mb_strpos($line, '***************') !== false) {
                 $sectionType = self::DELETED;
                 continue;
             }
-            if (strpos($line, '--- ') !== false && strpos($line, ' ----') !== false) {
+            if (mb_strpos($line, '--- ') !== false && mb_strpos($line, ' ----') !== false) {
                 $sectionType = self::INSERTED;
                 list($from, $to) = explode(',', trim($line, "-* \t\n\r\0\x0B"));
                 continue;
             }
-            if (strpos($line, '*** ') !== false && strpos($line, ' ****') !== false) {
+            if (mb_strpos($line, '*** ') !== false && mb_strpos($line, ' ****') !== false) {
                 $sectionType = self::DELETED;
                 list($from, $to) = explode(',', trim($line, "-* \t\n\r\0\x0B"));
                 continue;
