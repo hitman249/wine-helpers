@@ -7643,6 +7643,15 @@ class CheckDependencies {
                 ];
                 $finds = array_filter(array_map('trim', explode("\n", trim($this->command->run("ldconfig -p | grep '{$lib['find']}'")))));
 
+                foreach (glob($this->config->getLibsDir() . "/{$lib['find']}*") as $_lib) {
+                    $_name = basename($_lib);
+                    $finds[] = "{$_name} (libc6) => {$_lib}";
+                }
+                foreach (glob($this->config->getLibs64Dir() . "/{$lib['find']}*") as $_lib) {
+                    $_name = basename($_lib);
+                    $finds[] = "{$_name} (libc6,x86-64) => {$_lib}";
+                }
+
                 foreach ($finds as $find) {
                     list($_fullName, $_path) = array_map('trim', explode('=>', $find));
                     list($_name, $_arch) = array_map(function ($n) {return trim($n, " \t\n\r\0\x0B()");}, explode(' (', $find));
@@ -7708,7 +7717,7 @@ class CheckDependencies {
         if ($install) {
             $this->log('');
             $this->log('');
-            $this->log('Please install (ubuntu):');
+            $this->log('[Recommended] install (not all required):');
             $this->log('sudo dpkg --add-architecture i386 && sudo apt-get update');
             $this->log('sudo apt-get install ' . implode(' ', $install));
         }
@@ -7717,7 +7726,7 @@ class CheckDependencies {
             $isOk = false;
 
             $this->log('');
-            $this->log('Please install wine.');
+            $this->log('Require install wine.');
 
             $this->log('');
             $this->log("Ubuntu:
@@ -7739,28 +7748,21 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             }
 
             $this->log('');
-            $this->log('Please install zenity.');
+            $this->log('Require install zenity.');
             $this->log("sudo apt-get install zenity");
-        }
-
-        if (false === $apps['tar']) {
-            $isOk = false;
-            $this->log('');
-            $this->log('Please install tar.');
-            $this->log("sudo apt-get install tar");
         }
 
         if (false === $apps['xrandr']) {
             $isOk = false;
             $this->log('');
-            $this->log('Please install xrandr.');
+            $this->log('Require install xrandr.');
             $this->log("sudo apt-get install x11-xserver-utils");
         }
 
         if ($apps['ldconfig'] && !$libs['libvulkan1']['status'] && $this->config->isDxvk()) {
             $isOk = false;
             $this->log('');
-            $this->log('Please install libvulkan1.');
+            $this->log('Require install libvulkan1.');
             $this->log('https://github.com/lutris/lutris/wiki/How-to:-DXVK#installing-vulkan');
         }
 
@@ -7770,8 +7772,9 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
                 $isOk = false;
             }
             $this->log('');
-            $this->log('Install libfuse2.');
-            $this->log("sudo apt-get install libfuse2");
+            $this->log('Require install libfuse2.');
+            $this->log('sudo dpkg --add-architecture i386');
+            $this->log("sudo apt-get install libfuse2 libfuse2:i386");
         }
 
         if ($this->config->isDxvk()) {
@@ -7828,7 +7831,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log('Please set vm.max_map_count=262144');
             $this->log('Current: ' . $this->system->getVmMaxMapCount());
             $this->log('Run as root:');
-            $this->log('echo \'vm.max_map_count=262144\' >> /etc/sysctl.conf');
+            $this->log('sudo sh -c "echo \'vm.max_map_count=262144\' >> /etc/sysctl.conf"');
         }
 
         if ($this->config->isGenerationPatchesMode()) {
