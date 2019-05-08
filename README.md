@@ -217,6 +217,7 @@ or [google disk](https://drive.google.com/open?id=1fTfJQhQSzlEkY-j3g0H6p4lwmQayU
 * Vulkan [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home#linux)
 * [Wine + Gallium Nine](https://launchpad.net/~commendsarnex/+archive/ubuntu/winedri3)
 * [CPU clock control for Linux](http://www.michurin.net/tools/cpu-frequency.html)
-* [Nightly builds dxvk](https://haagch.frickel.club/files/dxvk/)
+* dxvk [Nightly builds](https://haagch.frickel.club/files/dxvk/)
+* d9vk [Nightly builds](https://git.froggi.es/joshua/d9vk/-/jobs)
 * [Performance Tweaks](https://github.com/lutris/lutris/wiki/Performance-Tweaks)
 * [AntiMicro (gamepad)](https://github.com/AntiMicro/antimicro) - [YouTube](https://www.youtube.com/watch?v=HgX-pDXlF5Q)
