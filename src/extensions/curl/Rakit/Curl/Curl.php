@@ -93,6 +93,7 @@ namespace Rakit\Curl {
             $this->timeout(10);
             $this->option(CURLOPT_RETURNTRANSFER, 1);
             $this->option(CURLOPT_HEADER, TRUE);
+            $this->option(CURLOPT_SSL_VERIFYPEER, FALSE);
         }
 
         /**

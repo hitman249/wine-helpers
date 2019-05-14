@@ -144,7 +144,8 @@ class PopupSelectWidget extends AbstractWidget {
 
     private function titleItem($title)
     {
-        $len = mb_strlen($title);
+        $title = (string)$title;
+        $len   = mb_strlen($title);
 
         $width = ($this->getInnerWidth() + ('full' === $this->mode ? 1 : 0));
 
@@ -215,7 +216,8 @@ class PopupSelectWidget extends AbstractWidget {
     {
         $result = [];
 
-        $onePercent     = 100 / $this->getInnerHeight();
+        $height         = $this->getInnerHeight();
+        $onePercent     = $height ? 100 / $height : 0.1;
         $currentPercent = count($this->items) > 0 ? (100 / (count($this->items) / ($this->index + 1))) : 0;
 
         if ($currentPercent < $onePercent) {
