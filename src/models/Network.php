@@ -41,6 +41,15 @@ class Network {
         return self::isConnected() ? file_get_contents($url, false, stream_context_create($this->config->getContextOptions())) : '';
     }
 
+    public function getJSON($url)
+    {
+        if ($result = $this->get($url)) {
+            return json_decode($result, true);
+        }
+
+        return [];
+    }
+
     public function getRepo($url)
     {
         return $this->get($this->config->getRepositoryUrl() . $url);

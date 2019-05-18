@@ -53,8 +53,10 @@ class InfoWidget extends AbstractWidget {
             if ('start' === $item['id']) {
 
                 /** @var Config $config */
-                $config = $item['config'];
-                $update = app('start')->getUpdate();
+                $config  = $item['config'];
+                $update  = app('start')->getUpdate();
+                $command = app('start')->getCommand();
+                $network = app('start')->getNetwork();
 
                 if (!$config) {
                     return;
@@ -64,6 +66,9 @@ class InfoWidget extends AbstractWidget {
 
                 $fullPath = implode('/', array_filter([$config->getGamePath(), $config->getGameAdditionalPath(), $config->getGameExe()]));
 
+                $dxvk = new DXVK($config, $command, $network);
+                $d9vk = new D9VK($config, $command, $network);
+
                 $items = [
                     'File:    ' . basename($config->getConfigFile()),
                     "Path:    \"C:/{$fullPath}\" ". $config->getGameArgs(),
@@ -72,7 +77,8 @@ class InfoWidget extends AbstractWidget {
                     'Sandbox: ' . ($config->isSandbox() ? 'on' : 'off'),
                     'Sound:   ' . ($config->isPulse() ? 'pulse' : 'alsa'),
                     'CSMT:    ' . ($config->isCsmt() ? 'on' : 'off'),
-                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($dxvkVersion = $update->versionDxvk()) ? "({$dxvkVersion})" : '') : 'off'),
+                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($version = $dxvk->version()) ? "({$version})" : '') : 'off'),
+                    'D9VK:    ' . ($config->isD9vk() ? 'on ' . (($version = $d9vk->version()) ? "({$version})" : '') : 'off'),
                     'PBA:     ' . ($config->isPBA() ? 'on' : 'off'),
                     'Esync:   ' . ($config->isEsync() ? 'on' : 'off'),
                 ];
@@ -441,6 +447,8 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $config  = app('start')->getConfig();
+                $command = app('start')->getCommand();
+                $network = app('start')->getNetwork();
                 $update  = app('start')->getUpdate();
 
                 $current = $update->version();
@@ -456,8 +464,9 @@ class InfoWidget extends AbstractWidget {
                 ];
 
                 if ($config->isDxvk()) {
-                    $currentDxvk = $update->versionDxvk();
-                    $remoteDxvk  = $update->versionDxvkRemote();
+                    $dxvk = new DXVK($config, $command, $network);
+                    $currentDxvk = $dxvk->version();
+                    $remoteDxvk  = $dxvk->versionRemote();
                     $autoDxvk    = $config->isDxvkAutoupdate() ? 'on' : 'off';
 
                     $items = array_merge(

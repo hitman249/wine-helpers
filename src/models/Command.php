@@ -114,7 +114,7 @@ class Command
             $exported['export PROTON_NO_ESYNC'] = 'noesync';
         }
 
-        if ($this->config->isDxvk()) {
+        if ($this->config->isDxvk() || $this->config->isD9vk()) {
 
             $cache = $this->config->getDxvkCacheDir();
             $logs  = $this->config->getDxvkLogsDir();

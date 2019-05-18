@@ -61,6 +61,7 @@ class Start
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->driver     = new Driver($this->config, $this->command, $this->system);
+        $this->network    = new Network($this->config, $this->command);
 
         $this->init();
     }
@@ -304,6 +305,14 @@ class Start
     public function getDriver()
     {
         return $this->driver;
+    }
+
+    /**
+     * @return Network
+     */
+    public function getNetwork()
+    {
+        return $this->network;
     }
 }
 

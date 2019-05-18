@@ -11,6 +11,7 @@ class WinePrefix {
     private $update;
     private $event;
     private $replaces;
+    private $network;
     private $log;
     private $buffer;
     private $created = false;
@@ -32,6 +33,7 @@ class WinePrefix {
         $this->fs       = new FileSystem($this->config, $this->command);
         $this->update   = new Update($this->config, $this->command);
         $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
+        $this->network  = new Network($this->config, $this->command);
     }
 
     public function log($text)
@@ -186,17 +188,26 @@ class WinePrefix {
 
 
             /**
-             * Install latest dxvk (d3d11.dll and dxgi.dll)
+             * Install latest dxvk (d3d10.dll, d3d10_1.dll, d3d11.dll, dxgi.dll)
              */
             if ($this->config->isDxvk()) {
                 app('start')->getPatch()->create(function () {
-                    if ($this->update->updateDxvk()) {
-                        $dxvk = $this->update->versionDxvk();
-                        $this->log("DXVK updated to {$dxvk}.");
-                    }
+                    (new DXVK($this->config, $this->command, $this->network))->update(function ($text) {$this->log($text);});
+                });
+            }
+            app()->getCurrentScene()->setProgress(87);
+
+
+            /**
+             * Install latest d9vk (d3d9.dll)
+             */
+            if ($this->config->isD9vk()) {
+                app('start')->getPatch()->create(function () {
+                    (new D9VK($this->config, $this->command, $this->network))->update(function ($text) {$this->log($text);});
                 });
             }
             app()->getCurrentScene()->setProgress(90);
+
 
             /**
              * Fired hooks
@@ -224,7 +235,7 @@ class WinePrefix {
          * Update configs
          */
         $this->update->updateConfig();
-        $this->update->updateDxvkConfig();
+        (new DXVK($this->config, $this->command, $this->network))->updateDxvkConfig();
 
 
         /**

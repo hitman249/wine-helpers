@@ -185,8 +185,9 @@ class TweaksScene extends AbstractScene
                         }
                     }
                     if ('dxvk' === $type['id']) {
-                        $current = app('start')->getUpdate()->versionDxvk();
-                        $remote  = app('start')->getUpdate()->versionDxvkRemote();
+                        $dxvk    = new DXVK(app('start')->getConfig(), app('start')->getCommand(), app('start')->getNetwork());
+                        $current = $dxvk->version();
+                        $remote  = $dxvk->versionRemote();
 
                         if ($current === $remote) {
                             $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
@@ -207,7 +208,7 @@ class TweaksScene extends AbstractScene
                                 ->setActive(true)
                                 ->show();
                             $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
-                            $popup->onEnterEvent(function ($flag) use (&$popup) {
+                            $popup->onEnterEvent(function ($flag) use (&$popup, &$dxvk) {
                                 $this->removeWidget($popup->hide());
 
                                 if ($flag) {
@@ -218,7 +219,7 @@ class TweaksScene extends AbstractScene
                                         ->setActive(true)
                                         ->show();
 
-                                    $result = app('start')->getUpdate()->updateDxvk();
+                                    $result = $dxvk->update();
 
                                     $this->removeWidget($popup->hide());
 

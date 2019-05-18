@@ -44,7 +44,13 @@ class Update
         /**
          * Autoupdate dxvk
          */
-        $this->dxvkAutoupdate();
+        (new DXVK($this->config, $this->command, $this->network))->update();
+
+
+        /**
+         * Autoupdate d9vk
+         */
+        (new D9VK($this->config, $this->command, $this->network))->update();
 
 
         /**
@@ -105,70 +111,6 @@ class Update
                     return true;
                 }
             }
-        }
-
-        return false;
-    }
-
-    public function updateDxvkConfig()
-    {
-        if (!$this->config->isDxvk()) {
-            return false;
-        }
-
-        if (!file_exists($this->config->getDxvkConfFile())) {
-            file_put_contents($this->config->getDxvkConfFile(), $this->config->getDefaultDxvkConfig());
-        }
-
-        if (!file_exists($this->config->getDxvkConfFile())) {
-            return false;
-        }
-
-        $currentConfig = trim(file_get_contents($this->config->getDxvkConfFile()));
-        $defaultConfig = explode("\n", $this->config->getDefaultDxvkConfig());
-        $newConfig     = [];
-        $params        = [];
-
-        foreach (explode("\n", $currentConfig) as $line) {
-            $line = trim($line);
-            if (!Text::startsWith($line, '#')) {
-                $item = explode('=', $line);
-                $name = trim(reset($item));
-                $params[$name] = $line;
-            }
-        }
-
-        foreach ($defaultConfig as $line) {
-            $newConfig[] = $line;
-
-            if (count($params) > 0) {
-                $line = trim($line, " \t\n\r\0\x0B#");
-                $item = explode('=', $line);
-                $name = trim(reset($item));
-
-                if (isset($params[$name]) && $params[$name] !== null) {
-                    $newConfig[] = '';
-                    $newConfig[] = $params[$name];
-                    unset($params[$name]);
-                }
-            }
-        }
-
-        if (count($params) > 0) {
-            $newConfig[] = '';
-            $newConfig[] = '';
-            $newConfig[] = '# Deprecated values.';
-            $newConfig[] = '';
-            foreach ($params as $line) {
-                $newConfig[] = $line;
-            }
-        }
-
-        $config = trim(implode("\n", $newConfig));
-
-        if (md5($config) !== md5($currentConfig)) {
-            file_put_contents($this->config->getDxvkConfFile(), $config);
-            return true;
         }
 
         return false;
@@ -329,71 +271,6 @@ class Update
              * README.md
              */
             $this->updateReadme(false, true);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    public function dxvkAutoupdate()
-    {
-        if ($this->config->isDxvkAutoupdate()) {
-            $this->updateDxvk();
-        }
-
-        return false;
-    }
-
-    public function versionDxvk()
-    {
-        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
-
-        if (file_exists($dxvk)) {
-            return trim(file_get_contents($dxvk));
-        }
-
-        return '';
-    }
-
-    public function versionDxvkRemote()
-    {
-        if ($this->config->get('script', 'dxvk_version')) {
-            return $this->config->get('script', 'dxvk_version');
-        }
-
-        static $version;
-
-        if (null === $version) {
-            $version = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
-        }
-
-        return $version;
-    }
-
-    public function updateDxvk()
-    {
-        if (!Network::isConnected() || !$this->config->isDxvk() || !file_exists($this->config->wine('WINEPREFIX'))) {
-            return false;
-        }
-
-        $this->updateDxvkConfig();
-
-        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
-        $log  = $this->config->wine('WINEPREFIX') . "/winetricks.log";
-
-        if (file_exists($log)) {
-            $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
-                function ($n) {return !$n && $n !== 'dxvk';});
-            file_put_contents($log, implode("\n", $winetricks));
-        }
-
-        $newVersion = $this->versionDxvkRemote();
-        $oldVersion = $this->versionDxvk();
-
-        if ($newVersion !== $oldVersion) {
-            (new Wine($this->config, $this->command))->winetricks([$this->config->get('script', 'dxvk_version')?:'dxvk']);
-            file_put_contents($dxvk, $newVersion);
 
             return true;
         }

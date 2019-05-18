@@ -30,7 +30,10 @@ class Config {
     public function __construct($path = null)
     {
         $this->repo            = 'https://raw.githubusercontent.com/hitman249/wine-helpers/master';
-        $this->context         = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
+        $this->context         = [
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+            'http' => ['header' => ['User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)']],
+        ];
         $this->rootDir         = __DIR__;
         $this->gameInfoDir     = "{$this->rootDir}/game_info";
         $this->dataDir         = "{$this->rootDir}/game_info/data";
@@ -292,8 +295,12 @@ class Config {
         return $configs;
     }
 
-    public function getContextOptions()
+    public function getContextOptions($field = null)
     {
+        if ('User-Agent' === $field) {
+            return str_replace('User-Agent: ', '', $this->context['http']['header']);
+        }
+
         return $this->context;
     }
 
@@ -501,6 +508,16 @@ dxvk_d3d10 = 0
 
 
 ;
+; Download the latest D9VK.
+; https://github.com/Joshua-Ashton/d9vk
+; D9vk versions: d9vk_master, d9vk010, d9vk011 other. Empty from latest.
+;
+d9vk = 0
+d9vk_version = ""
+d9vk_autoupdate = 1
+
+
+;
 ; Download the latest dumbxinputemu.
 ; https://github.com/kozec/dumbxinputemu
 ;
@@ -664,9 +681,6 @@ resolution = "auto"
 # or otherwise the window may stay black.
 # 
 # Supported values: True, False
-# 
-# Enabled by default for:
-# - Frostpunk
 
 # dxgi.deferSurfaceCreation = False
 
@@ -689,7 +703,6 @@ resolution = "auto"
 # dxgi.customVendorId = 0000
 
 
-
 # Report Nvidia GPUs as AMD GPUs by default. This is enabled by default
 # to work around issues with NVAPI, but may cause issues in some games.
 #
@@ -704,9 +717,6 @@ resolution = "auto"
 # in games that do not support cards with large amounts of VRAM.
 #
 # Supported values: Any number in Megabytes.
-#
-# Enabled by default for:
-# - Life is Feudal MMO: 4095
 
 # dxgi.maxDeviceMemory = 0
 # dxgi.maxSharedMemory = 0
@@ -742,12 +752,26 @@ resolution = "auto"
 # games which do not expect Map() to return an error despite using the flag.
 # 
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Dishonored 2
-# - Far Cry 5
 
 # d3d11.allowMapFlagNoWait = False
+
+
+# Performs range check on dynamically indexed constant buffers in shaders.
+# This may be needed to work around a certain type of game bug, but may
+# also introduce incorrect behaviour.
+#
+# Supported values: True, False
+
+# d3d11.constantBufferRangeCheck = False
+
+
+# Assume single-use mode for command lists created on deferred contexts.
+# This may need to be disabled for some applications to avoid rendering
+# issues, which may come at a significant performance cost.
+#
+# Supported values: True, False
+
+# d3d11.dcSingleUseMode = True
 
 
 # Override the maximum feature level that a D3D11 device can be created
@@ -767,6 +791,16 @@ resolution = "auto"
 # d3d11.maxTessFactor = 0
 
 
+# Enables relaxed pipeline barriers around UAV writes.
+# 
+# This may improve performance in some games, but may also introduce
+# rendering issues. Please don't report bugs with the option enabled.
+#
+# Supported values: True, False
+
+# d3d11.relaxedBarriers = False
+
+
 # Overrides anisotropic filtering for all samplers. Set this to a positive
 # value to enable AF for all samplers in the game, or to 0 in order to
 # disable AF entirely. Negative values will have no effect.
@@ -781,9 +815,6 @@ resolution = "auto"
 # behaviour of Windows drivers, which also is not SM4-compliant.
 #
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Final Fantasy XIV
 
 # d3d11.strictDivision = False
 
@@ -792,9 +823,6 @@ resolution = "auto"
 # this and rely on undefined behaviour. Enabling may reduce performance.
 #
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Quantum Break
 
 # d3d11.zeroWorkgroupMemory = False
 
@@ -808,8 +836,7 @@ resolution = "auto"
 # dxvk.numCompilerThreads = 0
 
 
-
-# Toggles raw SSBO usage
+# Toggles raw SSBO usage.
 # 
 # Uses storage buffers to implement raw and structured buffer
 # views. Enabled by default on hardware which has a storage
@@ -824,8 +851,7 @@ resolution = "auto"
 # dxvk.useRawSsbo = Auto
 
 
-
-# Toggles early discard
+# Toggles early discard.
 # 
 # Uses subgroup operations to determine whether it is safe to
 # discard fragments before the end of a fragment shader. This
@@ -853,6 +879,16 @@ resolution = "auto"
     public function isDxvk()
     {
         return $this->getBool('script', 'dxvk');
+    }
+
+    public function isD9vkAutoupdate()
+    {
+        return $this->getBool('script', 'd9vk_autoupdate');
+    }
+
+    public function isD9vk()
+    {
+        return $this->getBool('script', 'd9vk');
     }
 
     public function isSandbox()

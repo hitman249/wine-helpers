@@ -61,6 +61,8 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_patches',                  'name' => '[' . ($config->isGenerationPatchesMode() ? 'ON] ' : 'OFF]') . ' Create patches'],
             ['id' => 'config_dxvk',                     'name' => '[' . ($config->isDxvk() ? 'ON] ' : 'OFF]') . ' DXVK enable'],
             ['id' => 'config_dxvk_version',             'name' => '(' . ($config->get('script', 'dxvk_version') ?: 'latest') . ')' . ' DXVK version'],
+            ['id' => 'config_d9vk',                     'name' => '[' . ($config->isD9vk() ? 'ON] ' : 'OFF]') . ' D9VK enable'],
+            ['id' => 'config_d9vk_version',             'name' => '(' . ($config->get('script', 'd9vk_version') ?: 'latest') . ')' . ' D9VK version'],
             ['id' => 'config_esync',                    'name' => '[' . ($config->isEsync() ? 'ON] ' : 'OFF]') . ' ESYNC enable'],
             ['id' => 'config_csmt',                     'name' => '[' . ($config->getBool('script', 'csmt') ? 'ON] ' : 'OFF]') . ' CSMT enable'],
             ['id' => 'config_pulse',                    'name' => '[' . ($config->getBool('script', 'pulse') ? 'ON] ' : 'OFF]') . ' Pulse enable'],
@@ -73,6 +75,7 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_dxvk_d3d10',               'name' => '[' . ($config->getBool('script', 'dxvk_d3d10') ? 'ON] ' : 'OFF]') . ' DXVK D3D10'],
             ['id' => 'config_autoupdate',               'name' => '[' . ($config->isScriptAutoupdate() ? 'ON] ' : 'OFF]') . ' SCRIPT autoupdate'],
             ['id' => 'config_dxvk_autoupdate',          'name' => '[' . ($config->isDxvkAutoupdate() ? 'ON] ' : 'OFF]') . ' DXVK autoupdate'],
+            ['id' => 'config_d9vk_autoupdate',          'name' => '[' . ($config->isD9vkAutoupdate() ? 'ON] ' : 'OFF]') . ' D9VK autoupdate'],
             ['id' => 'config_faudio_autoupdate',        'name' => '[' . ($config->getBool('script', 'faudio_autoupdate') ? 'ON] ' : 'OFF]') . ' FAudio autoupdate'],
             ['id' => 'config_dumbxinputemu_autoupdate', 'name' => '[' . ($config->getBool('script', 'dumbxinputemu_autoupdate') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu autoupdate'],
 
@@ -172,6 +175,12 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
+            if ('config_d9vk' === $item['id']) {
+                $config->set('script', 'd9vk', $config->isD9vk() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
             if ('config_csmt' === $item['id']) {
                 $config->set('script', 'csmt', $config->getBool('script', 'csmt') ? 0 : 1);
                 $config->save();
@@ -232,6 +241,12 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
+            if ('config_d9vk_autoupdate' === $item['id']) {
+                $config->set('script', 'd9vk_autoupdate', $config->isD9vkAutoupdate() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
             if ('config_faudio_autoupdate' === $item['id']) {
                 $config->set('script', 'faudio_autoupdate', $config->getBool('script', 'faudio_autoupdate') ? 0 : 1);
                 $config->save();
@@ -273,6 +288,41 @@ class ConfigScene extends AbstractScene
                     $select->onEnterEvent(function ($type) use (&$select, &$config) {
                         $this->removeWidget($select->hide());
                         $config->set('script', 'dxvk_version', $type['id']);
+                        $config->save();
+                        app()->showConfig();
+                    });
+                }
+            }
+
+            if ('config_d9vk_version' === $item['id']) {
+
+                app('start')->getUpdate()->downloadWinetricks();
+                $winetricks = $config->getRootDir() . '/winetricks';
+
+                if (file_exists($winetricks)) {
+
+                    $versions = explode("\n", file_get_contents($winetricks));
+                    $versions = array_filter($versions, function ($line) { return strpos($line, 'load_d9vk') !== false && strpos($line, 'load_d9vk()') === false; });
+                    $versions = array_map(function ($line) { return str_replace('load_', '', trim($line, " \t\n\r\0\x0B(){}[].:")); }, $versions);
+                    natsort($versions);
+                    $versions = array_reverse($versions);
+                    $versions = array_map(function ($row) { return ['id' => $row, 'name' => $row]; }, $versions);
+                    $versions = array_merge([['id' => '', 'name' => 'latest']], $versions);
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems($versions)
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                    $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                        $this->removeWidget($select->hide());
+                        $config->set('script', 'd9vk_version', $type['id']);
                         $config->save();
                         app()->showConfig();
                     });

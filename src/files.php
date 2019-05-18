@@ -54,6 +54,8 @@ return [
         'models/Registry.php',
         'models/Plugins.php',
         'models/Driver.php',
+        'models/DXVK.php',
+        'models/D9VK.php',
         'models/AbstractPlugin.php',
         'helpers/ControllerGUI.php',
         'scenes/AbstractScene.php',

@@ -598,7 +598,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install x11-xserver-utils");
         }
 
-        if ($apps['ldconfig'] && !$libs['libvulkan1']['status'] && $this->config->isDxvk()) {
+        if ($apps['ldconfig'] && !$libs['libvulkan1']['status'] && ($this->config->isDxvk() || $this->config->isD9vk())) {
             $isOk = false;
             $this->log('');
             $this->log('Require install libvulkan1.');
@@ -616,7 +616,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install libfuse2 libfuse2:i386");
         }
 
-        if ($this->config->isDxvk()) {
+        if ($this->config->isDxvk() || $this->config->isD9vk()) {
 
             $driver = app('start')->getDriver()->getVersion();
 
@@ -651,7 +651,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             }
         }
 
-        if ($this->config->isEsync() || $this->config->isDxvk()) {
+        if ($this->config->isEsync() || $this->config->isDxvk() || $this->config->isD9vk()) {
             $currentUlimit     = $this->system->getUlimitSoft();
             $recommendedUlimit = 200000;
 

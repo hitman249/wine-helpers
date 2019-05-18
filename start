@@ -3360,7 +3360,7 @@ class Command
             $exported['export PROTON_NO_ESYNC'] = 'noesync';
         }
 
-        if ($this->config->isDxvk()) {
+        if ($this->config->isDxvk() || $this->config->isD9vk()) {
 
             $cache = $this->config->getDxvkCacheDir();
             $logs  = $this->config->getDxvkLogsDir();
@@ -3518,6 +3518,15 @@ class Network {
     public function get($url)
     {
         return self::isConnected() ? file_get_contents($url, false, stream_context_create($this->config->getContextOptions())) : '';
+    }
+
+    public function getJSON($url)
+    {
+        if ($result = $this->get($url)) {
+            return json_decode($result, true);
+        }
+
+        return [];
     }
 
     public function getRepo($url)
@@ -4344,7 +4353,10 @@ class Config {
     public function __construct($path = null)
     {
         $this->repo            = 'https://raw.githubusercontent.com/hitman249/wine-helpers/master';
-        $this->context         = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]];
+        $this->context         = [
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+            'http' => ['header' => ['User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)']],
+        ];
         $this->rootDir         = __DIR__;
         $this->gameInfoDir     = "{$this->rootDir}/game_info";
         $this->dataDir         = "{$this->rootDir}/game_info/data";
@@ -4606,8 +4618,12 @@ class Config {
         return $configs;
     }
 
-    public function getContextOptions()
+    public function getContextOptions($field = null)
     {
+        if ('User-Agent' === $field) {
+            return str_replace('User-Agent: ', '', $this->context['http']['header']);
+        }
+
         return $this->context;
     }
 
@@ -4815,6 +4831,16 @@ dxvk_d3d10 = 0
 
 
 ;
+; Download the latest D9VK.
+; https://github.com/Joshua-Ashton/d9vk
+; D9vk versions: d9vk_master, d9vk010, d9vk011 other. Empty from latest.
+;
+d9vk = 0
+d9vk_version = ""
+d9vk_autoupdate = 1
+
+
+;
 ; Download the latest dumbxinputemu.
 ; https://github.com/kozec/dumbxinputemu
 ;
@@ -4978,9 +5004,6 @@ resolution = "auto"
 # or otherwise the window may stay black.
 # 
 # Supported values: True, False
-# 
-# Enabled by default for:
-# - Frostpunk
 
 # dxgi.deferSurfaceCreation = False
 
@@ -5003,7 +5026,6 @@ resolution = "auto"
 # dxgi.customVendorId = 0000
 
 
-
 # Report Nvidia GPUs as AMD GPUs by default. This is enabled by default
 # to work around issues with NVAPI, but may cause issues in some games.
 #
@@ -5018,9 +5040,6 @@ resolution = "auto"
 # in games that do not support cards with large amounts of VRAM.
 #
 # Supported values: Any number in Megabytes.
-#
-# Enabled by default for:
-# - Life is Feudal MMO: 4095
 
 # dxgi.maxDeviceMemory = 0
 # dxgi.maxSharedMemory = 0
@@ -5056,12 +5075,26 @@ resolution = "auto"
 # games which do not expect Map() to return an error despite using the flag.
 # 
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Dishonored 2
-# - Far Cry 5
 
 # d3d11.allowMapFlagNoWait = False
+
+
+# Performs range check on dynamically indexed constant buffers in shaders.
+# This may be needed to work around a certain type of game bug, but may
+# also introduce incorrect behaviour.
+#
+# Supported values: True, False
+
+# d3d11.constantBufferRangeCheck = False
+
+
+# Assume single-use mode for command lists created on deferred contexts.
+# This may need to be disabled for some applications to avoid rendering
+# issues, which may come at a significant performance cost.
+#
+# Supported values: True, False
+
+# d3d11.dcSingleUseMode = True
 
 
 # Override the maximum feature level that a D3D11 device can be created
@@ -5081,6 +5114,16 @@ resolution = "auto"
 # d3d11.maxTessFactor = 0
 
 
+# Enables relaxed pipeline barriers around UAV writes.
+# 
+# This may improve performance in some games, but may also introduce
+# rendering issues. Please don't report bugs with the option enabled.
+#
+# Supported values: True, False
+
+# d3d11.relaxedBarriers = False
+
+
 # Overrides anisotropic filtering for all samplers. Set this to a positive
 # value to enable AF for all samplers in the game, or to 0 in order to
 # disable AF entirely. Negative values will have no effect.
@@ -5095,9 +5138,6 @@ resolution = "auto"
 # behaviour of Windows drivers, which also is not SM4-compliant.
 #
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Final Fantasy XIV
 
 # d3d11.strictDivision = False
 
@@ -5106,9 +5146,6 @@ resolution = "auto"
 # this and rely on undefined behaviour. Enabling may reduce performance.
 #
 # Supported values: True, False
-#
-# Enabled by default for:
-# - Quantum Break
 
 # d3d11.zeroWorkgroupMemory = False
 
@@ -5122,8 +5159,7 @@ resolution = "auto"
 # dxvk.numCompilerThreads = 0
 
 
-
-# Toggles raw SSBO usage
+# Toggles raw SSBO usage.
 # 
 # Uses storage buffers to implement raw and structured buffer
 # views. Enabled by default on hardware which has a storage
@@ -5138,8 +5174,7 @@ resolution = "auto"
 # dxvk.useRawSsbo = Auto
 
 
-
-# Toggles early discard
+# Toggles early discard.
 # 
 # Uses subgroup operations to determine whether it is safe to
 # discard fragments before the end of a fragment shader. This
@@ -5167,6 +5202,16 @@ resolution = "auto"
     public function isDxvk()
     {
         return $this->getBool('script', 'dxvk');
+    }
+
+    public function isD9vkAutoupdate()
+    {
+        return $this->getBool('script', 'd9vk_autoupdate');
+    }
+
+    public function isD9vk()
+    {
+        return $this->getBool('script', 'd9vk');
     }
 
     public function isSandbox()
@@ -5505,7 +5550,13 @@ class Update
         /**
          * Autoupdate dxvk
          */
-        $this->dxvkAutoupdate();
+        (new DXVK($this->config, $this->command, $this->network))->update();
+
+
+        /**
+         * Autoupdate d9vk
+         */
+        (new D9VK($this->config, $this->command, $this->network))->update();
 
 
         /**
@@ -5566,70 +5617,6 @@ class Update
                     return true;
                 }
             }
-        }
-
-        return false;
-    }
-
-    public function updateDxvkConfig()
-    {
-        if (!$this->config->isDxvk()) {
-            return false;
-        }
-
-        if (!file_exists($this->config->getDxvkConfFile())) {
-            file_put_contents($this->config->getDxvkConfFile(), $this->config->getDefaultDxvkConfig());
-        }
-
-        if (!file_exists($this->config->getDxvkConfFile())) {
-            return false;
-        }
-
-        $currentConfig = trim(file_get_contents($this->config->getDxvkConfFile()));
-        $defaultConfig = explode("\n", $this->config->getDefaultDxvkConfig());
-        $newConfig     = [];
-        $params        = [];
-
-        foreach (explode("\n", $currentConfig) as $line) {
-            $line = trim($line);
-            if (!Text::startsWith($line, '#')) {
-                $item = explode('=', $line);
-                $name = trim(reset($item));
-                $params[$name] = $line;
-            }
-        }
-
-        foreach ($defaultConfig as $line) {
-            $newConfig[] = $line;
-
-            if (count($params) > 0) {
-                $line = trim($line, " \t\n\r\0\x0B#");
-                $item = explode('=', $line);
-                $name = trim(reset($item));
-
-                if (isset($params[$name]) && $params[$name] !== null) {
-                    $newConfig[] = '';
-                    $newConfig[] = $params[$name];
-                    unset($params[$name]);
-                }
-            }
-        }
-
-        if (count($params) > 0) {
-            $newConfig[] = '';
-            $newConfig[] = '';
-            $newConfig[] = '# Deprecated values.';
-            $newConfig[] = '';
-            foreach ($params as $line) {
-                $newConfig[] = $line;
-            }
-        }
-
-        $config = trim(implode("\n", $newConfig));
-
-        if (md5($config) !== md5($currentConfig)) {
-            file_put_contents($this->config->getDxvkConfFile(), $config);
-            return true;
         }
 
         return false;
@@ -5790,71 +5777,6 @@ class Update
              * README.md
              */
             $this->updateReadme(false, true);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    public function dxvkAutoupdate()
-    {
-        if ($this->config->isDxvkAutoupdate()) {
-            $this->updateDxvk();
-        }
-
-        return false;
-    }
-
-    public function versionDxvk()
-    {
-        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
-
-        if (file_exists($dxvk)) {
-            return trim(file_get_contents($dxvk));
-        }
-
-        return '';
-    }
-
-    public function versionDxvkRemote()
-    {
-        if ($this->config->get('script', 'dxvk_version')) {
-            return $this->config->get('script', 'dxvk_version');
-        }
-
-        static $version;
-
-        if (null === $version) {
-            $version = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
-        }
-
-        return $version;
-    }
-
-    public function updateDxvk()
-    {
-        if (!Network::isConnected() || !$this->config->isDxvk() || !file_exists($this->config->wine('WINEPREFIX'))) {
-            return false;
-        }
-
-        $this->updateDxvkConfig();
-
-        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
-        $log  = $this->config->wine('WINEPREFIX') . "/winetricks.log";
-
-        if (file_exists($log)) {
-            $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
-                function ($n) {return !$n && $n !== 'dxvk';});
-            file_put_contents($log, implode("\n", $winetricks));
-        }
-
-        $newVersion = $this->versionDxvkRemote();
-        $oldVersion = $this->versionDxvk();
-
-        if ($newVersion !== $oldVersion) {
-            (new Wine($this->config, $this->command))->winetricks([$this->config->get('script', 'dxvk_version')?:'dxvk']);
-            file_put_contents($dxvk, $newVersion);
 
             return true;
         }
@@ -6161,6 +6083,7 @@ class WinePrefix {
     private $update;
     private $event;
     private $replaces;
+    private $network;
     private $log;
     private $buffer;
     private $created = false;
@@ -6182,6 +6105,7 @@ class WinePrefix {
         $this->fs       = new FileSystem($this->config, $this->command);
         $this->update   = new Update($this->config, $this->command);
         $this->replaces = new Replaces($this->config, $this->command, $this->fs, $this->system, $this->monitor);
+        $this->network  = new Network($this->config, $this->command);
     }
 
     public function log($text)
@@ -6336,17 +6260,26 @@ class WinePrefix {
 
 
             /**
-             * Install latest dxvk (d3d11.dll and dxgi.dll)
+             * Install latest dxvk (d3d10.dll, d3d10_1.dll, d3d11.dll, dxgi.dll)
              */
             if ($this->config->isDxvk()) {
                 app('start')->getPatch()->create(function () {
-                    if ($this->update->updateDxvk()) {
-                        $dxvk = $this->update->versionDxvk();
-                        $this->log("DXVK updated to {$dxvk}.");
-                    }
+                    (new DXVK($this->config, $this->command, $this->network))->update(function ($text) {$this->log($text);});
+                });
+            }
+            app()->getCurrentScene()->setProgress(87);
+
+
+            /**
+             * Install latest d9vk (d3d9.dll)
+             */
+            if ($this->config->isD9vk()) {
+                app('start')->getPatch()->create(function () {
+                    (new D9VK($this->config, $this->command, $this->network))->update(function ($text) {$this->log($text);});
                 });
             }
             app()->getCurrentScene()->setProgress(90);
+
 
             /**
              * Fired hooks
@@ -6374,7 +6307,7 @@ class WinePrefix {
          * Update configs
          */
         $this->update->updateConfig();
-        $this->update->updateDxvkConfig();
+        (new DXVK($this->config, $this->command, $this->network))->updateDxvkConfig();
 
 
         /**
@@ -7760,7 +7693,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install x11-xserver-utils");
         }
 
-        if ($apps['ldconfig'] && !$libs['libvulkan1']['status'] && $this->config->isDxvk()) {
+        if ($apps['ldconfig'] && !$libs['libvulkan1']['status'] && ($this->config->isDxvk() || $this->config->isD9vk())) {
             $isOk = false;
             $this->log('');
             $this->log('Require install libvulkan1.');
@@ -7778,7 +7711,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             $this->log("sudo apt-get install libfuse2 libfuse2:i386");
         }
 
-        if ($this->config->isDxvk()) {
+        if ($this->config->isDxvk() || $this->config->isD9vk()) {
 
             $driver = app('start')->getDriver()->getVersion();
 
@@ -7813,7 +7746,7 @@ apt-get install wine32 wine binutils unzip cabextract p7zip-full unrar-free wget
             }
         }
 
-        if ($this->config->isEsync() || $this->config->isDxvk()) {
+        if ($this->config->isEsync() || $this->config->isDxvk() || $this->config->isD9vk()) {
             $currentUlimit     = $this->system->getUlimitSoft();
             $recommendedUlimit = 200000;
 
@@ -8546,7 +8479,7 @@ class Task
 
         $root = $this->config->getRootDir();
 
-        if (!$this->config->isDxvk() || $this->config->getBool('script', 'dxvk_d3d10')) {
+        if (!($this->config->isDxvk() || $this->config->isD9vk()) || $this->config->getBool('script', 'dxvk_d3d10')) {
             $mesa = $this->system->getMesaVersion();
 
             if ($mesa) {
@@ -11846,6 +11779,292 @@ class Driver
 
 
 
+class DXVK
+{
+    private $config;
+    private $command;
+    private $network;
+
+    /**
+     * DXVK constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param Network $network
+     */
+    public function __construct(Config $config, Command $command, Network $network)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->network = $network;
+    }
+
+    public function version()
+    {
+        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
+
+        if (file_exists($dxvk)) {
+            return trim(file_get_contents($dxvk));
+        }
+
+        return '';
+    }
+
+    public function versionRemote()
+    {
+        if ($this->config->get('script', 'dxvk_version')) {
+            return $this->config->get('script', 'dxvk_version');
+        }
+
+        static $version;
+
+        if (null === $version) {
+            $version = trim($this->network->get('https://raw.githubusercontent.com/doitsujin/dxvk/master/RELEASE'), " \t\n\r");
+        }
+
+        return $version;
+    }
+
+    /**
+     * @param callable|null $logCallback
+     * @return bool
+     */
+    public function update($logCallback = null)
+    {
+        if (!Network::isConnected() || !$this->config->isDxvk() || !file_exists($this->config->wine('WINEPREFIX'))) {
+            return false;
+        }
+
+        $oldVersion = $this->version();
+
+        if ('' !== $oldVersion && false === $this->config->isDxvkAutoupdate()) {
+            return false;
+        }
+
+        $newVersion = $this->versionRemote();
+
+        $this->updateDxvkConfig();
+
+        $dxvk = $this->config->wine('DRIVE_C') . '/dxvk';
+        $log  = $this->config->wine('WINEPREFIX') . '/winetricks.log';
+
+        if (file_exists($log)) {
+            $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
+                function ($n) {return !$n && $n !== 'dxvk';});
+            file_put_contents($log, implode("\n", $winetricks));
+        }
+
+        if ($newVersion !== $oldVersion) {
+            (new Wine($this->config, $this->command))->winetricks([$this->config->get('script', 'dxvk_version')?:'dxvk']);
+            file_put_contents($dxvk, $newVersion);
+
+            if ($logCallback) {
+                $logCallback("DXVK updated to {$newVersion}.");
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function updateDxvkConfig()
+    {
+        if (!($this->config->isDxvk() || $this->config->isD9vk())) {
+            return false;
+        }
+
+        if (!file_exists($this->config->getDxvkConfFile())) {
+            file_put_contents($this->config->getDxvkConfFile(), $this->config->getDefaultDxvkConfig());
+        }
+
+        if (!file_exists($this->config->getDxvkConfFile())) {
+            return false;
+        }
+
+        $currentConfig = trim(file_get_contents($this->config->getDxvkConfFile()));
+        $defaultConfig = explode("\n", $this->config->getDefaultDxvkConfig());
+        $newConfig     = [];
+        $params        = [];
+
+        foreach (explode("\n", $currentConfig) as $line) {
+            $line = trim($line);
+            if (!Text::startsWith($line, '#')) {
+                $item = explode('=', $line);
+                $name = trim(reset($item));
+                $params[$name] = $line;
+            }
+        }
+
+        foreach ($defaultConfig as $line) {
+            $newConfig[] = $line;
+
+            if (count($params) > 0) {
+                $line = trim($line, " \t\n\r\0\x0B#");
+                $item = explode('=', $line);
+                $name = trim(reset($item));
+
+                if (isset($params[$name]) && $params[$name] !== null) {
+                    $newConfig[] = '';
+                    $newConfig[] = $params[$name];
+                    unset($params[$name]);
+                }
+            }
+        }
+
+        if (count($params) > 0) {
+            $newConfig[] = '';
+            $newConfig[] = '';
+            $newConfig[] = '# Deprecated values.';
+            $newConfig[] = '';
+            foreach ($params as $line) {
+                $newConfig[] = $line;
+            }
+        }
+
+        $config = trim(implode("\n", $newConfig));
+
+        if (md5($config) !== md5($currentConfig)) {
+            file_put_contents($this->config->getDxvkConfFile(), $config);
+            return true;
+        }
+
+        return false;
+    }
+}
+
+
+
+class D9VK
+{
+    private $config;
+    private $command;
+    private $network;
+
+    /**
+     * D9VK constructor.
+     * @param Config $config
+     * @param Command $command
+     * @param Network $network
+     */
+    public function __construct(Config $config, Command $command, Network $network)
+    {
+        $this->command = $command;
+        $this->config  = $config;
+        $this->network = $network;
+    }
+
+    public function version()
+    {
+        $d9vk = $this->config->wine('DRIVE_C') . '/d9vk';
+
+        if (file_exists($d9vk)) {
+            return trim(file_get_contents($d9vk));
+        }
+
+        return '';
+    }
+
+    public function versionRemote()
+    {
+        if ($this->config->get('script', 'd9vk_version')) {
+            return $this->config->get('script', 'd9vk_version');
+        }
+
+        static $version;
+
+        if (null === $version) {
+            if ($version = $this->network->getJSON('https://api.github.com/repos/Joshua-Ashton/d9vk/releases')) {
+                $version = reset($version);
+                $version = $version['tag_name'];
+            } else {
+                $version = '';
+            }
+        }
+
+        return $version;
+    }
+
+    /**
+     * @param callable|null $logCallback
+     * @return bool
+     */
+    public function update($logCallback = null)
+    {
+        if (!Network::isConnected() || !$this->config->isD9vk() || !file_exists($this->config->wine('WINEPREFIX'))) {
+            return false;
+        }
+
+        $branch = $this->config->get('script', 'd9vk_version')?:'d9vk_master';
+        $oldVersion = $this->version();
+
+        if ('' !== $oldVersion && false === $this->config->isD9vkAutoupdate()) {
+            return false;
+        }
+
+        $newVersion = 'd9vk_master' === $branch ? $this->getLatestBuildNumber() : $this->versionRemote();
+
+        (new DXVK($this->config, $this->command, $this->network))->updateDxvkConfig();
+
+        $d9vk = $this->config->wine('DRIVE_C') . '/d9vk';
+        $log  = $this->config->wine('WINEPREFIX') . '/winetricks.log';
+
+        if (file_exists($log)) {
+            $winetricks = array_filter(array_map('trim', explode("\n", file_get_contents($log))),
+                function ($n) {return !$n && $n !== 'd9vk';});
+            file_put_contents($log, implode("\n", $winetricks));
+        }
+
+        if ($newVersion !== $oldVersion) {
+            (new Wine($this->config, $this->command))->winetricks([$branch]);
+            file_put_contents($d9vk, $newVersion);
+
+            if ($logCallback) {
+                $logCallback("D9VK updated to {$newVersion}.");
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getLatestBuildNumber()
+    {
+        $url = 'https://git.froggi.es/joshua/d9vk/-/jobs/artifacts/master/download?job=d9vk';
+
+        try {
+            $request  = new \Rakit\Curl\Curl($url);
+            $request->header('User-Agent', $this->config->getContextOptions('User-Agent'));
+            $response = $request->get();
+        } catch (ErrorException $e) {
+            try {
+                sleep(1);
+                $response = $request->get();
+            } catch (ErrorException $e) {
+                try {
+                    sleep(3);
+                    $response = $request->get();
+                } catch (ErrorException $e) {
+                    return '';
+                }
+            }
+        }
+
+        if ($request && !$response->error()) {
+            $headers = $response->getHeaders();
+            $version = array_filter(explode('-/jobs', $headers['location']));
+            $version = array_filter(explode('/', end($version)));
+            $version = reset($version);
+
+            return "{$version} build";
+        }
+
+        return '';
+    }
+}
+
+
+
 abstract class AbstractPlugin
 {
     /** @var Event */
@@ -13489,8 +13708,9 @@ class TweaksScene extends AbstractScene
                         }
                     }
                     if ('dxvk' === $type['id']) {
-                        $current = app('start')->getUpdate()->versionDxvk();
-                        $remote  = app('start')->getUpdate()->versionDxvkRemote();
+                        $dxvk    = new DXVK(app('start')->getConfig(), app('start')->getCommand(), app('start')->getNetwork());
+                        $current = $dxvk->version();
+                        $remote  = $dxvk->versionRemote();
 
                         if ($current === $remote) {
                             $popup = $this->addWidget(new PopupInfoWidget($this->getWindow()));
@@ -13511,7 +13731,7 @@ class TweaksScene extends AbstractScene
                                 ->setActive(true)
                                 ->show();
                             $popup->onEscEvent(function () use (&$popup) { $this->removeWidget($popup->hide()); });
-                            $popup->onEnterEvent(function ($flag) use (&$popup) {
+                            $popup->onEnterEvent(function ($flag) use (&$popup, &$dxvk) {
                                 $this->removeWidget($popup->hide());
 
                                 if ($flag) {
@@ -13522,7 +13742,7 @@ class TweaksScene extends AbstractScene
                                         ->setActive(true)
                                         ->show();
 
-                                    $result = app('start')->getUpdate()->updateDxvk();
+                                    $result = $dxvk->update();
 
                                     $this->removeWidget($popup->hide());
 
@@ -13623,6 +13843,8 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_patches',                  'name' => '[' . ($config->isGenerationPatchesMode() ? 'ON] ' : 'OFF]') . ' Create patches'],
             ['id' => 'config_dxvk',                     'name' => '[' . ($config->isDxvk() ? 'ON] ' : 'OFF]') . ' DXVK enable'],
             ['id' => 'config_dxvk_version',             'name' => '(' . ($config->get('script', 'dxvk_version') ?: 'latest') . ')' . ' DXVK version'],
+            ['id' => 'config_d9vk',                     'name' => '[' . ($config->isD9vk() ? 'ON] ' : 'OFF]') . ' D9VK enable'],
+            ['id' => 'config_d9vk_version',             'name' => '(' . ($config->get('script', 'd9vk_version') ?: 'latest') . ')' . ' D9VK version'],
             ['id' => 'config_esync',                    'name' => '[' . ($config->isEsync() ? 'ON] ' : 'OFF]') . ' ESYNC enable'],
             ['id' => 'config_csmt',                     'name' => '[' . ($config->getBool('script', 'csmt') ? 'ON] ' : 'OFF]') . ' CSMT enable'],
             ['id' => 'config_pulse',                    'name' => '[' . ($config->getBool('script', 'pulse') ? 'ON] ' : 'OFF]') . ' Pulse enable'],
@@ -13635,6 +13857,7 @@ class ConfigScene extends AbstractScene
             ['id' => 'config_dxvk_d3d10',               'name' => '[' . ($config->getBool('script', 'dxvk_d3d10') ? 'ON] ' : 'OFF]') . ' DXVK D3D10'],
             ['id' => 'config_autoupdate',               'name' => '[' . ($config->isScriptAutoupdate() ? 'ON] ' : 'OFF]') . ' SCRIPT autoupdate'],
             ['id' => 'config_dxvk_autoupdate',          'name' => '[' . ($config->isDxvkAutoupdate() ? 'ON] ' : 'OFF]') . ' DXVK autoupdate'],
+            ['id' => 'config_d9vk_autoupdate',          'name' => '[' . ($config->isD9vkAutoupdate() ? 'ON] ' : 'OFF]') . ' D9VK autoupdate'],
             ['id' => 'config_faudio_autoupdate',        'name' => '[' . ($config->getBool('script', 'faudio_autoupdate') ? 'ON] ' : 'OFF]') . ' FAudio autoupdate'],
             ['id' => 'config_dumbxinputemu_autoupdate', 'name' => '[' . ($config->getBool('script', 'dumbxinputemu_autoupdate') ? 'ON] ' : 'OFF]') . ' Dumbxinputemu autoupdate'],
 
@@ -13734,6 +13957,12 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
+            if ('config_d9vk' === $item['id']) {
+                $config->set('script', 'd9vk', $config->isD9vk() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
             if ('config_csmt' === $item['id']) {
                 $config->set('script', 'csmt', $config->getBool('script', 'csmt') ? 0 : 1);
                 $config->save();
@@ -13794,6 +14023,12 @@ class ConfigScene extends AbstractScene
                 app()->showConfig();
             }
 
+            if ('config_d9vk_autoupdate' === $item['id']) {
+                $config->set('script', 'd9vk_autoupdate', $config->isD9vkAutoupdate() ? 0 : 1);
+                $config->save();
+                app()->showConfig();
+            }
+
             if ('config_faudio_autoupdate' === $item['id']) {
                 $config->set('script', 'faudio_autoupdate', $config->getBool('script', 'faudio_autoupdate') ? 0 : 1);
                 $config->save();
@@ -13835,6 +14070,41 @@ class ConfigScene extends AbstractScene
                     $select->onEnterEvent(function ($type) use (&$select, &$config) {
                         $this->removeWidget($select->hide());
                         $config->set('script', 'dxvk_version', $type['id']);
+                        $config->save();
+                        app()->showConfig();
+                    });
+                }
+            }
+
+            if ('config_d9vk_version' === $item['id']) {
+
+                app('start')->getUpdate()->downloadWinetricks();
+                $winetricks = $config->getRootDir() . '/winetricks';
+
+                if (file_exists($winetricks)) {
+
+                    $versions = explode("\n", file_get_contents($winetricks));
+                    $versions = array_filter($versions, function ($line) { return strpos($line, 'load_d9vk') !== false && strpos($line, 'load_d9vk()') === false; });
+                    $versions = array_map(function ($line) { return str_replace('load_', '', trim($line, " \t\n\r\0\x0B(){}[].:")); }, $versions);
+                    natsort($versions);
+                    $versions = array_reverse($versions);
+                    $versions = array_map(function ($row) { return ['id' => $row, 'name' => $row]; }, $versions);
+                    $versions = array_merge([['id' => '', 'name' => 'latest']], $versions);
+
+                    $select = $this->addWidget(new PopupSelectWidget($this->window));
+                    $select
+                        ->setItems($versions)
+                        ->border()
+                        ->setFullMode()
+                        ->backAccess()
+                        ->maxSize(null, 4)
+                        ->offset($xy['x'], $xy['y'])
+                        ->setActive(true)
+                        ->show();
+                    $select->onEscEvent(function () use (&$select) { $this->removeWidget($select->hide()); });
+                    $select->onEnterEvent(function ($type) use (&$select, &$config) {
+                        $this->removeWidget($select->hide());
+                        $config->set('script', 'd9vk_version', $type['id']);
                         $config->save();
                         app()->showConfig();
                     });
@@ -14316,8 +14586,10 @@ class InfoWidget extends AbstractWidget {
             if ('start' === $item['id']) {
 
                 /** @var Config $config */
-                $config = $item['config'];
-                $update = app('start')->getUpdate();
+                $config  = $item['config'];
+                $update  = app('start')->getUpdate();
+                $command = app('start')->getCommand();
+                $network = app('start')->getNetwork();
 
                 if (!$config) {
                     return;
@@ -14327,6 +14599,9 @@ class InfoWidget extends AbstractWidget {
 
                 $fullPath = implode('/', array_filter([$config->getGamePath(), $config->getGameAdditionalPath(), $config->getGameExe()]));
 
+                $dxvk = new DXVK($config, $command, $network);
+                $d9vk = new D9VK($config, $command, $network);
+
                 $items = [
                     'File:    ' . basename($config->getConfigFile()),
                     "Path:    \"C:/{$fullPath}\" ". $config->getGameArgs(),
@@ -14335,7 +14610,8 @@ class InfoWidget extends AbstractWidget {
                     'Sandbox: ' . ($config->isSandbox() ? 'on' : 'off'),
                     'Sound:   ' . ($config->isPulse() ? 'pulse' : 'alsa'),
                     'CSMT:    ' . ($config->isCsmt() ? 'on' : 'off'),
-                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($dxvkVersion = $update->versionDxvk()) ? "({$dxvkVersion})" : '') : 'off'),
+                    'DXVK:    ' . ($config->isDxvk() ? 'on ' . (($version = $dxvk->version()) ? "({$version})" : '') : 'off'),
+                    'D9VK:    ' . ($config->isD9vk() ? 'on ' . (($version = $d9vk->version()) ? "({$version})" : '') : 'off'),
                     'PBA:     ' . ($config->isPBA() ? 'on' : 'off'),
                     'Esync:   ' . ($config->isEsync() ? 'on' : 'off'),
                 ];
@@ -14704,6 +14980,8 @@ class InfoWidget extends AbstractWidget {
                 $window->erase()->border()->title($item['name']);
 
                 $config  = app('start')->getConfig();
+                $command = app('start')->getCommand();
+                $network = app('start')->getNetwork();
                 $update  = app('start')->getUpdate();
 
                 $current = $update->version();
@@ -14719,8 +14997,9 @@ class InfoWidget extends AbstractWidget {
                 ];
 
                 if ($config->isDxvk()) {
-                    $currentDxvk = $update->versionDxvk();
-                    $remoteDxvk  = $update->versionDxvkRemote();
+                    $dxvk = new DXVK($config, $command, $network);
+                    $currentDxvk = $dxvk->version();
+                    $remoteDxvk  = $dxvk->versionRemote();
                     $autoDxvk    = $config->isDxvkAutoupdate() ? 'on' : 'off';
 
                     $items = array_merge(
@@ -15785,6 +16064,7 @@ class Start
         $this->registry   = new Registry($this->config, $this->command, $this->fs, $this->wine, $this->replaces);
         $this->plugins    = new Plugins($this->event, $this->config, $this->command, $this->fs, $this->system, $this->replaces, $this->monitor);
         $this->driver     = new Driver($this->config, $this->command, $this->system);
+        $this->network    = new Network($this->config, $this->command);
 
         $this->init();
     }
@@ -16028,6 +16308,14 @@ class Start
     public function getDriver()
     {
         return $this->driver;
+    }
+
+    /**
+     * @return Network
+     */
+    public function getNetwork()
+    {
+        return $this->network;
     }
 }
 
