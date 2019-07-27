@@ -5063,6 +5063,19 @@ resolution = "auto"
 # dxgi.syncInterval = -1
 
 
+# Toggles asynchronous present.
+#
+# Off-loads presentation to the queue submission thread in
+# order to reduce stalling on the main rendering thread and
+# improve performance.
+#
+# Supported values:
+# - Auto: Enable on certain drivers
+# - True / False: Always enable / disable
+
+# dxgi.asyncPresent = Auto
+
+
 # Enables or dsables d3d10 support.
 # 
 # Supported values: True, False
@@ -5148,6 +5161,17 @@ resolution = "auto"
 # Supported values: True, False
 
 # d3d11.zeroWorkgroupMemory = False
+
+
+# Enables the dedicated transfer queue if available
+#
+# If enabled, resource uploads will be performed on the
+# transfer queue rather than the graphics queue. This
+# may improve texture streaming performance.
+#
+# Supported values: True, False
+
+# dxvk.enableTransferQueue = True
 
 
 # Sets number of pipeline compiler threads.
