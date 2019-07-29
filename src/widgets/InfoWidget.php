@@ -67,7 +67,7 @@ class InfoWidget extends AbstractWidget {
                 $fullPath = implode('/', array_filter([$config->getGamePath(), $config->getGameAdditionalPath(), $config->getGameExe()]));
 
                 $dxvk = new DXVK($config, $command, $network);
-                $d9vk = new D9VK($config, $command, $network);
+                $d9vk = new D9VK($config, $command, $network, app('start')->getFileSystem(), app('start')->getWine());
 
                 $items = [
                     'File:    ' . basename($config->getConfigFile()),

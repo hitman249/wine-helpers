@@ -5,18 +5,24 @@ class D9VK
     private $config;
     private $command;
     private $network;
+    private $fs;
+    private $wine;
 
     /**
      * D9VK constructor.
      * @param Config $config
      * @param Command $command
      * @param Network $network
+     * @param FileSystem $fs
+     * @param Wine $wine
      */
-    public function __construct(Config $config, Command $command, Network $network)
+    public function __construct(Config $config, Command $command, Network $network, FileSystem $fs, Wine $wine)
     {
         $this->command = $command;
         $this->config  = $config;
         $this->network = $network;
+        $this->fs      = $fs;
+        $this->wine    = $wine;
     }
 
     public function version()
@@ -38,16 +44,25 @@ class D9VK
 
         static $version;
 
-        if (null === $version) {
-            if ($version = $this->network->getJSON('https://api.github.com/repos/Joshua-Ashton/d9vk/releases')) {
-                $version = reset($version);
-                $version = $version['tag_name'];
-            } else {
-                $version = '';
-            }
+        if (null === $version && ($latest = $this->getLatest())) {
+            $version = $latest['version'];
         }
 
         return $version;
+    }
+
+    /**
+     * @return array
+     */
+    public function getRepoData()
+    {
+        static $data;
+
+        if (null === $data) {
+            $data = $this->network->getJSON('https://api.github.com/repos/Joshua-Ashton/d9vk/releases');
+        }
+
+        return $data;
     }
 
     /**
@@ -60,14 +75,14 @@ class D9VK
             return false;
         }
 
-        $branch = $this->config->get('script', 'd9vk_version')?:'d9vk_master';
+        $branch = $this->config->get('script', 'd9vk_version')?:'';
         $oldVersion = $this->version();
 
         if ('' !== $oldVersion && false === $this->config->isD9vkAutoupdate()) {
             return false;
         }
 
-        $newVersion = 'd9vk_master' === $branch ? $this->getLatestBuildNumber() : $this->versionRemote();
+        $newVersion = $this->versionRemote();
 
         (new DXVK($this->config, $this->command, $this->network))->updateDxvkConfig();
 
@@ -80,12 +95,14 @@ class D9VK
             file_put_contents($log, implode("\n", $winetricks));
         }
 
-        if ($newVersion !== $oldVersion) {
-            (new Wine($this->config, $this->command))->winetricks([$branch]);
-            file_put_contents($d9vk, $newVersion);
+        if ($newVersion !== $oldVersion && $newVersion) {
+            if ($this->install($branch, $logCallback)) {
+                file_put_contents($d9vk, $newVersion);
+                $this->wine->winetricks(['d3dcompiler_43', 'd3dx9']);
 
-            if ($logCallback) {
-                $logCallback("D9VK updated to {$newVersion}.");
+                if ($logCallback) {
+                    $logCallback("D9VK updated to {$newVersion}.");
+                }
             }
 
             return true;
@@ -94,37 +111,111 @@ class D9VK
         return false;
     }
 
-    public function getLatestBuildNumber()
+    /**
+     * @param null|string $version
+     * @param null|callable $logCallback
+     * @return bool
+     */
+    public function install($version = null, $logCallback = null)
     {
-        $url = 'https://git.froggi.es/joshua/d9vk/-/jobs/artifacts/master/download?job=d9vk';
+        $releases = $this->getList();
+        $release  = $version && isset($releases[$version]) ? $releases[$version] : $this->getLatest();
 
-        try {
-            $request  = new \Rakit\Curl\Curl($url);
-            $request->header('User-Agent', $this->config->getContextOptions('User-Agent'));
-            $response = $request->get();
-        } catch (ErrorException $e) {
-            try {
-                sleep(1);
-                $response = $request->get();
-            } catch (ErrorException $e) {
-                try {
-                    sleep(3);
-                    $response = $request->get();
-                } catch (ErrorException $e) {
-                    return '';
+        if (!$release) {
+            return false;
+        }
+
+        $pathFile = $this->fs->download($release['url'], $this->config->getCacheDir());
+        $dir      = $this->config->getCacheDir() . '/d9vk';
+
+        $this->fs->unpack($pathFile, $dir);
+
+        $dlls = [];
+
+        if (file_exists($this->config->getWineSystem32Folder())) {
+            foreach (glob("{$dir}/x32/*.dll") as $path) {
+                $fileName = basename($path);
+                $out = $this->config->getWineSystem32Folder() . "/{$fileName}";
+                if (file_exists($out)) {
+                    $this->fs->rm($out);
+                }
+
+                $this->fs->cp($path, $out);
+
+                if (!in_array($fileName, $dlls, true)) {
+                    $dlls[] = $fileName;
+                }
+            }
+        }
+        if (file_exists($this->config->getWineSyswow64Folder())) {
+            foreach (glob("{$dir}/x64/*.dll") as $path) {
+                $fileName = basename($path);
+                $out = $this->config->getWineSyswow64Folder() . "/{$fileName}";
+                if (file_exists($out)) {
+                    $this->fs->rm($out);
+                }
+
+                $this->fs->cp($path, $out);
+
+                if (!in_array($fileName, $dlls, true)) {
+                    $dlls[] = $fileName;
                 }
             }
         }
 
-        if ($request && !$response->error()) {
-            $headers = $response->getHeaders();
-            $version = array_filter(explode('-/jobs', $headers['location']));
-            $version = array_filter(explode('/', end($version)));
-            $version = reset($version);
+        if ($dlls) {
+            foreach ($dlls as $dll) {
+                if ($logCallback) {
+                    $logCallback("Register {$dll}");
+                }
 
-            return "{$version} build";
+                $this->register($dll);
+            }
         }
 
-        return '';
+        if (file_exists($dir)) {
+            $this->fs->rm($dir);
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array
+     */
+    public function getList()
+    {
+        $releases = [];
+
+        foreach ($this->getRepoData() as $release) {
+            $item = [
+                'version' => $release['tag_name'],
+            ];
+
+            foreach ($release['assets'] as $asset) {
+                $item['url'] = $asset['browser_download_url'];
+                break;
+            }
+
+            $releases[$item['version']] = $item;
+        }
+
+        return $releases;
+    }
+
+    /**
+     * @return array|null
+     */
+    public function getLatest()
+    {
+        $releases = $this->getList();
+
+        return $releases ? reset($releases) : null;
+    }
+
+    public function register($fileName)
+    {
+        $this->wine->regsvr32([$fileName]);
+        $this->wine->run(['reg', 'add', 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides', '/v', $fileName, '/d', 'native', '/f']);
     }
 }

@@ -104,6 +104,7 @@ class Command
             'export LD_LIBRARY_PATH'  => "\$LD_LIBRARY_PATH:{$additionalWineLibs}",
             'export DXVK_CONFIG_FILE' => $this->config->getDxvkConfigFile(),
             'export PROTON_LOG'       => $this->config->getLogsDir() . '/proton.log',
+            'export XDG_CACHE_HOME'   => $this->config->getCacheDir(),
         ];
 
         if ($locale = $this->getLocale()) {
@@ -126,6 +127,7 @@ class Command
 
                 $overrides   = explode(';', $exported['export WINEDLLOVERRIDES']);
                 $overrides[] = 'nvapi64,nvapi=';
+                $overrides[] = 'd3d9=n';
 
                 $exported['export WINEDLLOVERRIDES'] = implode(';', $overrides);
             }

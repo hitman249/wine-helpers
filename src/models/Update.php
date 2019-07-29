@@ -2,7 +2,7 @@
 
 class Update
 {
-    private $version = '0.84';
+    private $version = '0.85';
     private $command;
     private $config;
     private $network;
@@ -50,7 +50,7 @@ class Update
         /**
          * Autoupdate d9vk
          */
-        (new D9VK($this->config, $this->command, $this->network))->update();
+        (new D9VK($this->config, $this->command, $this->network, app('start')->getFileSystem(), app('start')->getWine()))->update();
 
 
         /**

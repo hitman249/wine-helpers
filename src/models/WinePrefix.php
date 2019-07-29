@@ -203,7 +203,8 @@ class WinePrefix {
              */
             if ($this->config->isD9vk()) {
                 app('start')->getPatch()->create(function () {
-                    (new D9VK($this->config, $this->command, $this->network))->update(function ($text) {$this->log($text);});
+                    (new D9VK($this->config, $this->command, $this->network, app('start')->getFileSystem(), app('start')->getWine()))
+                        ->update(function ($text) {$this->log($text);});
                 });
             }
             app()->getCurrentScene()->setProgress(90);

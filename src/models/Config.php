@@ -199,13 +199,31 @@ class Config {
         return $this->wine('WINEPREFIX');
     }
 
+    public function isWineArch64()
+    {
+        return $this->wine('WINEARCH') === 'win64';
+    }
+
+    public function isWineArch32()
+    {
+        return !$this->isWineArch64();
+    }
+
     public function getWineSystem32Folder()
     {
+        if ($this->isWineArch64()) {
+            return $this->wine('DRIVE_C') . '/windows/syswow64';
+        }
+
         return $this->wine('DRIVE_C') . '/windows/system32';
     }
 
     public function getWineSyswow64Folder()
     {
+        if ($this->isWineArch64()) {
+            return $this->wine('DRIVE_C') . '/windows/system32';
+        }
+
         return $this->wine('DRIVE_C') . '/windows/syswow64';
     }
 
@@ -510,7 +528,7 @@ dxvk_d3d10 = 0
 ;
 ; Download the latest D9VK.
 ; https://github.com/Joshua-Ashton/d9vk
-; D9vk versions: d9vk_master, d9vk010, d9vk011 other. Empty from latest.
+; D9vk versions: d9vk010, d9vk011 other. Empty from latest.
 ;
 d9vk = 0
 d9vk_version = ""
