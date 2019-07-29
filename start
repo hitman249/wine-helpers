@@ -5552,7 +5552,7 @@ class Wine {
 
 class Update
 {
-    private $version = '0.84';
+    private $version = '0.85';
     private $command;
     private $config;
     private $network;
